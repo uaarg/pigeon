@@ -1,0 +1,11 @@
+Dependencies
+===========
+
+Python 3.2.3
+Pillow v.2.3.0 (PIL) - for opening and processing images
+SIP 4.15.1 - for PyQt's python bindings
+PyQt 5.2
+Qt 5.2.1
+
+Pyinotify - for watching directories (linux-only)
+https://github.com/seb-m/pyinotify
