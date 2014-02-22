@@ -1,0 +1,11 @@
+time= -542018493
+phi= 0.116798
+psi= 0.622656
+theta= 0.129912
+alt= 1997931.750000
+course= 0.000000
+speed= 0.000000
+utm_east= 304792.812500
+utm_north= 5376474.500000
+pixel_per_meter= 0.001184
+ppm_difference= 2.141271

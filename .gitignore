@@ -1,0 +1,7 @@
+# Vim
+*~
+*.sw*
+
+# Python
+*.pyc
+__pycache__/
