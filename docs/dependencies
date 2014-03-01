@@ -9,3 +9,20 @@ Qt 5.2.1
 
 Pyinotify - for watching directories (linux-only)
 https://github.com/seb-m/pyinotify
+
+Installation
+------------
+Download the Qt5 installer first from http://qt-project.org/downloads
+Install Qt5. Your home directory is fine.
+Download and install SIP.
+Download and install PyQt.
+- When running confi`gure.py, you'll want to use the --qmake flag to point to where the utility qmake is. This will be in your Qt install directory; see the README in your Qt directory for details on where it is.
+
+You may have to change your PYTHONPATH enviroment variable to point to the place in your system that PyQt5 is installed in order to use the module.
+This can be done by putting
+export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
+in your ~/.profile or ~/.bashrc file.
+
+To check your PYTHONPATH, open up a python session and type in:
+import sys
+print(sys.path)
