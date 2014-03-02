@@ -12,18 +12,27 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 # So for classes that are part of QtWidgets, I've specifically stated QtWidget.Class() for now.
 from PyQt5.QtWidgets import *
 
-
-class GroundStation(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, sysargs):
-        super(GroundStation, self).__init__()
+        super(MainWindow, self).__init__()
+
+        self.sysargs = sysargs
 
         # Set up window
         self.setWindowTitle("pigeon")
         self.setGeometry(300, 300, 250, 150)
 
+        gs = GroundStation(sysargs)
+        self.setCentralWidget(gs)
+        gs.show()
+
+class GroundStation(QtWidgets.QWidget):
+    def __init__(self, sysargs):
+        super(GroundStation, self).__init__()
+
         # Set up main display area
         self.imageLabel = QtWidgets.QLabel()
-        self.setCentralWidget(self.imageLabel)
+        self.imageLabel.show()
 
         # Set up cursor
         self.cursor = QCursor(Qt.CrossCursor)
@@ -62,8 +71,8 @@ class GroundStation(QtWidgets.QMainWindow):
 def main():
     print("Ground station running.")
     app = QtWidgets.QApplication(sys.argv)
-    gs = GroundStation(sys.argv)
-    gs.show()
+    mainwin = MainWindow(sys.argv)
+    mainwin.show()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
