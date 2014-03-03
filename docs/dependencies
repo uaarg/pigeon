@@ -57,7 +57,7 @@ Where x.x is your python version.
 To get in and out of your virtual environment:
 
 > workon pigeon-virtualenv
-> (install libraries, do stuff...)
+> (install libraries, work on code, do stuff...)
 > deactivate
 
 All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.
@@ -77,9 +77,9 @@ Navigate to the directory where you downloaded SIP. Run the following:
 > make install 
 
 ### Install PyQt ###
-Navigate to the directory where you downloaded SIP.
+Navigate to the directory where you downloaded PyQt.
 
-You'll need to specify where Qt's qmake file is. Run the following:
+Run configuration.py to generate the Makefile for PyQt. You'll need to specify where Qt's qmake file is for this to work. Run the following:
 
 > configure.py --qmake /path/to/qmake
 
@@ -90,9 +90,12 @@ After that, run:
 > make
 > sudo make install
 
-You may have to change your PYTHONPATH environment variable to point to the place in your system that PyQt5 is installed in order to use the module.
-This can be done by putting
-export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
+Afterwards, you may have to change your PYTHONPATH environment variable to point to the place in your system that PyQt5 is installed in order to use the module.
+If you set up a python virtualenv for pigeon and installed PyQt5 while in the virtualenv, this will be in the virtualenv folder. (eg.~/Envs/pigeon-virtualenv/lib/python3.2/site-packages/PyQt5)
+Otherwise, take a look at PyQt's configure.py to figure out where it installed itself.
+
+Changing the PYTHONPATH can be done by putting
+> export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
 in your ~/.profile or ~/.bashrc file.
 
 To check your PYTHONPATH, open up a python session and type in:
