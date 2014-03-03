@@ -1,5 +1,5 @@
 #!/bin/bash 
-#ssh uaarg@192.168.0.103
+#Written by Arshad Husain <husain3@ualberta.ca>
 currentTime=$(date +"%b-%d-%Y|%T")
 FILE=~/data/captured
 #echo $1
