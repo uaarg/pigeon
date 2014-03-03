@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 """
 Main interface for ground station.
 """
