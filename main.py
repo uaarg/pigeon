@@ -1,4 +1,3 @@
-#!/usr/bin/python
 
 """
 Main interface for ground station.
@@ -13,6 +12,9 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 from PyQt5.QtWidgets import *
 
 class MainWindow(QtWidgets.QMainWindow):
+    """
+    Main application window for the ground station.
+    """
     def __init__(self, sysargs):
         super(MainWindow, self).__init__()
 
@@ -22,17 +24,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("pigeon")
         self.setGeometry(300, 300, 250, 150)
 
-        gs = GroundStation(sysargs)
-        self.setCentralWidget(gs)
-        gs.show()
+        # Set up image viewer
+        self.imageView = ImageViewer(sysargs)
+        self.setCentralWidget(self.imageView)
 
-class GroundStation(QtWidgets.QWidget):
+        # Set up actions
+        self.initActions()
+
+        self.getImageCursorPosition()
+
+    def getImageCursorPosition(self):
+        self.imageCursorCoords = self.imageView.getCursorPosition()
+        print(self.imageCursorCoords)
+
+    def initActions(self):
+        self.exitAction = QtWidgets.QAction("&Exit", self)
+        self.exitAction.setShortcut('Ctrl+Q');
+        self.exitAction.triggered.connect(QtCore.QCoreApplication.instance().quit)
+
+class ImageViewer(QtWidgets.QLabel):
     def __init__(self, sysargs):
-        super(GroundStation, self).__init__()
+        super(ImageViewer, self).__init__()
 
         # Set up main display area
-        self.imageLabel = QtWidgets.QLabel()
-        self.imageLabel.show()
+        # self.imageLabel = QtWidgets.QLabel()
+        # self.imageLabel.show()
 
         # Set up cursor
         self.cursor = QCursor(Qt.CrossCursor)
@@ -59,16 +75,27 @@ class GroundStation(QtWidgets.QWidget):
                 QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
             else:
                 # Convert from QImage to QPixmap, and display
-                self.imageLabel.setPixmap(QPixmap.fromImage(image))
+                self.setPixmap(QPixmap.fromImage(image))
 
     def getCursorPosition(self):
         """
-        Gets the position of the mouse cursor on the image.
+        Gets the current position of the mouse cursor on the image.
+        Returns a list containing mouse coordinates on the image.
         """
         self.cursorPosition = QWidget.mapFromGlobal(self, self.cursor.pos())
+        coords = [self.cursorPosition.x(), self.cursorPosition.y()]
+        return coords
+    
+    def mousePressEvent(self, e):
+        """
+        Event handler for mouse clicks on image area.
+        """
+        print(self.getCursorPosition());
 
 
 def main():
+    import time
+
     print("Ground station running.")
     app = QtWidgets.QApplication(sys.argv)
     mainwin = MainWindow(sys.argv)
