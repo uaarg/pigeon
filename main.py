@@ -31,16 +31,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # Set up actions
         self.initActions()
 
-        self.getImageCursorPosition()
+        # Set up menus
+        self.initMenus()
 
-    def getImageCursorPosition(self):
-        self.imageCursorCoords = self.imageView.getCursorPosition()
-        print(self.imageCursorCoords)
+    def initMenus(self):
+        self.fileMenu = QtWidgets.QMenu("&File", self)
+        self.fileMenu.addAction(self.saveCoordsAction)
+        self.fileMenu.addAction(self.exitAction)
+        self.menuBar().addMenu(self.fileMenu)
+
 
     def initActions(self):
+        # Save coordinates
+        # self.saveCoordsAction = QtWidgets.QAction("&Save Coordinates", self, shortcut='Ctrl+S', triggered=self.saveCoords)
+        self.saveCoordsAction= QtWidgets.QAction("&Save Coordinates", self)
+        self.saveCoordsAction.setShortcut('Ctrl+S')
+        self.saveCoordsAction.triggered.connect(self.saveCoords)
+
+        # Exit
+        # self.exitAction = QtWidgets.QAction("&Exit", self, shortcut='Ctrl+Q', triggered=self.close)
         self.exitAction = QtWidgets.QAction("&Exit", self)
-        self.exitAction.setShortcut('Ctrl+Q');
-        self.exitAction.triggered.connect(QtCore.QCoreApplication.instance().quit)
+        self.exitAction.setShortcut('Ctrl+Q')
+        self.exitAction.triggered.connect(self.close)
+
+    def saveCoords(self):
+        self.imageView.saveCoords()
 
 class ImageViewer(QtWidgets.QLabel):
     def __init__(self, sysargs):
@@ -64,6 +79,9 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             self.openImage(self.imagePath)
 
+        # Set up storing coordinates
+        self.coords = []
+        self.coordsFilename = "coords.txt"
 
     def openImage(self, filename):
         """
@@ -91,7 +109,15 @@ class ImageViewer(QtWidgets.QLabel):
         Event handler for mouse clicks on image area.
         """
         print(self.getCursorPosition());
+        self.coords.append(self.getCursorPosition())
 
+    def saveCoords(self):
+        coords_file = open(self.coordsFilename, 'w')
+        for c in self.coords:
+            cstr = ("(%d, %d)\n" %(c[0], c[1]))
+            coords_file.write(cstr)
+        coords_file.close()
+        
 
 def main():
     import time
