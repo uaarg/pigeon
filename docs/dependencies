@@ -2,27 +2,102 @@ Dependencies
 ===========
 
 Python 3.2.3
+
+python3-dev package
+
 Pillow v.2.3.0 (PIL) - for opening and processing images
+
 SIP 4.15.1 - for PyQt's python bindings
+
 PyQt 5.2
+
 Qt 5.2.1
 
 Pyinotify - for watching directories (linux-only)
-https://github.com/seb-m/pyinotify
+(https://github.com/seb-m/pyinotify)
 
 Installation
 ------------
 Download the Qt5 installer first from http://qt-project.org/downloads
-Install Qt5. Your home directory is fine.
-Download and install SIP.
-Download and install PyQt.
-- When running confi`gure.py, you'll want to use the --qmake flag to point to where the utility qmake is. This will be in your Qt install directory; see the README in your Qt directory for details on where it is.
 
-You may have to change your PYTHONPATH enviroment variable to point to the place in your system that PyQt5 is installed in order to use the module.
-This can be done by putting
-export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
+Download SIP.
+
+Download PyQt.
+
+### Setting up Python ###
+This project requires Python 3.2, the python3-dev package, and the libraries listed above. If you just want to work on this project without worrying about affecting other python-based projects (which may have different versions of modules, libraries, python itself, etc...), it might be a good idea to use the tool virtualenv to set up a virtual Python environment before installing the libraries.
+
+For more details, see the following links:
+http://docs.python-guide.org/en/latest/dev/virtualenvs/
+
+http://www.virtualenv.org/en/latest/index.html
+
+http://virtualenvwrapper.readthedocs.org/en/latest/index.html
+
+I've also set up virtualenvwrapper in this example, which is a tool that organizes these virtual environments into one place.
+
+If you have the tool pip, you can install virtualenv easily:
+
+> pip install virtualenv
+> pip install virtualenvwrapper
+
+To configure virtualenvwrapper:
+
+> export WORKON_HOME=~/Envs
+> source /usr/local/bin/virtualenvwrapper.sh
+
+This will create a new folder called ~/Envs to put all of your virtual environments in and activate all the virtualenvwrapper commands. You'll also want to put those lines in your ~/.bashrc or your ~/.profile or whatever shell startup script you have.
+
+To create a new virtualenv, run:
+
+> mkvirtualenv -p /usr/bin/pythonx.x pigeon-virtualenv
+
+Where x.x is your python version.
+
+To get in and out of your virtual environment:
+
+> workon pigeon-virtualenv
+> (install libraries, work on code, do stuff...)
+> deactivate
+
+All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.
+
+If you want to get rid of the virtual environment:
+> rmvirtualenv pigeon-virtualenv
+
+### Install Qt5 ###
+Use the provided graphical installer. 
+Installing in your home directory is fine.
+
+### Install SIP ###
+Navigate to the directory where you downloaded SIP. Run the following:
+
+> configure.py
+> make
+> make install 
+
+### Install PyQt ###
+Navigate to the directory where you downloaded PyQt.
+
+Run configuration.py to generate the Makefile for PyQt. You'll need to specify where Qt's qmake file is for this to work. Run the following:
+
+> configure.py --qmake /path/to/qmake
+
+qmake should be in something like Qt-install-directory/Qt-version-number/Compiler-version/bin/qmake (eg. ~/Qt/5.2.1/gcc/bin/qmake). See the README in your Qt install directory for more details.
+
+After that, run:
+
+> make
+> sudo make install
+
+Afterwards, you may have to change your PYTHONPATH environment variable to point to the place in your system that PyQt5 is installed in order to use the module.
+If you set up a python virtualenv for pigeon and installed PyQt5 while in the virtualenv, this will be in the virtualenv folder. (eg.~/Envs/pigeon-virtualenv/lib/python3.2/site-packages/PyQt5)
+Otherwise, take a look at PyQt's configure.py to figure out where it installed itself.
+
+Changing the PYTHONPATH can be done by putting
+> export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
 in your ~/.profile or ~/.bashrc file.
 
 To check your PYTHONPATH, open up a python session and type in:
-import sys
-print(sys.path)
+> import sys
+> print(sys.path)
