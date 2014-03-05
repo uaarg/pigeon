@@ -4,6 +4,8 @@ Main interface for ground station.
 """
 
 import sys
+import time
+import json, pickle
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QCursor, QPixmap
@@ -57,6 +59,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def saveCoords(self):
         self.imageView.saveCoords()
 
+    def serializeCoords(self):
+        self.imageView.serializeCoords()
+
 class ImageViewer(QtWidgets.QLabel):
     def __init__(self, sysargs):
         super(ImageViewer, self).__init__()
@@ -81,6 +86,7 @@ class ImageViewer(QtWidgets.QLabel):
 
         # Set up storing coordinates
         self.coords = []
+        self.serializedMarkersFile = 'serializedCoords.pk'
         self.coordsFilename = "coords.txt"
 
     def openImage(self, filename):
@@ -109,14 +115,28 @@ class ImageViewer(QtWidgets.QLabel):
         Event handler for mouse clicks on image area.
         """
         print(self.getCursorPosition());
-        self.coords.append(self.getCursorPosition())
+        self.coords.append(dict(position=self.getCursorPosition(), time=time.time()))
 
-    def saveCoords(self):
-        coords_file = open(self.coordsFilename, 'w')
-        for c in self.coords:
-            cstr = ("(%d, %d)\n" %(c[0], c[1]))
-            coords_file.write(cstr)
-        coords_file.close()
+    def loadMarkers(self):
+        with open(self.serializedMarkersFile, 'rb') as f:
+            return pickle.load(f)
+                
+
+    def __writeToFile(self, filePath, isPickled, attr='time'):
+        funcToUse = json.dump
+        if isPickled:
+            funcToUse = pickle.dump
+
+        __outCoords = sorted(self.coords, key=lambda a : a.get(attr, None), reverse=True)
+        __uniqPath = "%s-%s"%(time.ctime().replace(' ', '_'), filePath)
+        with open(__uniqPath, 'w') as f:
+            funcToUse(__outCoords, f)
+
+    def saveCoords(self, attr='time'):
+        self.__writeToFile(filePath=self.coordsFilename, isPickled=False, attr=attr)
+
+    def serializeCoords(self, attr='time'):
+        self.__writeToFile(filePath=self.serializedMarkersFile, isPickled=True, attr=attr)
         
 
 def main():
