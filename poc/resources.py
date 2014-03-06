@@ -10,6 +10,9 @@ import glob
 
 pyVersion = sys.hexversion/(1<<24)
 
+getDefaultUserName = lambda : os.environ.get('USER', 'Unknown')
+getDefaultStationInfo = lambda : os.environ.get('HOSTNAME', 'Unknown')
+
 if pyVersion < 3:
   import Tkinter as tkModule
 else:
