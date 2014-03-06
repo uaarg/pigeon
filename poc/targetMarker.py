@@ -141,7 +141,7 @@ def main():
       ),
       submitButtonMap = dict(
         initArgs = dict(
-          text='SaveMeta', command=lambda : root.quit(),
+          text='SaveMeta', command=lambda : 'Saving meta data'
           relief=rscs.tkModule.GROOVE, cursor='arrow'
         )
       )
