@@ -58,9 +58,14 @@ class Point:
 
 # Borrow some ideas from Zelle
 # create an invisible global main root for all windows
+
 tk = tkinter
-_imroot = tk.Tk()
-_imroot.withdraw()
+
+def createInvisibleRoot():
+  newTk = tk.Tk()
+  newTk.withdraw()
+
+  return newTk
 
 def formatPixel(data):
     if type(data) == tuple:
@@ -72,11 +77,16 @@ class ImageWin(tk.Canvas):
     """
     ImageWin:  Make a frame to display one or more images.
     """
-    def __init__(self,title,width,height):        
+    def __init__(self, title, width, height, srcRoot=None):
         """
         Create a window with a title, width and height.
         """
-        master = tk.Toplevel(_imroot)
+        self.__srcRoot = srcRoot
+        if self.__srcRoot is None: # Better check would be isinstance(...)
+          self.__srcRoot = createInvisibleRoot()
+
+        print(self.__srcRoot)
+        master = tk.Toplevel(self.__srcRoot)
         master.protocol("WM_DELETE_WINDOW", self._close)
         #super(ImageWin, self).__init__(master, width=width, height=height)
         tk.Canvas.__init__(self, master, width=width, height=height)
@@ -92,13 +102,13 @@ class ImageWin(tk.Canvas):
         self.width = width
         self._mouseCallback = None
         self.trans = None
-        _imroot.update()
+        self.__srcRoot.update()
 
     def _close(self):
         """Close the window"""
         self.master.destroy()
         self.quit()
-        _imroot.update()
+        self.__srcRoot.update()
         
     def getMouse(self):
         """Wait for mouse click and return a tuple with x,y position in screen coordinates after
@@ -107,7 +117,7 @@ class ImageWin(tk.Canvas):
         self.mouseY = None
         while self.mouseX == None or self.mouseY == None:
             self.update()
-        return ((self.mouseX,self.mouseY))
+        return ((self.mouseX, self.mouseY))
 
     def setMouseHandler(self, func):
         self._mouseCallback = func
@@ -215,7 +225,7 @@ class AbstractImage(object):
     """
     imageCache = {} # tk photoimages go here to avoid GC while drawn 
     imageId = 1
-    def __init__(self,fname=None,data=[],imobj=None,height=0,width=0):
+    def __init__(self,fname=None,data=[],imobj=None,height=0,width=0, srcRoot=None):
         """
         An image can be created using any of the following keyword parameters. When image creation is 
         complete the image will be an rgb image.
@@ -265,6 +275,9 @@ class AbstractImage(object):
         self.centerX = self.width/2+3     # +3 accounts for the ~3 pixel border in Tk windows
         self.centerY = self.height/2+3
         self.id = None
+        self.__srcRoot = srcRoot
+        if self.__srcRoot is None: # Better check would be isinstance(...)
+          self.__srcRoot = createInvisibleRoot()
 
     def loadPILImage(self,fname):
         self.im = Image.open(fname)
@@ -342,14 +355,14 @@ class AbstractImage(object):
         else:
             return self.im
 
-    def draw(self,win):
+    def draw(self, win):
         """Draw this image in the ImageWin window."""
         ig = self.getImage()
         self.imageCache[self.imageId] = ig # save a reference else Tk loses it...
         AbstractImage.imageId = AbstractImage.imageId + 1
         self.canvas=win
         self.id = self.canvas.create_image(self.centerX,self.centerY,image=ig)
-        _imroot.update()
+        self.__srcRoot.update()
         
     def saveTk(self,fname=None,ftype='gif'):
         if fname == None:
@@ -399,17 +412,17 @@ class AbstractImage(object):
 
 
 class FileImage(AbstractImage):
-    def __init__(self,thefile):
-        super(FileImage, self).__init__(fname = thefile)
+    def __init__(self, thefile, srcRoot=None):
+        super(FileImage, self).__init__(fname = thefile, srcRoot=srcRoot)
 
 
 class EmptyImage(AbstractImage):
-    def __init__(self,cols,rows):
-        super(EmptyImage, self).__init__(height = rows, width = cols)
+    def __init__(self, cols, rows, theRoot=None):
+        super(EmptyImage, self).__init__(height = rows, width = cols, srcRoot=srcRoot)
         
 class ListImage(AbstractImage):
-    def __init__(self,thelist):
-        super(ListImage, self).__init__(data=thelist)
+    def __init__(self,thelist, srcRoot=None):
+        super(ListImage, self).__init__(data=thelist, srcRoot=srcRoot)
 
 # Example program  Read in an image and calulate the negative.
 if __name__ == '__main__':
