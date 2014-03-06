@@ -8,9 +8,12 @@
 
 import sys
 import time
+import copy
 import cImage
 from math import sqrt
 
+import GFrame
+import GMenu
 import resources as rscs
 
 def pointsOnCircle(x, y, r=10.0, steps=80.0, ringTh=10):
@@ -65,8 +68,8 @@ class CustImageViewer:
 
   def isInRange(self, x, y):
     return self.hasValidImage()\
-       and (x <= self.maxX and x >= self.minX)\
-       and (y <= self.maxY and y >= self.minY)
+       and (x < self.maxX and x >= self.minX)\
+       and (y < self.maxY and y >= self.minY)
  
   def handleClicks(self, point):  
     print(point.x, point.y)
@@ -97,6 +100,76 @@ def main():
   srcDir = '.'
   if argc > 1:
     srcDir = sys.argv[1]
+  print("G menu here!")
+  frameInitBody = dict(
+    stringVar=None, entryFmtArgs=dict(),
+    initArgs=None
+  )
+
+  respectiveFrames = dict (
+    Markers = dict (
+      labelToEntryMap = dict(
+        labelMap = dict (Markers= copy.copy(frameInitBody)),
+        entryMap = dict(
+          Description = dict(
+            stringVar=None, initArgs='X', entryFmtArgs=dict()
+          ),
+          ApproxLocation = dict(
+            stringVar=None, initArgs='10.00NE 23.89W'
+          )
+        )
+      ),
+      submitButtonMap = dict(
+        initArgs = dict(
+          text='SubmitMarker', command=lambda : 'Arbitrary string'
+        )
+      )
+    ),
+    MetaTagging = dict (
+      labelToEntryMap = dict(
+        labelMap = dict(
+          ExtraInfo = dict(Markers=copy.copy(frameInitBody))
+        ),
+        entryMap = dict(
+          MetaData = dict(
+            stringVar=None, initArgs='A bird a plane', entryFmtArgs=dict()
+          ),
+          Comments = dict(
+            stringVar=None, initArgs='Tracking this image', entryFmtArgs=dict()
+          )
+        ),
+      ),
+      submitButtonMap = dict(
+        initArgs = dict(
+          text='SaveMeta', command=lambda : root.quit(),
+          relief=rscs.tkModule.GROOVE, cursor='arrow'
+        )
+      )
+    ),
+    MarkerInfo = dict (
+      labelToEntryMap = dict(
+        labelMap = dict (OperatorInfo = copy.copy(frameInitBody)),
+        entryMap = dict(
+          Station = dict(
+            stringVar=None, initArgs=rscs.getDefaultStationInfo()
+          ),
+          OperatorName = dict(
+            stringVar=None, initArgs=rscs.getDefaultUserName()
+          )
+        )
+      ),
+      submitButtonMap = dict(
+        initArgs = dict(
+          text='SaveOperatorInfo', command=lambda : 'Do nothing'
+        )
+      )
+    )
+  )
+
+  mapDict = GMenu.createGSC(respectiveFrames)
+  root = mapDict['root']
+  root.title(__file__)
+  # root.withdraw()
 
   imgMatches = rscs.getPathsLike(['*.jpg', '*.png'], srcDir=srcDir)
   allMatches = []
@@ -104,11 +177,11 @@ def main():
     allMatches += imgMatches.get(regex, [])
 
   if allMatches:
-    cImgViewer = CustImageViewer(__file__, 600, 600)
+    cImgViewer = CustImageViewer(__file__, srcRoot=root, height=600, width=600)
 
     cImgViewer.slideShow(allMatches, timeout=2.2)
 
-  rscs.tkModule.mainloop()
-      
+  root.mainloop()
+
 if __name__ == '__main__':
   main()
