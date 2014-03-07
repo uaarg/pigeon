@@ -1,17 +1,23 @@
-
+#!/usr/bin/python3
 """
 Main interface for ground station.
 """
 
+import os
 import sys
 import time
 import json, pickle
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QCursor, QPixmap
+
 # Import all from QtWidgets for development for now.
 # So for classes that are part of QtWidgets, I've specifically stated QtWidget.Class() for now.
 from PyQt5.QtWidgets import *
+
+import Tag # Local module
+
+getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -21,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.sysargs = sysargs
+        self.fileDialog = None
 
         # Set up window
         self.setWindowTitle("pigeon")
@@ -35,12 +42,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Set up menus
         self.initMenus()
+    
+        self.__setUpFileExplorer()
 
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
+        self.editMenu = QtWidgets.QMenu("&Edit", self)
         self.fileMenu.addAction(self.saveCoordsAction)
         self.fileMenu.addAction(self.exitAction)
+        self.editMenu.addAction(self.findImagesAction)
         self.menuBar().addMenu(self.fileMenu)
+        self.menuBar().addMenu(self.editMenu)
 
 
     def initActions(self):
@@ -55,6 +67,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exitAction = QtWidgets.QAction("&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.close)
+        self.findImagesAction = QtWidgets.QAction("&Find Images", self)
+        self.findImagesAction.triggered.connect(self.findImages)
+
+    def addFilesToQueue(self, paths):
+        pass
+
+    # Our file explorer
+    def __setUpFileExplorer(self):
+        self.fileDialog = QFileDialog()
+        self.fileDialog.setFileMode(3) # Multiple files can be selected
+        self.fileDialog.filesSelected.connect(lambda paths:print(paths))
+
+    def findImages(self):
+        if isinstance(self.fileDialog, QFileDialog):
+            self.fileDialog.show()
+        else:
+            qBox = QMessageBox(parent=self) # parent=self, 'Improperly initialized fileDialog!')
+            qBox.setText('FileDialog was not initialized')
+            qBox.show()
 
     def saveCoords(self):
         self.imageView.saveCoords()
@@ -75,6 +106,8 @@ class ImageViewer(QtWidgets.QLabel):
         self.setCursor(self.cursor)
         self.getCursorPosition()
 
+        self.__fileOnDisplay = None
+
         # Open image
         try:
             self.imagePath = sysargs[1]
@@ -86,8 +119,15 @@ class ImageViewer(QtWidgets.QLabel):
 
         # Set up storing coordinates
         self.coords = []
+
+        # Set up for storing tagged info
+        self.tags   = []
         self.serializedMarkersFile = 'serializedCoords.pk'
         self.coordsFilename = "coords.txt"
+
+    def addTaggedInfo(self, content):
+        print(content)
+        self.tags.append(content)
 
     def openImage(self, filename):
         """
@@ -99,7 +139,11 @@ class ImageViewer(QtWidgets.QLabel):
                 QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
             else:
                 # Convert from QImage to QPixmap, and display
+                self.__fileOnDisplay = filename
                 self.setPixmap(QPixmap.fromImage(image))
+
+    @property
+    def currentFilePath(self): return self.__fileOnDisplay
 
     def getCursorPosition(self):
         """
@@ -114,8 +158,37 @@ class ImageViewer(QtWidgets.QLabel):
         """
         Event handler for mouse clicks on image area.
         """
-        print(self.getCursorPosition());
-        self.coords.append(dict(position=self.getCursorPosition(), time=time.time()))
+        __cursorPosition = self.getCursorPosition()
+        self.coords.append(dict(position=__cursorPosition, time=time.time()))
+        if e.button() == 2: # Right click
+            self.createTag(e)
+
+    def createTag(self, event):
+        t = Tag.Tag(
+            parent=None, title = '@%s'%(time.ctime()),
+            location = Tag.DynaItem(dict(x=event.x(), y=event.y())),
+            size = Tag.DynaItem(dict(x=200, y=200)),
+            onSubmit = self.addTaggedInfo,
+            metaData = dict(
+              author = getDefaultUserName(),
+              filePath = self.currentFilePath,
+              captureTime = time.time(), x = event.x(), y = event.y()
+            ),
+            entryList = [
+              Tag.DynaItem(dict(
+                  title='Description', isMultiLine=False, eLocation=(1, 1,),
+                  lLocation=(1, 0,), initContent=None
+                )
+              ),
+              Tag.DynaItem(dict(
+                  title='Location', isMultiLine=False,
+                  eLocation=(3, 1,), lLocation=(3, 0,),
+                  initContent='%s, %s'%(event.x(), event.y())
+                )
+              )
+            ]
+        )
+
 
     def loadMarkers(self):
         with open(self.serializedMarkersFile, 'rb') as f:
