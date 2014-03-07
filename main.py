@@ -16,6 +16,7 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 from PyQt5.QtWidgets import *
 
 import Tag # Local module
+import utils # Local module
 
 getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 
@@ -23,19 +24,56 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     Main application window for the ground station.
     """
-    def __init__(self, sysargs):
+    def __init__(self, paths):
         super(MainWindow, self).__init__()
 
-        self.sysargs = sysargs
         self.fileDialog = None
+        self.stack = utils.PseudoStack(paths)
 
         # Set up window
         self.setWindowTitle("pigeon")
-        self.setGeometry(300, 300, 250, 150)
+        layout = QGridLayout()
 
         # Set up image viewer
-        self.imageView = ImageViewer(sysargs)
-        self.setCentralWidget(self.imageView)
+        self.__imageDisplayFrame = QtWidgets.QFrame(self)
+        self.__imageDisplayFrame.setFrameStyle(
+            QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken
+        )
+
+        self.__controlFrame = QtWidgets.QFrame(self)
+        self.__controlFrame.setFrameStyle(QtWidgets.QFrame.Panel)
+        self.setGeometry(0, 0, 800, 800)
+
+        self.imageView = ImageViewer(self.__imageDisplayFrame)
+        imageFrameWidth = 2 * self.width() / 3
+        self.__imageDisplayFrame.setGeometry(
+            0, 0, imageFrameWidth, self.height()
+        )
+        self.__controlFrame.setGeometry(
+            self.__imageDisplayFrame.width(), 0, self.width() - self.imageView.width(), self.height())
+        layout.addWidget(self.__controlFrame, 2, 0)
+
+        halfFrameWidth = self.__imageDisplayFrame.width() / 2
+        halfFrameHeight = self.__imageDisplayFrame.height() / 2
+
+        prevButton = QtWidgets.QPushButton(self)
+        prevButton.setText('&Previous')
+        prevButton.move(0, halfFrameHeight)
+        prevButton.clicked.connect(self.showPrev)
+        prevButton.show()
+
+        nextButton = QtWidgets.QPushButton(self)
+        nextButton.setText('&Next')
+        nextButton.move(
+          imageFrameWidth - nextButton.width(), halfFrameHeight
+        )
+        nextButton.clicked.connect(self.showNext)
+        nextButton.show()
+
+        layout.addWidget(prevButton, 1, 0)
+        self.showNext()
+        self.__imageDisplayFrame.show()
+        self.__controlFrame.show()
 
         # Set up actions
         self.initActions()
@@ -44,6 +82,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.initMenus()
     
         self.__setUpFileExplorer()
+        # self.setLayout(layout)
+
+    def showNext(self):
+        self.__stackToPhoto(self.stack.next)
+
+    def showPrev(self):
+        self.__stackToPhoto(self.stack.prev)
+
+    def __stackToPhoto(self, method):
+        item = method()
+        print(item)
+        if item:
+          self.imageView.openImage(item)
+        else:
+          print('No more content')
+
+    def handleItemPop(self):
+        popd = self.stack.pop()
+        print('poppd', popd)
+
+        # We won't be shielding the GUI from harsh realities of life
+        # ie if there is no more content left
+        nextItem = self.stack.next()
+        self.imageView.openImage(nextItem)
 
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
@@ -51,39 +113,42 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.saveCoordsAction)
         self.fileMenu.addAction(self.exitAction)
         self.editMenu.addAction(self.findImagesAction)
+        self.editMenu.addAction(self.popCurrentImageAction)
         self.menuBar().addMenu(self.fileMenu)
         self.menuBar().addMenu(self.editMenu)
 
-
     def initActions(self):
         # Save coordinates
-        # self.saveCoordsAction = QtWidgets.QAction("&Save Coordinates", self, shortcut='Ctrl+S', triggered=self.saveCoords)
         self.saveCoordsAction= QtWidgets.QAction("&Save Coordinates", self)
         self.saveCoordsAction.setShortcut('Ctrl+S')
         self.saveCoordsAction.triggered.connect(self.saveCoords)
 
         # Exit
-        # self.exitAction = QtWidgets.QAction("&Exit", self, shortcut='Ctrl+Q', triggered=self.close)
         self.exitAction = QtWidgets.QAction("&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.close)
-        self.findImagesAction = QtWidgets.QAction("&Find Images", self)
+
+        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
         self.findImagesAction.triggered.connect(self.findImages)
 
-    def addFilesToQueue(self, paths):
-        pass
+        self.popCurrentImageAction = QtWidgets.QAction("&Remove currentImage", self)
+        self.popCurrentImageAction.triggered.connect(self.handleItemPop)
+
+    def addFilesToStack(self, paths):
+        print(paths)
+        self.stack.push(paths)
 
     # Our file explorer
     def __setUpFileExplorer(self):
         self.fileDialog = QFileDialog()
         self.fileDialog.setFileMode(3) # Multiple files can be selected
-        self.fileDialog.filesSelected.connect(lambda paths:print(paths))
+        self.fileDialog.filesSelected.connect(self.addFilesToStack)
 
     def findImages(self):
         if isinstance(self.fileDialog, QFileDialog):
             self.fileDialog.show()
         else:
-            qBox = QMessageBox(parent=self) # parent=self, 'Improperly initialized fileDialog!')
+            qBox = QMessageBox(parent=self)
             qBox.setText('FileDialog was not initialized')
             qBox.show()
 
@@ -94,8 +159,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.imageView.serializeCoords()
 
 class ImageViewer(QtWidgets.QLabel):
-    def __init__(self, sysargs):
-        super(ImageViewer, self).__init__()
+    def __init__(self, parent=None):
+        super(ImageViewer, self).__init__(parent)
 
         # Set up main display area
         # self.imageLabel = QtWidgets.QLabel()
@@ -107,15 +172,6 @@ class ImageViewer(QtWidgets.QLabel):
         self.getCursorPosition()
 
         self.__fileOnDisplay = None
-
-        # Open image
-        try:
-            self.imagePath = sysargs[1]
-        except:
-            print("Usage: python main.py [image_path]")
-            sys.exit()
-        else:
-            self.openImage(self.imagePath)
 
         # Set up storing coordinates
         self.coords = []
@@ -129,18 +185,19 @@ class ImageViewer(QtWidgets.QLabel):
         print(content)
         self.tags.append(content)
 
-    def openImage(self, filename):
+    def openImage(self, fPath):
         """
         Opens image from specified path.
         """
-        if filename:
-            image = QImage(filename)
-            if image.isNull():
-                QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
-            else:
-                # Convert from QImage to QPixmap, and display
-                self.__fileOnDisplay = filename
-                self.setPixmap(QPixmap.fromImage(image))
+        filename = fPath if fPath else utils._404_IMAGE_PATH
+
+        image = QImage(filename)
+        if image.isNull():
+            QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+        else:
+            # Convert from QImage to QPixmap, and display
+           self.__fileOnDisplay = filename
+           self.setPixmap(QPixmap.fromImage(image))
 
     @property
     def currentFilePath(self): return self.__fileOnDisplay
@@ -217,7 +274,7 @@ def main():
 
     print("Ground station running.")
     app = QtWidgets.QApplication(sys.argv)
-    mainwin = MainWindow(sys.argv)
+    mainwin = MainWindow(sys.argv[1:])
     mainwin.show()
     sys.exit(app.exec_())
 
