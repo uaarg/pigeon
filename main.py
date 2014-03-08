@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+
+# Author: Cindy Xiao <dixin@ualberta.ca>
+#         Emmanuel Odeke <odeke@ualberta.ca>
+
 """
 Main interface for ground station.
 """
