@@ -224,6 +224,7 @@ class ImageViewer(QtWidgets.QLabel):
         curPos = self.getCursorPosition()
         marker = Marker.Marker(parent=self,  x=curPos[0], y=curPos[1])
         marker.show()
+        print(marker.__dict__)
         self.markers.append(marker)
       
     def loadMarkers(self):

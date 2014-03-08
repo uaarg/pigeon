@@ -9,35 +9,48 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from threading import Lock
 
+def labelEntryPairFromSource(srcDict):
+    lbPair = LabelEntryPair(**srcDict)
+    return lbPair
+
+def tagFromSource(srcDict):
+    entryList = srcDict.get('entryList', [])
+    srcDict['entryList'] = [DynaItem(initArgs) for initArgs in entryList]
+    return Tag(**srcDict)
+
 class LabelEntryPair(object):
-    __idCounter = 0
-    __classLock = Lock()
     def __init__(
-      self, labelText, entryWidget=None, title=None, entryLocation=(),
-      labelLocation=(), initContent=None, parent=None
+      self, labelText, isMultiLine=True, title=None, parent=None,
+      labelLocation=(), entryText=None, entryLocation=()
     ):
         self.__title = title
         self.__labelWidget = QtWidgets.QLabel(labelText, parent=parent)
-        self.__entryWidget = entryWidget if entryWidget else QtWidgets.QLineEdit(parent=parent)
-        self.__entryWidget.setText(initContent)
+        self.isMultiLine = isMultiLine
+        __widget = QtWidgets.QTextEdit if isMultiLine else QtWidgets.QLineEdit
+        self.__textGetter = 'toPlainText' if isMultiLine else 'text'
+        self.__entryWidget = __widget(parent)
+        self.__entryWidget.setText(entryText)
         self.entryLocation = entryLocation
         self.labelLocation = labelLocation
-        print(title, entryWidget)
-
-        # For thread safety
-        self.__classLock.acquire()
-        self.__id = self.__idCounter
-        self.__idCounter = self.__idCounter + 1
-        self.__classLock.release()
 
     def getContent(self):
         return dict(
-            label = self.__labelWidget.text(),
-            entryText = self.__entryWidget.text()
+            labelText = self.__labelWidget.text(),
+            entryText = getattr(self.__entryWidget, self.__textGetter)()
+        )
+
+    def serialize(self):
+        return dict(
+          isMultiLine = self.isMultiLine,
+          labelLocation = self.labelLocation,
+          entryLocation = self.entryLocation, title = self.__title,
+          labelText = self.__labelWidget.text(),
+          entryText = getattr(self.__entryWidget, self.__textGetter)()
         )
 
     @property
     def title(self): return self.__title
+
     @property
     def entryWidget(self): return self.__entryWidget
 
@@ -47,8 +60,6 @@ class LabelEntryPair(object):
     @property
     def getId(self): return self.__id
 
-    def __repr__(self):
-        return self.__dict__
     def __str__(self):
         return self.__dict__.__str__()
 
@@ -64,35 +75,32 @@ class Tag(QtWidgets.QWidget):
       title='Tag', onSubmit=None, location=None, metaData=None
     ):
         super(Tag, self).__init__(parent=parent)
-        self.__entryList = entryList
-        self.__spacing   = spacing
+        self.entryList = entryList
+        self.spacing   = spacing
         self.location    = location
         self.size        = size
         self.title       = title
-        self.__metaData  = metaData
-        self.__parent    = parent
+        self.metaData  = metaData
+        self.parent    = parent
         self.onSubmit    = onSubmit if onSubmit else lambda c : print(c)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
     def initUI(self):
-        self.__entries = []
-        for entry in self.__entryList:
+        self.entries = []
+        for entry in self.entryList:
             labelEntryItem = LabelEntryPair(
               entry.title, title=entry.title,
-              entryWidget=QtWidgets.QTextEdit if entry.isMultiLine else None,
-              labelLocation=entry.lLocation,
-              entryLocation=entry.eLocation, initContent=entry.initContent
+              isMultiLine = entry.isMultiLine,
+              labelLocation=entry.labelLocation,
+              entryLocation=entry.entryLocation, entryText=entry.entryText
             )
-            self.__entries.append(labelEntryItem)
+            self.entries.append(labelEntryItem)
         self.grid = QtWidgets.QGridLayout()
-        self.grid.setSpacing(self.__spacing)
+        self.grid.setSpacing(self.spacing)
 
-        for e in self.__entries:
+        for e in self.entries:
             self.grid.addWidget(e.labelWidget, *e.labelLocation)
-              # Bug notice: QT won't recognize unravelled
-              # tuples for grid location for multiline elements
-              # eg a TextEdit
             self.grid.addWidget(e.entryWidget, *e.entryLocation)
 
         saveButton = QtWidgets.QPushButton()
@@ -116,16 +124,20 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        content = dict()
-        for item in self.__entries:
-          # To allow for quick searches
-          content[item.title] = item.getContent()
-
-        content['tagSaveTime'] = time.time()
-        content['metaData'] = self.__metaData
-
-        self.onSubmit(content)
+        serialized = self.serialize()
+        self.onSubmit(serialized)
         self.close()
+        # Uncomment to test the serialization
+        # t = tagFromSource(serialized)
+
+    def serialize(self):
+        return dict(
+            location = self.location, 
+            size = self.size, title = self.title,
+            metaData = self.metaData, spacing = self.spacing, entryList = [
+              item.serialize() for item in self.entries
+            ]
+        )
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
@@ -135,9 +147,9 @@ def main():
       location = DynaItem(dict(x=600, y=200)),
       onSubmit = lambda content : print(content),
       entryList = [
-        DynaItem(dict(title='Target', isMultiLine=False, eLocation=(1, 1,), lLocation=(1, 0,), initContent=None)),
-        DynaItem(dict(title='Author', isMultiLine=False, eLocation=(2, 1,), lLocation=(2, 0,), initContent=None)),
-        DynaItem(dict(title='Approx', isMultiLine=False, eLocation=(3, 1,), lLocation=(3, 0,), initContent='10.23NE'))
+        DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
+        DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
+        DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
     ])
 
     sys.exit(app.exec_())

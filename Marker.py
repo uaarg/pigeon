@@ -10,53 +10,69 @@ import Tag # Local module
 import utils # Local module
 
 class Marker(QtWidgets.QPushButton):
-  def __init__(self, parent=None, x=0, y=0, width=20, height=20):
+  def __init__(self, parent=None, x=0, y=0, width=20, height=20, markerPath='mapMarker.png'):
     super(Marker, self).__init__(parent)
-    self.x = x
-    self.y = y
-    self.setGeometry(self.x, self.y, width, height)
-    imagePixMap = QPixmap('mapMarker.png')
-    icon = QIcon(imagePixMap);
-    self.setIcon(icon)
-    self.setIconSize(QtCore.QSize(self.width(), self.height()))
+    self._x = x
+    self._y = y
     self.tag = None
+    self.info = None
+    self._width = width
+    self._height = height
+    self.styleSheet = 'opacity:0.9'
+    self.markerImagePath = markerPath
+
+    self.initUI()
+
+  def initUI(self):
+    self.setGeometry(self._x, self._y, self._width, self._height)
+    self.initIcon()
+
     self.currentFilePath = __file__
-    self.__info = None
-    self.setStyleSheet('opacity:0.9')
     self.__lastLocation = None
     self.setMouseTracking(True) # To allow for hovering detection
 
+  def initIcon(self):
+    imagePixMap = QPixmap(self.markerImagePath)
+    icon = QIcon(imagePixMap)
+    self.setIconSize(QtCore.QSize(self.width(), self.height()))
+    self.setIcon(icon);
+    self.setStyleSheet(self.styleSheet)
+
   def addTaggedInfo(self, info):
-    self.__info = info
+    self.info = info
     if self.tag:
         self.tag.hide()
         self.tag = None # Garbage collection can now kick in
+
+  def serialize(self):
+    pass
 
   def createTag(self, event):
     curPos = self.pos()
     self.tag = Tag.Tag(
       parent=None, title = '@%s'%(time.ctime()),
       location = Tag.DynaItem(dict(x=curPos.x(), y=curPos.y())),
-      size = Tag.DynaItem(dict(x=200, y=200)),
+      size = Tag.DynaItem(dict(x=300, y=240)),
       onSubmit = self.addTaggedInfo,
       metaData = dict(
         author = utils.getDefaultUserName(),
         filePath = self.currentFilePath,
         captureTime = time.time(), x = event.x(), y = event.y()
       ),
+
       entryList = [
         Tag.DynaItem(dict(
-            title='Description', isMultiLine=False, eLocation=(1, 1,),
-            lLocation=(1, 0,), initContent=None
+            title='Location', isMultiLine=False,
+            entryLocation=(1, 1,), labelLocation=(1, 0,),
+            entryText='%s, %s'%(event.x(), event.y())
           )
         ),
         Tag.DynaItem(dict(
-            title='Location', isMultiLine=False,
-            eLocation=(3, 1,), lLocation=(3, 0,),
-            initContent='%s, %s'%(event.x(), event.y())
-         )
-       )
-     ]
+            title='Comments', isMultiLine=True, entryLocation=(2, 1, 5, 1),
+            labelLocation=(2, 0,), entryText=None
+          )
+        )
+      ]
    )
 
   def mousePressEvent(self, event):
@@ -66,6 +82,7 @@ class Marker(QtWidgets.QPushButton):
     if buttonNumber == QtCore.Qt.LeftButton: # Left Click here 
         self.__movePos = event.globalPos()
         self.__pressPos = event.globalPos()
+        print(self.__dict__)
         # print(self.__movePos, self.__pressPos)
 
         if not self.tag:
