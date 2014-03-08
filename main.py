@@ -21,8 +21,7 @@ from PyQt5.QtWidgets import *
 
 import Tag # Local module
 import utils # Local module
-
-getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
+import Marker
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -182,12 +181,9 @@ class ImageViewer(QtWidgets.QLabel):
 
         # Set up for storing tagged info
         self.tags   = []
+        self.markers = []
         self.serializedMarkersFile = 'serializedCoords.pk'
         self.coordsFilename = "coords.txt"
-
-    def addTaggedInfo(self, content):
-        print(content)
-        self.tags.append(content)
 
     def openImage(self, fPath):
         """
@@ -222,35 +218,14 @@ class ImageViewer(QtWidgets.QLabel):
         __cursorPosition = self.getCursorPosition()
         self.coords.append(dict(position=__cursorPosition, time=time.time()))
         if e.button() == 2: # Right click
-            self.createTag(e)
+            self.createMarker(e)
 
-    def createTag(self, event):
-        t = Tag.Tag(
-            parent=None, title = '@%s'%(time.ctime()),
-            location = Tag.DynaItem(dict(x=event.x(), y=event.y())),
-            size = Tag.DynaItem(dict(x=200, y=200)),
-            onSubmit = self.addTaggedInfo,
-            metaData = dict(
-              author = getDefaultUserName(),
-              filePath = self.currentFilePath,
-              captureTime = time.time(), x = event.x(), y = event.y()
-            ),
-            entryList = [
-              Tag.DynaItem(dict(
-                  title='Description', isMultiLine=False, eLocation=(1, 1,),
-                  lLocation=(1, 0,), initContent=None
-                )
-              ),
-              Tag.DynaItem(dict(
-                  title='Location', isMultiLine=False,
-                  eLocation=(3, 1,), lLocation=(3, 0,),
-                  initContent='%s, %s'%(event.x(), event.y())
-                )
-              )
-            ]
-        )
-
-
+    def createMarker(self, event):
+        curPos = self.getCursorPosition()
+        marker = Marker.Marker(parent=self,  x=curPos[0], y=curPos[1])
+        marker.show()
+        self.markers.append(marker)
+      
     def loadMarkers(self):
         with open(self.serializedMarkersFile, 'rb') as f:
             return pickle.load(f)

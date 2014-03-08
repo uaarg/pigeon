@@ -6,6 +6,7 @@
 import sys
 import time
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from threading import Lock
 
 class LabelEntryPair(object):
@@ -71,6 +72,7 @@ class Tag(QtWidgets.QWidget):
         self.__metaData  = metaData
         self.__parent    = parent
         self.onSubmit    = onSubmit if onSubmit else lambda c : print(c)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
     def initUI(self):
