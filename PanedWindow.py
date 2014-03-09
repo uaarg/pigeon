@@ -19,12 +19,14 @@ class Pane(QtWidgets.QFrame):
 
   def leaveEvent(self, event):
     if self.mouseIsInPane:
+      self.setFrameShadow(QtWidgets.QFrame.Raised)
       self.setFrameShape(QtWidgets.QFrame.NoFrame)
       self.mouseIsInPane = False
 
   def enterEvent(self, event):
     if not self.mouseIsInPane:
-      self.setFrameShape(QtWidgets.QFrame.StyledPanel)
+      self.setFrameShadow(QtWidgets.QFrame.Raised)
+      self.setFrameShape(QtWidgets.QFrame.WinPanel)
       self.mouseIsInPane = True
 
   def mousePressEvent(self, event):
