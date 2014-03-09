@@ -76,10 +76,18 @@ class Marker(QtWidgets.QPushButton):
    )
 
   def mousePressEvent(self, event):
-    # Thanks be to Stack Overflow
-    buttonNumber = event.button()
-    self.__pressPos, self.__movePos = None, None
-    if buttonNumber == QtCore.Qt.LeftButton: # Left Click here 
+    if event.button() == QtCore.QEvent.MouseButtonDblClick:
+      # Weird mix here, needs more debugging on a computer
+      # with a mouse since I don't use one
+      # Request for a deletion
+      self.hide()
+      del self
+  
+    else:
+      # Thanks be to Stack Overflow
+      buttonNumber = event.button()
+      self.__pressPos, self.__movePos = None, None
+      if buttonNumber == QtCore.Qt.LeftButton: # Left Click here 
         self.__movePos = event.globalPos()
         self.__pressPos = event.globalPos()
         print(self.__dict__)
@@ -89,10 +97,7 @@ class Marker(QtWidgets.QPushButton):
           self.createTag(event)
         else:
           self.tag.activateWindow()
-    elif buttonNumber == QtCore.Qt.RightButton: # Right Click here
-        self.hide()
-        del self
-
+    
   '''
   # Uncomment to allow for moving of markers -- Still buggy
   def mouseMoveEvent(self, event):
