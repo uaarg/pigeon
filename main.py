@@ -96,10 +96,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __stackToPhoto(self, method):
         item = method()
         print(item)
-        if item:
-          self.imageView.openImage(item)
-        else:
-          print('No more content')
+        self.imageView.openImage(item)
+        #  print('No more content')
 
     def handleItemPop(self):
         popd = self.stack.pop()
@@ -138,7 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
     def addFilesToStack(self, paths):
-        print(paths)
+        print('paths', paths)
         self.stack.push(paths)
 
     # Our file explorer
@@ -183,9 +181,11 @@ class ImageViewer(QtWidgets.QLabel):
         self.tags   = []
         self.markers = []
         self.serializedMarkersFile = 'serializedCoords.pk'
+        self.setFrameShape(QFrame.Shape(10))
         self.coordsFilename = "coords.txt"
 
     def openImage(self, fPath):
+        print('openImage invoked')
         """
         Opens image from specified path.
         """
@@ -197,7 +197,10 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             # Convert from QImage to QPixmap, and display
            self.__fileOnDisplay = filename
+           imgPixMap = QPixmap.fromImage(image)
            self.setPixmap(QPixmap.fromImage(image))
+           # Expand to the image's full size
+           self.setGeometry(self.x(), self.y(), image.width(), image.height())
 
     @property
     def currentFilePath(self): return self.__fileOnDisplay
