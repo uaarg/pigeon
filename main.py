@@ -22,8 +22,9 @@ from PyQt5.QtWidgets import *
 import Tag # Local module
 import utils # Local module
 import Marker
+import PanedWindow
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(PanedWindow.PanedWindow):
     """
     Main application window for the ground station.
     """
@@ -34,48 +35,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack = utils.PseudoStack(paths)
 
         # Set up window
-        self.setWindowTitle("pigeon")
+        self.setWindowTitle("GSC")
         layout = QGridLayout()
-
-        # Set up image viewer
-        self.__imageDisplayFrame = QtWidgets.QFrame(self)
-        self.__imageDisplayFrame.setFrameStyle(
-            QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken
-        )
+        print(self.children)
 
         self.__controlFrame = QtWidgets.QFrame(self)
         self.__controlFrame.setFrameStyle(QtWidgets.QFrame.Panel)
-        self.setGeometry(0, 0, 800, 800)
+        self.setGeometry(0, 0, 800, 500)
 
-        self.imageView = ImageViewer(self.__imageDisplayFrame)
-        imageFrameWidth = 2 * self.width() / 3
-        self.__imageDisplayFrame.setGeometry(
-            0, 0, imageFrameWidth, self.height()
-        )
-        self.__controlFrame.setGeometry(
-            self.__imageDisplayFrame.width(), 0, self.width() - self.imageView.width(), self.height())
+        # Set up image viewer
+        imgViewId = self.addChild(ImageViewer)
+
+        self.imageView = self.children[imgViewId]['child']
+
+        self.scrollArea = QScrollArea()
+        self.scrollArea.setBackgroundRole(QtGui.QPalette.Dark)
+        self.scrollArea.setWidget(self.imageView)
+        self.imageView.move(self.scrollArea.width()//4, self.scrollArea.height()//4)
+        self.setCentralWidget(self.scrollArea)
+
+        # Important step before you add the panes in
+        self.onLeftPaneClick = self.showPrev
+        self.onRightPaneClick = self.showNext
+
+        self.addPanes()
+
         layout.addWidget(self.__controlFrame, 2, 0)
-
-        halfFrameWidth = self.__imageDisplayFrame.width() / 2
-        halfFrameHeight = self.__imageDisplayFrame.height() / 2
-
-        prevButton = QtWidgets.QPushButton(self)
-        prevButton.setText('&Previous')
-        prevButton.move(0, halfFrameHeight)
-        prevButton.clicked.connect(self.showPrev)
-        prevButton.show()
-
-        nextButton = QtWidgets.QPushButton(self)
-        nextButton.setText('&Next')
-        nextButton.move(
-          imageFrameWidth - nextButton.width(), halfFrameHeight
-        )
-        nextButton.clicked.connect(self.showNext)
-        nextButton.show()
-
-        layout.addWidget(prevButton, 1, 0)
         self.showNext()
-        self.__imageDisplayFrame.show()
         self.__controlFrame.show()
 
         # Set up actions
