@@ -14,6 +14,7 @@ def labelEntryPairFromSource(srcDict):
     return lbPair
 
 def tagFromSource(srcDict):
+    print('srcDict', srcDict, type(srcDict))
     entryList = srcDict.get('entryList', [])
     srcDict['entryList'] = [DynaItem(initArgs) for initArgs in entryList]
     return Tag(**srcDict)
@@ -68,6 +69,13 @@ class DynaItem:
         __slots__ = (arg for arg in initArgs)
         for arg in initArgs:
             setattr(self, arg, initArgs[arg])
+    
+    def __str__(self): 
+        return self.__dict__.__str__()
+
+    def __repr__(self):
+        return self.__str__()
+    
 
 class Tag(QtWidgets.QWidget):
     def __init__(

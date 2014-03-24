@@ -8,10 +8,12 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap, QIcon
 
 import Tag # Local module
 import utils # Local module
+import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
   def __init__(self, parent=None, x=0, y=0, width=20, height=20, markerPath='mapMarker.png'):
     super(Marker, self).__init__(parent)
+    __slots__ = ('x', 'y', 'width', 'height', 'markerImagePath',)
     self._x = x
     self._y = y
     self.tag = None
@@ -41,11 +43,12 @@ class Marker(QtWidgets.QPushButton):
   def addTaggedInfo(self, info):
     self.info = info
     if self.tag:
-        self.tag.hide()
+        self.tag.close()
+        print('hiding tag')
         self.tag = None # Garbage collection can now kick in
 
   def serialize(self):
-    pass
+    return self.__dict__
 
   def createTag(self, event):
     curPos = self.pos()
@@ -90,11 +93,14 @@ class Marker(QtWidgets.QPushButton):
       if buttonNumber == QtCore.Qt.LeftButton: # Left Click here 
         self.__movePos = event.globalPos()
         self.__pressPos = event.globalPos()
-        print(self.__dict__)
+        # print(self.serialize())
         # print(self.__movePos, self.__pressPos)
 
         if not self.tag:
-          self.createTag(event)
+            if self.info:
+                self.tag = Tag.tagFromSource(self.info)
+            else:
+                self.createTag(event)
         else:
           self.tag.activateWindow()
     
@@ -109,7 +115,6 @@ class Marker(QtWidgets.QPushButton):
         newPos = self.mapFromGlobal(curPos + diff)
         self.__movePos = globalPos
         print('mouseMove')
-
   def mouseReleaseEvent(self, event):
     # Thanks to Stack Overflow
     if self.__pressPos is not None:
@@ -124,7 +129,7 @@ class Marker(QtWidgets.QPushButton):
 
   def leaveEvent(self, event):
     print('leaveEvent',event.type())
-  '''
+'''
 
 def main():
   app = QtWidgets.QApplication(sys.argv)

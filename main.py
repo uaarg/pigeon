@@ -124,6 +124,7 @@ class MainWindow(PanedWindow.PanedWindow):
     def addFilesToStack(self, paths):
         print('paths', paths)
         self.stack.push(paths)
+        self.showNext()
 
     # Our file explorer
     def __setUpFileExplorer(self):
@@ -169,6 +170,7 @@ class ImageViewer(QtWidgets.QLabel):
         self.serializedMarkersFile = 'serializedCoords.pk'
         self.setFrameShape(QFrame.Shape(10))
         self.coordsFilename = "coords.txt"
+        self.__coordsDict = dict()
 
     def openImage(self, fPath):
         print('openImage invoked')
@@ -213,7 +215,6 @@ class ImageViewer(QtWidgets.QLabel):
         curPos = self.getCursorPosition()
         marker = Marker.Marker(parent=self,  x=curPos[0], y=curPos[1])
         marker.show()
-        print(marker.__dict__)
         self.markers.append(marker)
       
     def loadMarkers(self):
@@ -227,6 +228,7 @@ class ImageViewer(QtWidgets.QLabel):
             funcToUse = pickle.dump
 
         __outCoords = sorted(self.coords, key=lambda a : a.get(attr, None), reverse=True)
+        print(__outCoords)
         __uniqPath = "%s-%s"%(time.ctime().replace(' ', '_'), filePath)
         with open(__uniqPath, 'w') as f:
             funcToUse(__outCoords, f)
