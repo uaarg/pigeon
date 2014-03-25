@@ -10,6 +10,7 @@ Main interface for ground station.
 import os
 import sys
 import time
+import collections
 import json, pickle
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
@@ -39,6 +40,7 @@ class MainWindow(PanedWindow.PanedWindow):
         layout = QGridLayout()
         print(self.children)
 
+        self.imageMap = dict()
         self.__controlFrame = QtWidgets.QFrame(self)
         self.__controlFrame.setFrameStyle(QtWidgets.QFrame.Panel)
         self.setGeometry(0, 0, 800, 500)
@@ -79,11 +81,13 @@ class MainWindow(PanedWindow.PanedWindow):
     def showPrev(self):
         self.__stackToPhoto(self.stack.prev)
 
+    def getCurrentItem(self):
+        return self.currentItem
+
     def __stackToPhoto(self, method):
-        item = method()
-        print(item)
-        self.imageView.openImage(item)
-        #  print('No more content')
+        self.currentItem = method()
+        # print('currentItem', self.currentItem, self.imageMap)
+        self.imageView.openImage(self.currentItem)
 
     def handleItemPop(self):
         popd = self.stack.pop()
@@ -147,7 +151,7 @@ class MainWindow(PanedWindow.PanedWindow):
         self.imageView.serializeCoords()
 
 class ImageViewer(QtWidgets.QLabel):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, treeMap=None):
         super(ImageViewer, self).__init__(parent)
 
         # Set up main display area
@@ -170,34 +174,46 @@ class ImageViewer(QtWidgets.QLabel):
         self.serializedMarkersFile = 'serializedCoords.pk'
         self.setFrameShape(QFrame.Shape(10))
         self.coordsFilename = "coords.txt"
-        self.__coordsDict = dict()
+        self.imgPixMap = None
+        self.__childrenMap = collections.defaultdict(lambda : None)
+        self._childMap = None
+
+    @property
+    def childMap(self):
+        return self._childMap
 
     def openImage(self, fPath):
-        print('openImage invoked')
-        """
-        Opens image from specified path.
-        """
-        filename = fPath if fPath else utils._404_IMAGE_PATH
+        if self._childMap is not None:
+            for k, v in self._childMap.items():
+                v.hide()
+
+        filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
         image = QImage(filename)
         if image.isNull():
             QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
         else:
             # Convert from QImage to QPixmap, and display
-           self.__fileOnDisplay = filename
-           imgPixMap = QPixmap.fromImage(image)
-           self.setPixmap(QPixmap.fromImage(image))
-           # Expand to the image's full size
-           self.setGeometry(self.x(), self.y(), image.width(), image.height())
+            self.__fileOnDisplay = filename
+            self._childMap = self.__childrenMap[self.__fileOnDisplay]
+            if self._childMap is None:
+                self._childMap = dict()
+                self.__childrenMap[self.__fileOnDisplay] = self._childMap
+            else:
+                for k, v in self._childMap.items():
+                    v.show()
+                    print('\033[47mkey', k, v, '\033[00m')
+
+            print('\033[43mChildMap', self._childMap, '\033[00m')
+            self.imgPixMap = QPixmap.fromImage(image)
+            self.setPixmap(self.imgPixMap)
+            # Expand to the image's full size
+            self.setGeometry(self.x(), self.y(), image.width(), image.height())
 
     @property
     def currentFilePath(self): return self.__fileOnDisplay
 
     def getCursorPosition(self):
-        """
-        Gets the current position of the mouse cursor on the image.
-        Returns a list containing mouse coordinates on the image.
-        """
         self.cursorPosition = QWidget.mapFromGlobal(self, self.cursor.pos())
         coords = [self.cursorPosition.x(), self.cursorPosition.y()]
         return coords
@@ -213,9 +229,8 @@ class ImageViewer(QtWidgets.QLabel):
 
     def createMarker(self, event):
         curPos = self.getCursorPosition()
-        marker = Marker.Marker(parent=self,  x=curPos[0], y=curPos[1])
+        marker = Marker.Marker(parent=self,  x=curPos[0], y=curPos[1], tree=self.childMap)
         marker.show()
-        self.markers.append(marker)
       
     def loadMarkers(self):
         with open(self.serializedMarkersFile, 'rb') as f:
@@ -223,6 +238,8 @@ class ImageViewer(QtWidgets.QLabel):
                 
 
     def __writeToFile(self, filePath, isPickled, attr='time'):
+        print('\033[47mDeprecated\033[00m')
+        '''
         funcToUse = json.dump
         if isPickled:
             funcToUse = pickle.dump
@@ -232,9 +249,12 @@ class ImageViewer(QtWidgets.QLabel):
         __uniqPath = "%s-%s"%(time.ctime().replace(' ', '_'), filePath)
         with open(__uniqPath, 'w') as f:
             funcToUse(__outCoords, f)
+        '''
 
     def saveCoords(self, attr='time'):
-        self.__writeToFile(filePath=self.coordsFilename, isPickled=False, attr=attr)
+        for path, childMap in self.__childrenMap.items():
+            print('Saving', path, childMap)
+        # self.__writeToFile(filePath=self.coordsFilename, isPickled=False, attr=attr)
 
     def serializeCoords(self, attr='time'):
         self.__writeToFile(filePath=self.serializedMarkersFile, isPickled=True, attr=attr)
