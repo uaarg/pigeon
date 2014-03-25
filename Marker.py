@@ -11,7 +11,7 @@ import utils # Local module
 import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
-  def __init__(self, parent=None, x=0, y=0, width=20, height=20, markerPath='mapMarker.png'):
+  def __init__(self, parent=None, x=0, y=0, width=10, height=20, markerPath='mapMarker.png', tree=None):
     super(Marker, self).__init__(parent)
     __slots__ = ('x', 'y', 'width', 'height', 'markerImagePath',)
     self._x = x
@@ -20,8 +20,10 @@ class Marker(QtWidgets.QPushButton):
     self.info = None
     self._width = width
     self._height = height
+    self.imageMap = dict()
     self.styleSheet = 'opacity:0.9'
     self.markerImagePath = markerPath
+    self.tree = tree
 
     self.initUI()
 
@@ -32,6 +34,10 @@ class Marker(QtWidgets.QPushButton):
     self.currentFilePath = __file__
     self.__lastLocation = None
     self.setMouseTracking(True) # To allow for hovering detection
+
+    if self.tree is not None:
+        self.tree[(self._x, self._y)] = self
+        print('added in', self.tree)
 
   def initIcon(self):
     imagePixMap = QPixmap(self.markerImagePath)
@@ -84,6 +90,8 @@ class Marker(QtWidgets.QPushButton):
       # with a mouse since I don't use one
       # Request for a deletion
       self.hide()
+      if isinstance(self.tree, dict):
+        print('Popped marker', self.tree.pop((self._x, self._y), 'Not found'))
       del self
   
     else:
@@ -93,8 +101,6 @@ class Marker(QtWidgets.QPushButton):
       if buttonNumber == QtCore.Qt.LeftButton: # Left Click here 
         self.__movePos = event.globalPos()
         self.__pressPos = event.globalPos()
-        # print(self.serialize())
-        # print(self.__movePos, self.__pressPos)
 
         if not self.tag:
             if self.info:
@@ -103,7 +109,19 @@ class Marker(QtWidgets.QPushButton):
                 self.createTag(event)
         else:
           self.tag.activateWindow()
-    
+   
+  def __lt__(self, other):
+    return  type(self) is type(other)\
+        and (self._x < other._x) and (self._y < other._y)
+
+  def __gt__(self, other):
+    return  type(self) is type(other)\
+        and (self._x > other._x) and (self._y > other._y)
+
+  def __eq__(self, other):
+    return type(self) is type(other)\
+      and (self._x == other._x) and (self._y == other._y)
+ 
   '''
   # Uncomment to allow for moving of markers -- Still buggy
   def mouseMoveEvent(self, event):
