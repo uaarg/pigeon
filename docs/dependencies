@@ -13,8 +13,10 @@ PyQt 5.2
 
 Qt 5.2.1
 
-Pyinotify - for watching directories (linux-only)
-(https://github.com/seb-m/pyinotify)
+MongoDB - For the marker database.
+
+Pymongo - For the python bindings to MongoDB.
+
 
 Installation
 ------------
@@ -60,7 +62,7 @@ To get in and out of your virtual environment:
 > (install libraries, work on code, do stuff...)
 > deactivate
 
-All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.
+**All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.**
 
 If you want to get rid of the virtual environment:
 > rmvirtualenv pigeon-virtualenv
@@ -101,3 +103,22 @@ in your ~/.profile or ~/.bashrc file.
 To check your PYTHONPATH, open up a python session and type in:
 > import sys
 > print(sys.path)
+
+## Install MongoDB ##
+There is a Ubuntu package for mongodb. You will need to configure your package manager before installing:
+> sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+> echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' | sudo tee /etc/apt/sources.list.d/mongodb.list
+> sudo apt-get update
+> sudo apt-get install mongodb-10gen
+
+More details on the ubuntu installation can be found at http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/.
+General installation and download instructions are at http://www.mongodb.org/downloads/.
+
+## Install PyMongo ##
+Again, it's highly recommended that you do this while within a virtualenv.
+
+> workon pigeon-virtualenv
+
+If you have the tool pip, you can install via:
+
+> pip install pymongo
