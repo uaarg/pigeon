@@ -22,8 +22,9 @@ from PyQt5.QtWidgets import *
 
 import Tag # Local module
 import utils # Local module
-import Marker
-import PanedWindow
+import Marker # Local module
+import DbLiason # Local module
+import PanedWindow # Local module
 
 class MainWindow(PanedWindow.PanedWindow):
     """
@@ -92,6 +93,7 @@ class MainWindow(PanedWindow.PanedWindow):
     def handleItemPop(self):
         popd = self.stack.pop()
         print('poppd', popd)
+        self.imageView.deleteFromDb(popd)
 
         # We won't be shielding the GUI from harsh realities of life
         # ie if there is no more content left
@@ -151,6 +153,10 @@ class MainWindow(PanedWindow.PanedWindow):
         self.imageView.serializeCoords()
 
 class ImageViewer(QtWidgets.QLabel):
+    __gcsH = DbLiason.GCSHandler('http://192.168.1.102:8000/gcs') 
+    __imageHandler  = __gcsH.imageHandler
+    __markerHandler = __gcsH.markerHandler
+
     def __init__(self, parent=None, treeMap=None):
         super(ImageViewer, self).__init__(parent)
 
@@ -182,6 +188,9 @@ class ImageViewer(QtWidgets.QLabel):
     def childMap(self):
         return self._childMap
 
+    def deleteFromDb(self, title):
+        print(self.__imageHandler.deleteConn(dict(title=title)))
+
     def openImage(self, fPath):
         if self._childMap is not None:
             for k, v in self._childMap.items():
@@ -195,6 +204,7 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             # Convert from QImage to QPixmap, and display
             self.__fileOnDisplay = filename
+            print('self.fileOnDisplay\033[47m%s'%(self.__fileOnDisplay))
             self._childMap = self.__childrenMap[self.__fileOnDisplay]
             if self._childMap is None:
                 self._childMap = dict()
@@ -252,9 +262,42 @@ class ImageViewer(QtWidgets.QLabel):
         '''
 
     def saveCoords(self, attr='time'):
+        print('\033[46m%s\033[00m'%(self.__fileOnDisplay))
+        ownMapQuery = self.__imageHandler.getConn(dict(title=self.__fileOnDisplay))
+
+        if hasattr(ownMapQuery, 'reason'): # Error response
+            print(ownMapQuery['reason'])
+        else:
+            serialzdResponse = ownMapQuery.get('value', None)
+            if serialzdResponse:
+                strResponse = serialzdResponse.decode()
+                print('strResponse', strResponse)
+                deSerialzd = json.loads(strResponse)
+                data = deSerialzd.get('data', [])
+                if data:
+                    imgId = data[0].get('id', None)
+                    print('data of image', data)
+                    # Should resolve data changes
+                else: # First time image is being registered
+                    postResponse = self.__imageHandler.postConn(
+                      dict(author=utils.getDefaultUserName(), title=self.currentFilePath, uri=self.currentFilePath)
+                    )
+                    for p, childMap in self.__childrenMap.items():
+                        for k, m in childMap.items():
+                            print(p, m.serialize())
+                    print('postResponse', postResponse)
+
+            else: # Format error here report it
+                print("Error::Expecting the value attribute")
+            
+            # print(ownMapQuery)
+        ''' 
         for path, childMap in self.__childrenMap.items():
-            print('Saving', path, childMap)
+            for key, marker in childMap.items():
+              print(path, marker.serialize())
+            # print('Saving', path, childMap)
         # self.__writeToFile(filePath=self.coordsFilename, isPickled=False, attr=attr)
+        '''
 
     def serializeCoords(self, attr='time'):
         self.__writeToFile(filePath=self.serializedMarkersFile, isPickled=True, attr=attr)
