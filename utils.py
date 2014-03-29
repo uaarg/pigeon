@@ -9,7 +9,7 @@ import stat
 import glob
 
 _404_IMAGE_PATH = '404_man.jpg'
-_PLACE_HOLDER_PATH = 'uaarg.jpg'
+_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + 'uaarg.jpg'
 pyVersion = sys.hexversion/(1<<24)
 
 if pyVersion < 3:
