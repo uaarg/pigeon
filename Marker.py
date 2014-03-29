@@ -14,8 +14,8 @@ class Marker(QtWidgets.QPushButton):
   def __init__(self, parent=None, x=0, y=0, width=10, height=20, markerPath='mapMarker.png', tree=None):
     super(Marker, self).__init__(parent)
     __slots__ = ('x', 'y', 'width', 'height', 'markerImagePath',)
-    self._x = x
-    self._y = y
+    self.x = x
+    self.y = y
     self.tag = None
     self.info = None
     self._width = width
@@ -28,7 +28,7 @@ class Marker(QtWidgets.QPushButton):
     self.initUI()
 
   def initUI(self):
-    self.setGeometry(self._x, self._y, self._width, self._height)
+    self.setGeometry(self.x, self.y, self._width, self._height)
     self.initIcon()
 
     self.currentFilePath = __file__
@@ -36,7 +36,7 @@ class Marker(QtWidgets.QPushButton):
     self.setMouseTracking(True) # To allow for hovering detection
 
     if self.tree is not None:
-        self.tree[(self._x, self._y)] = self
+        self.tree[(self.x, self.y)] = self
         print('added in', self.tree)
 
   def initIcon(self):
@@ -95,7 +95,7 @@ class Marker(QtWidgets.QPushButton):
       # Request for a deletion
       self.hide()
       if isinstance(self.tree, dict):
-        print('Popped marker', self.tree.pop((self._x, self._y), 'Not found'))
+        print('Popped marker', self.tree.pop((self.x, self.y), 'Not found'))
       del self
   
     else:
@@ -116,15 +116,15 @@ class Marker(QtWidgets.QPushButton):
    
   def __lt__(self, other):
     return  type(self) is type(other)\
-        and (self._x < other._x) and (self._y < other._y)
+        and (self.x < other.x) and (self.y < other.y)
 
   def __gt__(self, other):
     return  type(self) is type(other)\
-        and (self._x > other._x) and (self._y > other._y)
+        and (self.x > other.x) and (self.y > other.y)
 
   def __eq__(self, other):
     return type(self) is type(other)\
-      and (self._x == other._x) and (self._y == other._y)
+      and (self.x == other.x) and (self.y == other.y)
  
   '''
   # Uncomment to allow for moving of markers -- Still buggy
