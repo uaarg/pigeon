@@ -57,23 +57,27 @@ class Marker(QtWidgets.QPushButton):
     return self.__dict__
 
   def createTag(self, event):
-    curPos = self.pos()
+    curPos = self.mapToGlobal(self.pos())
+    print(self.pos(), curPos.x(), curPos.y())
+    tagX = curPos.x()
+    tagY = curPos.y()
+
     self.tag = Tag.Tag(
       parent=None, title = '@%s'%(time.ctime()),
-      location = Tag.DynaItem(dict(x=curPos.x(), y=curPos.y())),
+      location = Tag.DynaItem(dict(x=tagX, y=tagY)),
       size = Tag.DynaItem(dict(x=300, y=240)),
       onSubmit = self.addTaggedInfo,
       metaData = dict(
         author = utils.getDefaultUserName(),
         filePath = self.currentFilePath,
-        captureTime = time.time(), x = event.x(), y = event.y()
+        captureTime = time.time(), x = tagX, y = tagY
       ),
 
       entryList = [
         Tag.DynaItem(dict(
             title='Location', isMultiLine=False,
             entryLocation=(1, 1,), labelLocation=(1, 0,),
-            entryText='%s, %s'%(event.x(), event.y())
+            entryText='%s, %s'%(tagX, tagY)
           )
         ),
         Tag.DynaItem(dict(
