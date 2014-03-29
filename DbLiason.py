@@ -9,9 +9,10 @@ class DbConn:
   def __init__(self, baseUrl):
     self.baseUrl = baseUrl
 
-  def __urlRequest(self, method, **getData):
+  def __urlRequest(self, method, isGet=False, **getData):
     fmtdData = json.dumps(getData)
-    req = urllib.request.Request(self.baseUrl)
+    reqUrl = self.baseUrl if not isGet else self.baseUrl + '/?' + '&'.join(['{k}={v}'.format(k=k, v=v) for k,v in getData.items()])
+    req = urllib.request.Request(reqUrl)
     req.add_header('Content-Type', 'application/json')
     req.get_method = lambda : method.upper()
     dataOut = dict()
@@ -25,7 +26,7 @@ class DbConn:
     return dataOut
 
   def get(self, data):
-    return self.__urlRequest('get', **data)
+    return self.__urlRequest('get', isGet=True, **data)
 
   def put(self, data):
     return self.__urlRequest('put', **data)
@@ -69,9 +70,10 @@ class GCSHandler(object):
   def markerHandler(self): return self.__markerHandler
 
 def main():
-  gcsH = GCSHandler('http://192.168.1.102:8001/gcs') 
+  gcsH = GCSHandler('http://192.168.1.102:8000/gcs') 
   imageHandler  = gcsH.imageHandler
   markerHandler = gcsH.markerHandler
+  print(imageHandler.getConn(dict(title=1)))
   with open(__file__, 'r') as f:
     blob = f.read()
     markerData = dict(
