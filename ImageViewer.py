@@ -34,7 +34,7 @@ class ImageViewer(QtWidgets.QLabel):
         self.imgPixMap = None
         self._childMap = None
         self.__childrenMap = collections.defaultdict(lambda : None)
-        self.lastTimeEditMap = collections.defaultdict(lambda : -1)
+        self.lastTimeEditMap = collections.defaultdict(lambda : (-1, -1))
 
     @property
     def childMap(self):
@@ -88,7 +88,7 @@ class ImageViewer(QtWidgets.QLabel):
 
             # Saving titles here since comparisons are to made with
             # data local to your ground station
-            self.lastTimeEditMap[title] = float(v['lastTimeEdit'])
+            self.lastTimeEditMap[title] = (v['id'], float(v['lastTimeEdit']))
 
             pathSelector = uri if uri else title
             inOrderItems.append(pathSelector)
@@ -120,14 +120,16 @@ class ImageViewer(QtWidgets.QLabel):
 
         data = parsedResponse.get('data', None)
         if data:
-            lastTimeEdit = float(data[0]['lastTimeEdit'])
-
-            savedLastEditTime = self.lastTimeEditMap[self.__fileOnDisplay]
+            itemInfo = data[0]
+            lastTimeEdit = float(itemInfo['lastTimeEdit'])
+            savValue = self.lastTimeEditMap[self.__fileOnDisplay]
+            print('memoized', savValue)
+            iId, savedLastEditTime = savValue
             if (lastTimeEdit > savedLastEditTime):
                 print('Detected a need for saving here since')
                 print('your last memoized local editTime was', savedLastEditTime)
                 print('Most recent db editTime is', lastTimeEdit)
-                self.lastTimeEditMap[self.__fileOnDisplay] = lastTimeEdit
+                self.lastTimeEditMap[self.__fileOnDisplay] = (itemInfo['id'], lastTimeEdit)
                 return False
             else:
                 print('All good! No need for an extra save for', self.__fileOnDisplay)
@@ -152,7 +154,7 @@ class ImageViewer(QtWidgets.QLabel):
             if parsedResponse:
                 dbItem = postData
                 print('Memoizing a lastTimeEdit for ', self.currentFilePath)
-                self.lastTimeEditMap[self.currentFilePath] = dbItem.get('lastTimeEdit', -1)
+                self.lastTimeEditMap[self.currentFilePath] = dbItem.get('lastTimeEdit', (-1, -1))
 
                 print('postResponse', postData)
                 self.checkSyncOfEditTimes()
@@ -160,10 +162,10 @@ class ImageViewer(QtWidgets.QLabel):
                 print("Could not post the data to the DB.Try again later")
 
 
-        targetId = self.lastTimeEditMap[self.currentFilePath]
+        targetId = self.lastTimeEditMap[self.currentFilePath][0]
         for p, childMap in self.__childrenMap.items():
             for k, m in childMap.items():
-                print(targetId, p, m)
+                print(targetId, p, m.serialize())
 
 def main():
   import sys

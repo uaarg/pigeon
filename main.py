@@ -101,29 +101,37 @@ class MainWindow(PanedWindow.PanedWindow):
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
         self.editMenu = QtWidgets.QMenu("&Edit", self)
-        self.fileMenu.addAction(self.saveCoordsAction)
         self.fileMenu.addAction(self.exitAction)
+        self.editMenu.addAction(self.dbSyncAction)
+        self.editMenu.addAction(self.saveCoordsAction)
         self.editMenu.addAction(self.findImagesAction)
         self.editMenu.addAction(self.popCurrentImageAction)
         self.menuBar().addMenu(self.fileMenu)
         self.menuBar().addMenu(self.editMenu)
 
     def initActions(self):
+        # Finding and adding images
+        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
+        self.findImagesAction.setShortcut('Ctrl+O')
+        self.findImagesAction.triggered.connect(self.findImages)
+
+        self.popCurrentImageAction = QtWidgets.QAction("&Remove currentImage", self)
+        self.popCurrentImageAction.triggered.connect(self.handleItemPop)
+
         # Save coordinates
-        self.saveCoordsAction= QtWidgets.QAction("&Save Coordinates", self)
+        self.saveCoordsAction = QtWidgets.QAction("&Save Coordinates", self)
         self.saveCoordsAction.setShortcut('Ctrl+S')
         self.saveCoordsAction.triggered.connect(self.saveCoords)
+
+        # Synchronization with DB
+        self.dbSyncAction = QtWidgets.QAction("&Sync with DB", self)
+        self.dbSyncAction.triggered.connect(self.dbSync)
+        self.dbSyncAction.setShortcut('Ctrl+R')
 
         # Exit
         self.exitAction = QtWidgets.QAction("&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.close)
-
-        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
-        self.findImagesAction.triggered.connect(self.findImages)
-
-        self.popCurrentImageAction = QtWidgets.QAction("&Remove currentImage", self)
-        self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
     def addFilesToStack(self, paths):
         print('paths', paths)
@@ -147,8 +155,8 @@ class MainWindow(PanedWindow.PanedWindow):
     def saveCoords(self):
         self.imageView.saveCoords()
 
-    def serializeCoords(self):
-        self.imageView.serializeCoords()
+    def dbSync(self):
+        self.imageView.loadAllLastEditTimes()
 
 def main():
     print("Ground station running.")
