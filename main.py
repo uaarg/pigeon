@@ -70,7 +70,9 @@ class MainWindow(PanedWindow.PanedWindow):
         self.initMenus()
     
         self.__setUpFileExplorer()
-        # self.setLayout(layout)
+
+        # Now load up all content saved in the DB
+        self.addFilesToStack(self.imageView.loadAllLastEditTimes())
 
     def showNext(self):
         self.__stackToPhoto(self.stack.next)
