@@ -11,7 +11,10 @@ import utils # Local module
 import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
-  def __init__(self, parent=None, x=0, y=0, width=10, height=20, markerPath='mapMarker.png', tree=None):
+  def __init__(
+      self, parent=None, x=0, y=0, width=10,
+      height=20, markerPath='mapMarker.png', tree=None
+  ):
     super(Marker, self).__init__(parent)
     __slots__ = ('x', 'y', 'width', 'height', 'markerImagePath',)
     self.x = x
@@ -93,9 +96,9 @@ class Marker(QtWidgets.QPushButton):
       # Weird mix here, needs more debugging on a computer
       # with a mouse since I don't use one
       # Request for a deletion
-      self.hide()
       if isinstance(self.tree, dict):
-        print('Popped marker', self.tree.pop((self.x, self.y), 'Not found'))
+        print('Popped marker', self.tree.pop((self.x, self.y),'Not found'))
+      self.hide()
       del self
   
     else:
