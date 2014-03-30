@@ -3,9 +3,7 @@
 # Author: Cindy Xiao <dixin@ualberta.ca>
 #         Emmanuel Odeke <odeke@ualberta.ca>
 
-
 import time
-import json
 import collections
 
 from PyQt5.QtCore import Qt
@@ -31,18 +29,12 @@ class ImageViewer(QtWidgets.QLabel):
 
         self.__fileOnDisplay = None
 
-        # Set up storing coordinates
-        self.coords = []
-
         # Set up for storing tagged info
-        self.tags   = []
-        self.markers = []
-        self.serializedMarkersFile = 'serializedCoords.pk'
         self.setFrameShape(QFrame.Shape(10))
-        self.coordsFilename = "coords.txt"
         self.imgPixMap = None
-        self.__childrenMap = collections.defaultdict(lambda : None)
         self._childMap = None
+        self.__childrenMap = collections.defaultdict(lambda : None)
+        self.lastTimeEditMap = collections.defaultdict(lambda : -1)
 
     @property
     def childMap(self):
@@ -50,6 +42,7 @@ class ImageViewer(QtWidgets.QLabel):
 
     def deleteFromDb(self, title):
         print(self.__imageHandler.deleteConn(dict(title=title)))
+        self.lastTimeEditMap.pop(title, None)
 
     def openImage(self, fPath):
         if self._childMap is not None:
@@ -60,7 +53,7 @@ class ImageViewer(QtWidgets.QLabel):
 
         image = QImage(filename)
         if image.isNull():
-            QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+            QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
         else:
             # Convert from QImage to QPixmap, and display
             self.__fileOnDisplay = filename
@@ -77,9 +70,29 @@ class ImageViewer(QtWidgets.QLabel):
             print('\033[43mChildMap', self._childMap, '\033[00m')
             self.imgPixMap = QPixmap.fromImage(image)
             self.setPixmap(self.imgPixMap)
+            self.checkSyncOfEditTimes()
 
             # Expand to the image's full size
             self.setGeometry(self.x(), self.y(), image.width(), image.height())
+
+    def loadAllLastEditTimes(self):
+      parsedResponse = utils.produceAndParse(
+        self.__imageHandler.getConn, dict(select='title,lastTimeEdit,uri', sort='lastTimeEdit_r')
+      )
+      data = parsedResponse.get('data', None)
+      if data:
+          inOrderItems = [] 
+          for v in data:
+            print(v)
+            title, uri= v.get('title', None), v.get('uri', None) 
+
+            # Saving titles here since comparisons are to made with
+            # data local to your ground station
+            self.lastTimeEditMap[title] = float(v['lastTimeEdit'])
+
+            pathSelector = uri if uri else title
+            inOrderItems.append(pathSelector)
+          return inOrderItems
 
     @property
     def currentFilePath(self): return self.__fileOnDisplay
@@ -99,49 +112,58 @@ class ImageViewer(QtWidgets.QLabel):
     def loadMarkers(self):
         print('\033[47mDeprecated\033[00m')
 
-    def saveCoords(self, attr='time'):
-        print('\033[46m%s\033[00m'%(self.__fileOnDisplay))
-        ownMapQuery = self.__imageHandler.getConn(
-          dict(title=self.__fileOnDisplay)
+    def checkSyncOfEditTimes(self):
+        parsedResponse = utils.produceAndParse(
+          func=self.__imageHandler.getConn,
+          dataIn=dict(title=self.__fileOnDisplay,select='lastTimeEdit')
         )
 
-        if hasattr(ownMapQuery, 'reason'): # Error response
-            print(ownMapQuery['reason'])
+        data = parsedResponse.get('data', None)
+        if data:
+            lastTimeEdit = float(data[0]['lastTimeEdit'])
+
+            savedLastEditTime = self.lastTimeEditMap[self.__fileOnDisplay]
+            if (lastTimeEdit > savedLastEditTime):
+                print('Detected a need for saving here since')
+                print('your last memoized local editTime was', savedLastEditTime)
+                print('Most recent db editTime is', lastTimeEdit)
+                self.lastTimeEditMap[self.__fileOnDisplay] = lastTimeEdit
+                return False
+            else:
+                print('All good! No need for an extra save for', self.__fileOnDisplay)
+                return True
         else:
-            serialzdResponse = ownMapQuery.get('value', None)
-            if serialzdResponse:
-                strResponse = serialzdResponse.decode()
-                print('strResponse', strResponse)
-                deSerialzd = json.loads(strResponse)
-                data = deSerialzd.get('data', [])
-                if data:
-                    imgId = data[0].get('id', None)
-                    print('data of image', data)
-                    # Should resolve data changes
-                else: # First time image is being registered
-                    postResponse = self.__imageHandler.postConn(
-                      dict(
-                        uri=self.currentFilePath,
-                        title=self.currentFilePath,
-                        author=utils.getDefaultUserName()
-                      )
-                    )
+            print("No data back from querying about lastTimeEdit")
 
-                    for p, childMap in self.__childrenMap.items():
-                        for k, m in childMap.items():
-                            print(p, m.serialize())
-                    print('postResponse', postResponse)
+    def saveCoords(self, attr='time'):
+        if self.checkSyncOfEditTimes():
+            print('No edit was recently performed for', self.currentFilePath)
+        else: # First time image is being registered
+            parsedResponse = utils.produceAndParse(
+              func=self.__imageHandler.postConn,
+              dataIn= dict(
+                uri=self.currentFilePath, title=self.currentFilePath,
+                author=utils.getDefaultUserName()
+              )
+            )
 
-            else: # Format error here report it
-                print("Error::Expecting the value attribute")
-            
-            # print(ownMapQuery)
-        ''' 
-        for path, childMap in self.__childrenMap.items():
-            for key, marker in childMap.items():
-              print(path, marker.serialize())
-            # print('Saving', path, childMap)
-        '''
+            postData = parsedResponse.get('data', None)
+            print(postData)
+            if parsedResponse:
+                dbItem = postData
+                print('Memoizing a lastTimeEdit for ', self.currentFilePath)
+                self.lastTimeEditMap[self.currentFilePath] = dbItem.get('lastTimeEdit', -1)
+
+                print('postResponse', postData)
+                self.checkSyncOfEditTimes()
+            else:
+                print("Could not post the data to the DB.Try again later")
+
+
+        targetId = self.lastTimeEditMap[self.currentFilePath]
+        for p, childMap in self.__childrenMap.items():
+            for k, m in childMap.items():
+                print(targetId, p, m)
 
 def main():
   import sys
