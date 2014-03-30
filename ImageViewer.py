@@ -183,8 +183,9 @@ class ImageViewer(QtWidgets.QLabel):
             if targetId > 0: # Save only markers of registered images
               for k, m in childMap.items():
                 markerMap = dict(
-                  iconPath=m.iconPath
-                  x=str(m.x), y=str(m.y), associatedImage_id=targetId
+                  iconPath=m.iconPath,
+                  x=str(m.x), y=str(m.y), associatedImage_id=targetId,
+                  format='short' # No need for foreign keys and extras
                 )
                 markerQuery = utils.produceAndParse(
                   self.__markerHandler.getConn, markerMap
