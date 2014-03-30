@@ -16,17 +16,17 @@ class Marker(QtWidgets.QPushButton):
       height=20, markerPath='mapMarker.png', tree=None
   ):
     super(Marker, self).__init__(parent)
-    __slots__ = ('x', 'y', 'width', 'height', 'markerImagePath',)
+    __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
     self.x = x
     self.y = y
     self.tag = None
     self.info = None
+    self.tree = tree
     self._width = width
     self._height = height
     self.imageMap = dict()
+    self.iconPath = markerPath
     self.styleSheet = 'opacity:0.9'
-    self.markerImagePath = markerPath
-    self.tree = tree
 
     self.initUI()
 
@@ -40,10 +40,10 @@ class Marker(QtWidgets.QPushButton):
 
     if self.tree is not None:
         self.tree[(self.x, self.y)] = self
-        print('added in', self.tree)
+        # print('added in', self.tree)
 
   def initIcon(self):
-    imagePixMap = QPixmap(self.markerImagePath)
+    imagePixMap = QPixmap(self.iconPath)
     icon = QIcon(imagePixMap)
     self.setIconSize(QtCore.QSize(self.width(), self.height()))
     self.setIcon(icon);

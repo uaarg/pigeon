@@ -5,6 +5,7 @@
 
 import time
 import collections
+from threading import Thread
 
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
@@ -41,7 +42,12 @@ class ImageViewer(QtWidgets.QLabel):
         return self._childMap
 
     def deleteFromDb(self, title):
-        print(self.__imageHandler.deleteConn(dict(title=title)))
+        imgDelResponse = utils.produceAndParse(
+            self.__imageHandler.deleteConn, dict(title=title)
+        )
+
+        print('imgDelResponse', imgDelResponse)
+
         self.lastTimeEditMap.pop(title, None)
 
     def openImage(self, fPath):
@@ -109,9 +115,6 @@ class ImageViewer(QtWidgets.QLabel):
         )
         marker.show()
       
-    def loadMarkers(self):
-        print('\033[47mDeprecated\033[00m')
-
     def checkSyncOfEditTimes(self):
         parsedResponse = utils.produceAndParse(
           func=self.__imageHandler.getConn,
@@ -123,8 +126,9 @@ class ImageViewer(QtWidgets.QLabel):
             itemInfo = data[0]
             lastTimeEdit = float(itemInfo['lastTimeEdit'])
             savValue = self.lastTimeEditMap[self.__fileOnDisplay]
-            print('memoized', savValue)
+
             iId, savedLastEditTime = savValue
+
             if (lastTimeEdit > savedLastEditTime):
                 print('Detected a need for saving here since')
                 print('your last memoized local editTime was', savedLastEditTime)
@@ -137,7 +141,18 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             print("No data back from querying about lastTimeEdit")
 
-    def saveCoords(self, attr='time'):
+    def saveCoords(self, isSynchronous=False):
+      if isSynchronous:
+        return self.__saveCoords()
+      else:
+        th = Thread(target=self.__saveCoordsOnThread)
+        print('\033[47mSaving using created thread\033[00m')
+        th.start()
+
+    def __saveCoords(self):
+        # TODO: Add guards for thread safety
+        # This function needs data protection
+
         if self.checkSyncOfEditTimes():
             print('No edit was recently performed for', self.currentFilePath)
         else: # First time image is being registered
@@ -162,10 +177,25 @@ class ImageViewer(QtWidgets.QLabel):
                 print("Could not post the data to the DB.Try again later")
 
 
-        targetId = self.lastTimeEditMap[self.currentFilePath][0]
+        # Markers may have changed
         for p, childMap in self.__childrenMap.items():
-            for k, m in childMap.items():
-                print(targetId, p, m.serialize())
+            targetId = self.lastTimeEditMap[p][0]
+            if targetId > 0: # Save only markers of registered images
+              for k, m in childMap.items():
+                markerMap = dict(
+                  iconPath=m.iconPath
+                  x=str(m.x), y=str(m.y), associatedImage_id=targetId
+                )
+                markerQuery = utils.produceAndParse(
+                  self.__markerHandler.getConn, markerMap
+                )
+                data = markerQuery.get('data', None)
+                if not data: # First time this marker is being created
+                  markerMap['author'] = utils.getDefaultUserName()
+                  postResponse = utils.produceAndParse(
+                    self.__markerHandler.postConn, markerMap
+                  )
+                  print('After creating marker', postResponse)
 
 def main():
   import sys
