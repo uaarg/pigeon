@@ -56,9 +56,11 @@ class PseudoStack:
     self.__size = len(self.__content)
 
   def push(self, extras):
-    if isinstance(extras, list):
+    if not extras:
+      return
+    elif isinstance(extras, list):
       self.__content += extras
-    else :
+    else:
       for i in extras:
         self.__content.append(i)
     print('added content to stack')
