@@ -41,14 +41,47 @@ class ImageViewer(QtWidgets.QLabel):
     def childMap(self):
         return self._childMap
 
-    def deleteFromDb(self, title):
+    def deleteImageFromDb(self, title, isSynchronous=False):
+      if isSynchronous:
+        self.__deleteImageFromDb(title)
+      else:
+        th = Thread(target=self.__deleteImageFromDb, args=(title,))
+        th.start()
+
+    def __deleteImageFromDb(self, title):
         imgDelResponse = utils.produceAndParse(
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
         print('imgDelResponse', imgDelResponse)
 
+        data = imgDelResponse.get('data', dict()) 
+        successfulDels = data.get('successful', [])
+        # TODO: Figure out what to do with the failed deletes
+        # failed = data.get('failed', [])
+       
+        for sId in successfulDels: 
+          # Clear out all the associated markers
+          mDelResponse = utils.produceAndParse(
+            self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
+          )
+          print('mDelResponse', mDelResponse)
+        
+
         self.lastTimeEditMap.pop(title, None)
+
+    def deleteMarkerFromDb(self, pos):
+        savValue = self.lastTimeEditMap[self.__fileOnDisplay]
+
+        iId, savedLastEditTime = savValue
+        if iId > 0:
+          mDelResponse = utils.produceAndParse(
+            self.__markerHandler.deleteConn,
+            dict(x=str(pos.x()), y=str(pos.y()), associatedImage_id=iId)
+          )
+
+          # print('After markerDeletion', mDelResponse)
+          return mDelResponse
 
     def openImage(self, fPath):
         if self._childMap is not None:
@@ -63,7 +96,7 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             # Convert from QImage to QPixmap, and display
             self.__fileOnDisplay = filename
-            print('self.fileOnDisplay\033[47m%s'%(self.__fileOnDisplay))
+            print('self.fileOnDisplay\033[47m%s\033[00m'%(self.__fileOnDisplay))
             self._childMap = self.__childrenMap[self.__fileOnDisplay]
             if self._childMap is None:
                 self._childMap = dict()
@@ -73,7 +106,7 @@ class ImageViewer(QtWidgets.QLabel):
                     v.show()
                     print('\033[47mkey', k, v, '\033[00m')
 
-            print('\033[43mChildMap', self._childMap, '\033[00m')
+            # print('\033[43mChildMap', self._childMap, '\033[00m')
             self.imgPixMap = QPixmap.fromImage(image)
             self.setPixmap(self.imgPixMap)
             self.checkSyncOfEditTimes()
@@ -111,7 +144,8 @@ class ImageViewer(QtWidgets.QLabel):
     def createMarker(self, event):
         curPos = self.mapFromGlobal(self.cursor.pos())
         marker = Marker.Marker(
-          parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap
+          parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
+          onDeleteCallback=self.deleteMarkerFromDb
         )
         marker.show()
       
@@ -145,7 +179,7 @@ class ImageViewer(QtWidgets.QLabel):
       if isSynchronous:
         return self.__saveCoords()
       else:
-        th = Thread(target=self.__saveCoordsOnThread)
+        th = Thread(target=self.__saveCoords)
         print('\033[47mSaving using created thread\033[00m')
         th.start()
 
@@ -185,7 +219,7 @@ class ImageViewer(QtWidgets.QLabel):
                 markerMap = dict(
                   iconPath=m.iconPath,
                   x=str(m.x), y=str(m.y), associatedImage_id=targetId,
-                  format='short' # No need for foreign keys and extras
+                  format='short', select='id' # No need for foreign keys and extras
                 )
                 markerQuery = utils.produceAndParse(
                   self.__markerHandler.getConn, markerMap

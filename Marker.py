@@ -12,8 +12,8 @@ import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
   def __init__(
-      self, parent=None, x=0, y=0, width=10,
-      height=20, markerPath='mapMarker.png', tree=None
+      self, parent=None, x=0, y=0, width=10,height=20,
+      markerPath='mapMarker.png', tree=None,onDeleteCallback=None
   ):
     super(Marker, self).__init__(parent)
     __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -27,6 +27,7 @@ class Marker(QtWidgets.QPushButton):
     self.imageMap = dict()
     self.iconPath = markerPath
     self.styleSheet = 'opacity:0.9'
+    self.onDeleteCallback = onDeleteCallback
 
     self.initUI()
 
@@ -98,6 +99,9 @@ class Marker(QtWidgets.QPushButton):
       # Request for a deletion
       if isinstance(self.tree, dict):
         print('Popped marker', self.tree.pop((self.x, self.y),'Not found'))
+      if self.onDeleteCallback: 
+        print(self.onDeleteCallback(self.mapToGlobal(self.pos())))
+
       self.hide()
       del self
   
