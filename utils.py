@@ -7,6 +7,7 @@ import os
 import sys
 import stat
 import glob
+import json
 
 _404_IMAGE_PATH = '404_man.jpg'
 _PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + 'uaarg.jpg'
@@ -89,3 +90,15 @@ class PseudoStack:
        self.__ptr -= 1
        item = self.__content[self.__ptr]
     return item
+
+def produceAndParse(func, dataIn):
+  dbCheck = func(dataIn)
+  if hasattr(dbCheck, 'reason'):
+    print(dbCheck['reason'])
+  else:
+    response = dbCheck.get('value', None)
+    if response:
+      try:
+        return json.loads(response.decode())
+      except Exception as e:
+        return dict(reason = e)
