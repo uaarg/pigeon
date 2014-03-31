@@ -7,7 +7,8 @@ import sys
 import time
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from threading import Lock
+
+import utils # Local module
 
 def labelEntryPairFromSource(srcDict):
     lbPair = LabelEntryPair(**srcDict)
@@ -16,7 +17,7 @@ def labelEntryPairFromSource(srcDict):
 def tagFromSource(srcDict):
     # print('srcDict', srcDict, type(srcDict))
     entryList = srcDict.get('entryList', [])
-    srcDict['entryList'] = [DynaItem(initArgs) for initArgs in entryList]
+    srcDict['entryList'] = [utils.DynaItem(initArgs) for initArgs in entryList]
     return Tag(**srcDict)
 
 class LabelEntryPair(object):
@@ -63,19 +64,6 @@ class LabelEntryPair(object):
 
     def __str__(self):
         return self.__dict__.__str__()
-
-class DynaItem:
-    def __init__(self, initArgs):
-        __slots__ = (arg for arg in initArgs)
-        for arg in initArgs:
-            setattr(self, arg, initArgs[arg])
-    
-    def __str__(self): 
-        return self.__dict__.__str__()
-
-    def __repr__(self):
-        return self.__str__()
-    
 
 class Tag(QtWidgets.QWidget):
     def __init__(
@@ -156,13 +144,13 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     t = Tag(
       title = 'Locked_Target',
-      size = DynaItem(dict(x=200, y=200)),
-      location = DynaItem(dict(x=600, y=200)),
+      size = utils.DynaItem(dict(x=200, y=200)),
+      location = utils.DynaItem(dict(x=600, y=200)),
       onSubmit = lambda content : print(content),
       entryList = [
-        DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
-        DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
-        DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
+        utils.DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
     ])
 
     sys.exit(app.exec_())

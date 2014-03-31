@@ -77,7 +77,12 @@ class PseudoStack:
         if self.__ptr < 0: self.__ptr = 0
         print(outItem)
         return outItem
-        
+
+  @property
+  def contentLength(self): return len(self.__content)
+
+  def canGetPrev(self): return self.__ptr > 0 and self.contentLength
+  def canGetNext(self): return self.__ptr < self.contentLength
 
   def next(self):
     item = None
@@ -93,6 +98,9 @@ class PseudoStack:
        item = self.__content[self.__ptr]
     return item
 
+  def __str__(self):
+    return self.__ptr.__str__()
+
 def produceAndParse(func, dataIn):
   dbCheck = func(dataIn)
   if hasattr(dbCheck, 'reason'):
@@ -104,3 +112,15 @@ def produceAndParse(func, dataIn):
         return json.loads(response.decode())
       except Exception as e:
         return dict(reason = e)
+
+class DynaItem:
+  def __init__(self, initArgs):
+    __slots__ = (arg for arg in initArgs)
+    for arg in initArgs:
+      setattr(self, arg, initArgs[arg])
+    
+  def __str__(self): 
+    return self.__dict__.__str__()
+
+  def __repr__(self):
+    return self.__str__()

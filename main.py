@@ -85,36 +85,53 @@ class MainWindow(PanedWindow.PanedWindow):
 
     def __stackToPhoto(self, method):
         self.currentItem = method()
-        # print('currentItem', self.currentItem, self.imageMap)
-        self.imageView.openImage(self.currentItem)
+        print('currentItem', self.stack) # currentItem, self.imageMap)
+        if isinstance(self.currentItem, utils.DynaItem):
+           self.imageView.openImage(
+             fPath=self.currentItem.path, markerSet=self.currentItem.markerSet
+           )
+        else:
+           self.imageView.openImage(self.currentItem)
 
     def handleItemPop(self):
         popd = self.stack.pop()
         print('poppd', popd)
-        self.imageView.deleteFromDb(popd)
+        if isinstance(popd, utils.DynaItem):
+          popd = popd.path
+
+        if popd: self.imageView.deleteImageFromDb(popd)
 
         # We won't be shielding the GUI from harsh realities of life
         # ie if there is no more content left
-        nextItem = self.stack.next()
-        self.imageView.openImage(nextItem)
+
+        itemToShow = None
+        if self.stack.canGetPrev():
+            itemToShow = self.stack.prev()
+        else:
+            itemToShow = self.stack.next()
+
+        if isinstance(itemToShow, utils.DynaItem):
+          self.imageView.openImage(
+            fPath=itemToShow.path, markerSet=itemToShow.markerSet
+          )
+        else:
+          self.imageView.openImage(itemToShow)
 
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
         self.editMenu = QtWidgets.QMenu("&Edit", self)
+
         self.fileMenu.addAction(self.exitAction)
+        self.fileMenu.addAction(self.findImagesAction)
+
         self.editMenu.addAction(self.dbSyncAction)
         self.editMenu.addAction(self.saveCoordsAction)
-        self.editMenu.addAction(self.findImagesAction)
         self.editMenu.addAction(self.popCurrentImageAction)
+
         self.menuBar().addMenu(self.fileMenu)
         self.menuBar().addMenu(self.editMenu)
 
     def initActions(self):
-        # Finding and adding images
-        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
-        self.findImagesAction.setShortcut('Ctrl+O')
-        self.findImagesAction.triggered.connect(self.findImages)
-
         self.popCurrentImageAction = QtWidgets.QAction("&Remove currentImage", self)
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
@@ -133,16 +150,26 @@ class MainWindow(PanedWindow.PanedWindow):
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.close)
 
-    def addFilesToStack(self, paths):
-        print('paths', paths)
-        self.stack.push(paths)
+        # Finding and adding images
+        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
+        self.findImagesAction.setShortcut('Ctrl+O')
+        self.findImagesAction.triggered.connect(self.findImages)
+
+    def addFilesToStack(self, dynaDictList):
+        # print('paths', paths)
+        self.stack.push(dynaDictList)
         self.showNext()
+
+    def __normalizeFileAdding(self, paths):
+        self.addFilesToStack(list(
+          map(lambda p : utils.DynaItem(dict(path=p, markerSet=[])), paths)
+        ))
 
     # Our file explorer
     def __setUpFileExplorer(self):
         self.fileDialog = QFileDialog()
         self.fileDialog.setFileMode(3) # Multiple files can be selected
-        self.fileDialog.filesSelected.connect(self.addFilesToStack)
+        self.fileDialog.filesSelected.connect(self.__normalizeFileAdding)
 
     def findImages(self):
         if isinstance(self.fileDialog, QFileDialog):
