@@ -216,21 +216,38 @@ class ImageViewer(QtWidgets.QLabel):
             targetId = self.lastTimeEditMap[p][0]
             if targetId > 0: # Save only markers of registered images
               for k, m in childMap.items():
+                print('\033[42m', m, '\033[00m')
                 markerMap = dict(
                   iconPath=m.iconPath,
                   x=str(m.x), y=str(m.y), associatedImage_id=targetId,
-                  format='short', select='id' # No need for foreign keys and extras
+                  format='short', select='comments' # No need for foreign keys and extras
                 )
                 markerQuery = utils.produceAndParse(
                   self.__markerHandler.getConn, markerMap
                 )
                 data = markerQuery.get('data', None)
+                currentComments = ''
+                mInfo = m.entryData
+                if mInfo:
+                    currentComments = mInfo.get('Comments', dict()).get('entryText', '')
                 if not data: # First time this marker is being created
-                  markerMap['author'] = utils.getDefaultUserName()
-                  postResponse = utils.produceAndParse(
-                    self.__markerHandler.postConn, markerMap
-                  )
-                  print('After creating marker', postResponse)
+                    markerMap['author'] = utils.getDefaultUserName()
+                    markerMap['comments'] = currentComments
+
+                    postResponse = utils.produceAndParse(
+                      self.__markerHandler.postConn, markerMap
+                    )
+                    print('After creating marker', postResponse)
+                else:
+                    for retr in data:
+                        commentsFromDb = retr['comments']
+                        print(commentsFromDb, currentComments, commentsFromDb.__eq__(commentsFromDb))
+                        if currentComments and (not currentComments.__eq__(commentsFromDb)): # Time for a put here
+                            putResponse = utils.produceAndParse(
+                                self.__markerHandler.putConn,
+                                dict(id=retr['id'], comments=currentComments)
+                            )
+                            print('\033[45mPutResponse', putResponse, '\033[00m')
 
 def main():
   import sys

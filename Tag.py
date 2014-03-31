@@ -14,7 +14,7 @@ def labelEntryPairFromSource(srcDict):
     return lbPair
 
 def tagFromSource(srcDict):
-    print('srcDict', srcDict, type(srcDict))
+    # print('srcDict', srcDict, type(srcDict))
     entryList = srcDict.get('entryList', [])
     srcDict['entryList'] = [DynaItem(initArgs) for initArgs in entryList]
     return Tag(**srcDict)
@@ -132,9 +132,11 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        serialized = self.serialize()
-        self.onSubmit(serialized)
+        self.onSubmit((self.serialize(), self.getContent())) 
         self.close()
+
+        # serialized = self.serialize()
+        # self.onSubmit(serialized)
         # Uncomment to test the serialization
         # t = tagFromSource(serialized)
 
@@ -146,6 +148,9 @@ class Tag(QtWidgets.QWidget):
               item.serialize() for item in self.entries
             ]
         )
+
+    def getContent(self):
+        return dict((k.title, k.getContent()) for k in self.entries)
 
 def main():
     app = QtWidgets.QApplication(sys.argv)

@@ -26,6 +26,7 @@ class Marker(QtWidgets.QPushButton):
     self._height = height
     self.imageMap = dict()
     self.iconPath = markerPath
+    self.entryData = None
     self.styleSheet = 'opacity:0.9'
     self.onDeleteCallback = onDeleteCallback
 
@@ -50,31 +51,31 @@ class Marker(QtWidgets.QPushButton):
     self.setIcon(icon);
     self.setStyleSheet(self.styleSheet)
 
-  def addTaggedInfo(self, info):
-    self.info = info
+  def addTaggedInfo(self, tagIn):
+    self.info, self.entryData = tagIn
+    print('entryData', self.entryData)
     if self.tag:
-        self.tag.close()
-        print('hiding tag')
-        self.tag = None # Garbage collection can now kick in
+        self.tag.hide() # del self.tag
+        print('hiding tag', self.tag)
 
   def serialize(self):
     return self.__dict__
 
   def createTag(self, event):
-    curPos = self.mapToGlobal(self.pos())
-    print(self.pos(), curPos.x(), curPos.y())
-    tagX = curPos.x()
-    tagY = curPos.y()
+    lPos = self.pos()
+    gPos = self.mapToGlobal(lPos)
+    tagX = gPos.x()
+    tagY = gPos.y()
 
     self.tag = Tag.Tag(
       parent=None, title = '@%s'%(time.ctime()),
-      location = Tag.DynaItem(dict(x=tagX, y=tagY)),
+      location = Tag.DynaItem(dict(x=lPos.x(), y=lPos.y())),
       size = Tag.DynaItem(dict(x=300, y=240)),
       onSubmit = self.addTaggedInfo,
       metaData = dict(
         author = utils.getDefaultUserName(),
         filePath = self.currentFilePath,
-        captureTime = time.time(), x = tagX, y = tagY
+        captureTime=time.time(), x=tagX, y=tagY
       ),
 
       entryList = [
@@ -102,7 +103,7 @@ class Marker(QtWidgets.QPushButton):
       if self.onDeleteCallback: 
         print(self.onDeleteCallback(self.mapToGlobal(self.pos())))
 
-      self.hide()
+      self.close()
       del self
   
     else:
@@ -113,12 +114,15 @@ class Marker(QtWidgets.QPushButton):
         self.__movePos = event.globalPos()
         self.__pressPos = event.globalPos()
 
+        print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
         if not self.tag:
             if self.info:
                 self.tag = Tag.tagFromSource(self.info)
             else:
                 self.createTag(event)
         else:
+          print('Trying to activateWindow')
+          self.tag.show()
           self.tag.activateWindow()
    
   def __lt__(self, other):
