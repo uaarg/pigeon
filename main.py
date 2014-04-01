@@ -120,16 +120,19 @@ class MainWindow(PanedWindow.PanedWindow):
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
         self.editMenu = QtWidgets.QMenu("&Edit", self)
+        self.syncMenu = QtWidgets.QMenu("&Sync", self)
 
         self.fileMenu.addAction(self.exitAction)
         self.fileMenu.addAction(self.findImagesAction)
 
-        self.editMenu.addAction(self.dbSyncAction)
         self.editMenu.addAction(self.saveCoordsAction)
         self.editMenu.addAction(self.popCurrentImageAction)
 
+        self.syncMenu.addAction(self.dbSyncAction)
+
         self.menuBar().addMenu(self.fileMenu)
         self.menuBar().addMenu(self.editMenu)
+        self.menuBar().addMenu(self.syncMenu)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction("&Remove currentImage", self)
@@ -183,7 +186,7 @@ class MainWindow(PanedWindow.PanedWindow):
         self.imageView.saveCoords()
 
     def dbSync(self):
-        self.imageView.loadAllLastEditTimes()
+        self.imageView.loadAllLastEditTimes(syncForCurrentImageOnly=False)
 
 def main():
     print("Ground station running.")

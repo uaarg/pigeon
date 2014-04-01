@@ -46,7 +46,7 @@ class Marker(QtWidgets.QPushButton):
   def registerWithTree(self):
     if self.tree is not None:
         self.tree[(self.x, self.y)] = self
-        print('Tree after self-registration', self.tree)
+        # print('Tree after self-registration', self.tree)
 
   def initIcon(self):
     imagePixMap = QPixmap(self.iconPath)
@@ -96,17 +96,21 @@ class Marker(QtWidgets.QPushButton):
       ]
    )
 
+  def erase(self, x, y, needsFlush=True):
+    if isinstance(self.tree, dict):
+      print('Popped marker', self.tree.pop((x, y),'Not found'))
+      if self.onDeleteCallback and needsFlush: 
+        print(self.onDeleteCallback(x, y))
+
+      self.close()
+
+
   def mousePressEvent(self, event):
     if event.button() == QtCore.QEvent.MouseButtonDblClick:
       # Weird mix here, needs more debugging on a computer
       # with a mouse since I don't use one
       # Request for a deletion
-      if isinstance(self.tree, dict):
-        print('Popped marker', self.tree.pop((self.x, self.y),'Not found'))
-      if self.onDeleteCallback: 
-        print(self.onDeleteCallback(self.x, self.y))
-
-      self.close()
+      self.erase(self.x, self.y)
   
     else:
       # Thanks be to Stack Overflow

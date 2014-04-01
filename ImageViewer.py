@@ -17,7 +17,7 @@ import Marker # Local module
 import DbLiason # Local module
 
 class ImageViewer(QtWidgets.QLabel):
-    __gcsH = DbLiason.GCSHandler('http://192.168.1.102:8000/gcs') 
+    __gcsH = DbLiason.GCSHandler('http://192.168.1.64:8000/gcs') 
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
 
@@ -53,7 +53,7 @@ class ImageViewer(QtWidgets.QLabel):
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
-        print('imgDelResponse', imgDelResponse)
+        # print('imgDelResponse', imgDelResponse)
 
         data = imgDelResponse.get('data', dict()) 
         successfulDels = data.get('successful', [])
@@ -65,7 +65,7 @@ class ImageViewer(QtWidgets.QLabel):
           mDelResponse = utils.produceAndParse(
             self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
           )
-          print('mDelResponse', mDelResponse)
+          # print('mDelResponse', mDelResponse)
         
 
         self.lastTimeEditMap.pop(title, None)
@@ -124,24 +124,48 @@ class ImageViewer(QtWidgets.QLabel):
             # Expand to the image's full size
             self.setGeometry(self.x(), self.y(), image.width(), image.height())
 
-    def loadAllLastEditTimes(self):
+    def loadAllLastEditTimes(self, syncForCurrentImageOnly=False):
+      connArgs = dict(sort='lastTimeEdit_r')
+      if syncForCurrentImageOnly:
+        connArgs['title'] =  self.__fileOnDisplay
+
       parsedResponse = utils.produceAndParse(
         self.__imageHandler.getConn, dict(sort='lastTimeEdit_r')
       )
       data = parsedResponse.get('data', None)
       if data:
           inOrderItems = [] 
+         
           for v in data:
             title, uri= v.get('title', None), v.get('uri', None) 
 
+            markerSet = v['marker_set']
             # Saving titles here since comparisons are to made with
             # data local to your ground station
             self.lastTimeEditMap[title] = (v['id'], float(v['lastTimeEdit']))
 
             pathSelector = uri if uri else title
             inOrderItems.append(
-              utils.DynaItem(dict(path=pathSelector, markerSet=v['marker_set']))
+              utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
             )
+
+            if title.__eq__(self.__fileOnDisplay):
+                childMap = self.__childrenMap.get(self.currentFilePath, [])
+                markerCopy = list(childMap.keys())[:]
+                for mKey in markerCopy:
+                    mk = childMap[mKey]
+                    if mk:
+                      mk.erase(mk.x, mk.y, needsFlush=False)
+        
+                for mData in markerSet:
+                    if mData:
+                        m = self.createMarker(utils.DynaItem(
+                          dict(
+                            x= lambda : int(mData['x']), y= lambda : int(mData['y']))
+                          ), author=mData['author'], mComments=mData['comments']
+                        )
+                        m.show()
+
           return inOrderItems
 
     @property
