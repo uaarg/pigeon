@@ -22,6 +22,8 @@ import utils # Local module
 import PanedWindow # Local module
 import ImageViewer # Local module
 
+curDirPath = os.path.abspath('.')
+
 class MainWindow(PanedWindow.PanedWindow):
     """
     Main application window for the ground station.
@@ -165,7 +167,7 @@ class MainWindow(PanedWindow.PanedWindow):
 
     def __normalizeFileAdding(self, paths):
         self.addFilesToStack(list(
-          map(lambda p : utils.DynaItem(dict(path=p, markerSet=[])), paths)
+          map(lambda p : utils.DynaItem(dict(path= '.' + p.split(curDirPath)[1], markerSet=[])), paths)
         ))
 
     # Our file explorer
