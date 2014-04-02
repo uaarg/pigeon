@@ -74,7 +74,7 @@ class MainWindow(PanedWindow.PanedWindow):
         self.__setUpFileExplorer()
 
         # Now load up all content saved in the DB
-        self.addFilesToStack(self.imageView.loadAllLastEditTimes())
+        self.addFilesToStack(self.imageView.loadContentFromDb())
 
     def showNext(self):
         self.__stackToPhoto(self.stack.next)
@@ -166,6 +166,9 @@ class MainWindow(PanedWindow.PanedWindow):
         self.showNext()
 
     def __normalizeFileAdding(self, paths):
+        # Ensuring that paths added are relative to a common source eg
+        # Files getting added from folder ./data will be present on all GCS stations
+        # so only the relative path not absolute path should be added
         self.addFilesToStack(list(
           map(lambda p : utils.DynaItem(dict(path= '.' + p.split(curDirPath)[1], markerSet=[])), paths)
         ))
@@ -188,7 +191,7 @@ class MainWindow(PanedWindow.PanedWindow):
         self.imageView.saveCoords()
 
     def dbSync(self):
-        self.imageView.loadAllLastEditTimes(syncForCurrentImageOnly=False)
+        self.addFilesToStack(self.imageView.loadContentFromDb(syncForCurrentImageOnly=False))
 
 def main():
     print("Ground station running.")
