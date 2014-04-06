@@ -8,7 +8,7 @@ filename starts with "test".
 
 def main():
     loader = unittest.TestLoader()
-    tests = loader.discover('.') # Looking in the current folder
+    tests = loader.discover('../tests/')
     testRunner = unittest.runner.TextTestRunner()
     testRunner.run(tests)
 

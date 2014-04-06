@@ -100,13 +100,14 @@ def utm_to_DD(x, y, zone, mode = "DD"):
     # Check for validity of UTM coordinates
     # TODO: Check for correct range of coordinates
     try:
-    	x = float(x)
-    	y = float(y)
+        x = float(x)
+        y = float(y)
+        zone = int(zone)
     except ValueError as e:
-    	raise(ValueError("The UTM coordinates given are invalid: %s" % (str(e),)))
+        raise(ValueError("The UTM coordinates given are invalid: %s" % (str(e),)))
     
     # (x, a, b, k0, e, e1sq, M, mu, e1, e1a, e2, j1, j2, j3, j4, fp, C1, T1, R1, R2, N1) = 0
-    # (N2, D, Q1, Q2, Q3, Q4, Q5, Q6, Q7, lat, lon, lon0) = 0 	
+    # (N2, D, Q1, Q2, Q3, Q4, Q5, Q6, Q7, lat, lon, lon0) = 0   
     x0 = 500000 - x;
     a = 6378137;
     b = 6356752.3142;

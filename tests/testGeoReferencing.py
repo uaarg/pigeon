@@ -1,11 +1,4 @@
-#!/usr/bin/env python
-# Author: Cameron Lee <cwlee1@ualberta.ca>
-
 import unittest
-
-import os
-import sys
-sys.path.append(os.path.abspath('../src'))
 
 from GPSCoord import utm_to_DD
 
@@ -49,9 +42,26 @@ class UTMToDDTests(unittest.TestCase):
         calculated_latlon = utm_to_DD(335918.34, 6253113.37, 56)
         self.assertLatLonEqual(calculated_latlon, ( -33.849525, 151.226451))
 
-def main():
-    # Do something here
-    pass
+    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
+    def testCapeTown(self):
+        calculated_latlon = utm_to_DD(262609.03, 6244778.96 - 10000000, 34)
+        self.assertLatLonEqual(calculated_latlon, (-33.910679, 18.432394))
 
-if __name__ == '__main__':
-    main()
+    def testParis(self):
+        calculated_latlon = utm_to_DD(452170.72, 5411703.17, 31)
+        self.assertLatLonEqual(calculated_latlon, (48.856450, 2.347951))
+
+    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
+    def testSaoPaulo(self):
+        calculated_latlon = utm_to_DD(333336.30, 7394553.87 - 10000000, 23)
+        self.assertLatLonEqual(calculated_latlon, (-23.5508160, -46.632830))
+
+    def testNonNumeric(self):
+        with self.assertRaises(ValueError):
+            utm_to_DD(348783.31, "b", 12)
+
+        with self.assertRaises(ValueError):
+            utm_to_DD("a", 5945279.84, 12)
+
+        with self.assertRaises(ValueError):
+            utm_to_DD(348783.31, 5945279.84, "c")
