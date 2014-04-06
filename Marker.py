@@ -13,7 +13,7 @@ import DbLiason # Local module
 class Marker(QtWidgets.QPushButton):
   def __init__(
       self, parent=None, x=0, y=0, width=10,height=20, mComments=None,
-      markerPath='mapMarker.png', tree=None,onDeleteCallback=None, author=None
+      iconPath='mapMarker.png', tree=None,onDeleteCallback=None, author=None
   ):
     super(Marker, self).__init__(parent)
     __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -22,11 +22,11 @@ class Marker(QtWidgets.QPushButton):
     self.tag = None
     self.info = None
     self.tree = tree
-    self._width = width
     self.author = author
+    self._width = width
     self._height = height
     self.imageMap = dict()
-    self.iconPath = markerPath
+    self.iconPath = iconPath
     self.entryData = None
     self.styleSheet = 'opacity:0.9'
     self.memComments = mComments # Memoized comments
@@ -38,7 +38,6 @@ class Marker(QtWidgets.QPushButton):
     self.setGeometry(self.x, self.y, self._width, self._height)
     self.initIcon()
 
-    self.currentFilePath = __file__
     self.__lastLocation = None
     self.registerWithTree()
     self.setMouseTracking(True) # To allow for hovering detection
@@ -58,7 +57,7 @@ class Marker(QtWidgets.QPushButton):
   def addTaggedInfo(self, tagIn):
     self.info, self.entryData = tagIn
     if self.tag:
-        self.tag.hide() # del self.tag
+        self.tag.hide()
         print('hiding tag', self.tag)
 
   def serialize(self):
@@ -76,21 +75,20 @@ class Marker(QtWidgets.QPushButton):
       size = utils.DynaItem(dict(x=300, y=240)),
       onSubmit = self.addTaggedInfo,
       metaData = dict(
-        author = utils.getDefaultUserName() if not self.author else self.author,
-        filePath = self.currentFilePath,
-        captureTime=time.time(), x=tagX, y=tagY
+        captureTime=time.time(), x=tagX, y=tagY,
+        author = utils.getDefaultUserName() if not self.author else self.author
       ),
 
       entryList = [
-        utils.DynaItem(dict(
-            title='Location', isMultiLine=False,
-            entryLocation=(1, 1,), labelLocation=(1, 0,),
-            entryText='%s, %s'%(tagX, tagY)
+        utils.DynaItem(
+          dict(
+            labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
+            title='Location', isMultiLine=False,entryLocation=(1, 1,)
           )
         ),
         utils.DynaItem(dict(
-            title='Comments', isMultiLine=True, entryLocation=(2, 1, 5, 1),
-            labelLocation=(2, 0,), entryText=self.memComments
+            labelLocation=(2, 0,), entryText=self.memComments,
+            title='Comments', isMultiLine=True, entryLocation=(2, 1, 5, 1)
           )
         )
       ]
@@ -103,7 +101,6 @@ class Marker(QtWidgets.QPushButton):
         print(self.onDeleteCallback(x, y))
 
       self.close()
-
 
   def mousePressEvent(self, event):
     if event.button() == QtCore.QEvent.MouseButtonDblClick:
@@ -140,15 +137,15 @@ class Marker(QtWidgets.QPushButton):
     super().hide()
    
   def __lt__(self, other):
-    return  type(self) is type(other)\
+    return  isinstance(self, Marker)\
         and (self.x < other.x) and (self.y < other.y)
 
   def __gt__(self, other):
-    return  type(self) is type(other)\
+    return  isinstance(self, Marker)\
         and (self.x > other.x) and (self.y > other.y)
 
   def __eq__(self, other):
-    return type(self) is type(other)\
+    return  isinstance(self, Marker)\
       and (self.x == other.x) and (self.y == other.y)
 
 def main():
