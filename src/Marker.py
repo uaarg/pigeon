@@ -137,15 +137,15 @@ class Marker(QtWidgets.QPushButton):
     super().hide()
    
   def __lt__(self, other):
-    return  isinstance(self, Marker)\
+    return  isinstance(other, Marker)\
         and (self.x < other.x) and (self.y < other.y)
 
   def __gt__(self, other):
-    return  isinstance(self, Marker)\
+    return  isinstance(other, Marker)\
         and (self.x > other.x) and (self.y > other.y)
 
   def __eq__(self, other):
-    return  isinstance(self, Marker)\
+    return  isinstance(other, Marker)\
       and (self.x == other.x) and (self.y == other.y)
 
 def main():
