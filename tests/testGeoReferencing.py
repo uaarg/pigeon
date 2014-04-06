@@ -1,4 +1,11 @@
+#!/usr/bin/env python
+# Author: Cameron Lee <cwlee1@ualberta.ca>
+
 import unittest
+
+import os
+import sys
+sys.path.append(os.path.abspath('../src'))
 
 from GPSCoord import utm_to_DD
 
@@ -41,3 +48,10 @@ class UTMToDDTests(unittest.TestCase):
     def testSydney(self):
         calculated_latlon = utm_to_DD(335918.34, 6253113.37, 56)
         self.assertLatLonEqual(calculated_latlon, ( -33.849525, 151.226451))
+
+def main():
+    # Do something here
+    pass
+
+if __name__ == '__main__':
+    main()
