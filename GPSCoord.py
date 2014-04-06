@@ -72,18 +72,18 @@ def centre_gps_offset(pitch, roll, yaw, alt):
     return (x_off, y_off)
 
 
-def offset_gps(long, lat, pitch, roll, yaw, altitude):
+def offset_gps(lon, lat, pitch, roll, yaw, altitude):
     """
     Calculates the GPS position of the centre of the image based on offsets.
     Adds these offsets to the position of the centre of the image.
     Use different offset functions with this as desired.
     """
     
-    (long_offset, lat_offset) = centre_gps_offset(pitch, roll, yaw, altitude)
-    long += long_offset
+    (lon_offset, lat_offset) = centre_gps_offset(pitch, roll, yaw, altitude)
+    lon += lon_offset
     lat += lat_offset
 
-    return (long, lat) 
+    return (lon, lat) 
     
     
 def utm_to_DD(x, y, zone, mode = "DD"):
@@ -102,18 +102,18 @@ def utm_to_DD(x, y, zone, mode = "DD"):
     try:
     	x = float(x)
     	y = float(y)
-    except:
-    	print("The UTM coordinates given are invalid.")
+    except ValueError as e:
+    	raise(ValueError("The UTM coordinates given are invalid: %s" % (str(e),)))
     
     # (x, a, b, k0, e, e1sq, M, mu, e1, e1a, e2, j1, j2, j3, j4, fp, C1, T1, R1, R2, N1) = 0
-    # (N2, D, Q1, Q2, Q3, Q4, Q5, Q6, Q7, lat, longi, longi0) = 0 	
+    # (N2, D, Q1, Q2, Q3, Q4, Q5, Q6, Q7, lat, lon, lon0) = 0 	
     x0 = 500000 - x;
     a = 6378137;
     b = 6356752.3142;
     k0 = 0.9996;
     e = 0.081819191; # double e = math.sqrt(1-math.pow(b, 2)/math.pow(b, 2));
     e1sq = 0.006739497;
-    longi0 = -177 + 6*(zone-1); # zones
+    lon0 = -177 + 6*(zone-1); # zones
         
     # Calculate the Meridional Arc
     M = y/k0;
@@ -156,8 +156,6 @@ def utm_to_DD(x, y, zone, mode = "DD"):
     Q6 = (1 + 2*T1 + C1) * math.pow(D,3)/6;
     Q7 = (5-2*C1+28*T1-3*math.pow(C1,2) + 8 * e1sq + 24 * math.pow(T1,2))*math.pow(D,5)/120;
     
-    longi = longi0 - math.degrees((Q5 - Q6 + Q7)/math.cos(fp));
+    lon = lon0 - math.degrees((Q5 - Q6 + Q7)/math.cos(fp));
     
-    print("Latitude: %10.10f " %(lat));
-    print("Longitude: %10.10f " %(longi));
-    return (lat, longi)
+    return (lat, lon)
