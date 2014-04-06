@@ -36,10 +36,10 @@ class UTMToDDTests(unittest.TestCase):
     def testMaryland(self):
         calculated_latlon = utm_to_DD(378449.42, 4224578.88, 18)
         self.assertLatLonEqual(calculated_latlon, (38.160918, -76.387450))
-
-    @unittest.skip("Known issue: doesn't work in the southern hemisphere.")
+    
+    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testSydney(self):
-        calculated_latlon = utm_to_DD(335918.34, 6253113.37, 56)
+        calculated_latlon = utm_to_DD(335918.34, 6253113.37 - 10000000, 56)
         self.assertLatLonEqual(calculated_latlon, ( -33.849525, 151.226451))
 
     @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
