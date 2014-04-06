@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import time
 import inspect
