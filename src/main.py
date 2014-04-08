@@ -153,15 +153,19 @@ class MainWindow(PanedWindow.PanedWindow):
         # Exit
         self.exitAction = QtWidgets.QAction("&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
-        self.exitAction.triggered.connect(self.close)
+        self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
         self.findImagesAction = QtWidgets.QAction("&Add Images", self)
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
 
+    def cleanUpAndExit(self):
+        if hasattr(self.imageView, 'close'):
+            self.imageView.close()
+        self.close()
+
     def addFilesToStack(self, dynaDictList):
-        # print('paths', paths)
         self.stack.push(dynaDictList)
         self.showNext()
 

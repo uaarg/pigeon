@@ -15,7 +15,6 @@ def labelEntryPairFromSource(srcDict):
     return lbPair
 
 def tagFromSource(srcDict):
-    # print('srcDict', srcDict, type(srcDict))
     entryList = srcDict.get('entryList', [])
     srcDict['entryList'] = [utils.DynaItem(initArgs) for initArgs in entryList]
     return Tag(**srcDict)
@@ -70,7 +69,7 @@ class Tag(QtWidgets.QWidget):
       self, parent=None, spacing=10, entryList=[], size=None,
       title='Tag', onSubmit=None, location=None, metaData=None
     ):
-        super(Tag, self).__init__(parent=parent)
+        super(Tag, self).__init__(parent)
         self.entryList = entryList
         self.spacing   = spacing
         self.location    = location
@@ -78,7 +77,7 @@ class Tag(QtWidgets.QWidget):
         self.title       = title
         self.metaData  = metaData
         self.parent    = parent
-        self.onSubmit    = onSubmit if onSubmit else lambda c : print(c)
+        self.onSubmit    = onSubmit if onSubmit else lambda c: print(c)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
@@ -100,12 +99,12 @@ class Tag(QtWidgets.QWidget):
             self.grid.addWidget(e.entryWidget, *e.entryLocation)
 
         saveButton = QtWidgets.QPushButton()
-        saveButton.clicked.connect(self.submit)
-        cancelButton = QtWidgets.QPushButton()
-        cancelButton.clicked.connect(lambda : self.close())
-
-        cancelButton.setText('&Cancel')
         saveButton.setText('&Save')
+        saveButton.clicked.connect(self.submit)
+
+        cancelButton = QtWidgets.QPushButton()
+        cancelButton.setText('&Cancel')
+        cancelButton.clicked.connect(lambda: self.close())
 
         lastRow = self.grid.rowCount() + 1
         self.grid.addWidget(saveButton, lastRow, 0)
@@ -146,7 +145,7 @@ def main():
       title = 'Locked_Target',
       size = utils.DynaItem(dict(x=200, y=200)),
       location = utils.DynaItem(dict(x=600, y=200)),
-      onSubmit = lambda content : print(content),
+      onSubmit = lambda content: print(content),
       entryList = [
         utils.DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
         utils.DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),

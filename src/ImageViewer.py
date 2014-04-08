@@ -17,7 +17,8 @@ import Marker # Local module
 import DbLiason # Local module
 
 class ImageViewer(QtWidgets.QLabel):
-    __gcsH = DbLiason.GCSHandler('http://192.168.1.64:8000/gcs') 
+    # TODO: Provide configuration for the DBLiason
+    __gcsH = DbLiason.GCSHandler('http://192.168.1.75:8000/gcs') 
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
 
@@ -43,6 +44,14 @@ class ImageViewer(QtWidgets.QLabel):
     @property
     def childMap(self):
         return self._childMap
+
+    def close(self, **kwargs):
+        for markerMap in self.__childrenMap.values():
+            for marker in markerMap.values():
+                if marker and hasattr(marker, 'close'):
+                    marker.close()
+
+        super().close()
 
     def deleteImageFromDb(self, title, isSynchronous=False):
       if isSynchronous:
