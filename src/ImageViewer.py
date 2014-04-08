@@ -112,7 +112,7 @@ class ImageViewer(QtWidgets.QLabel):
         filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
         image = QImage(filename)
-        print(filename)
+        # print(filename)
         if image.isNull():
             QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
         else:
@@ -133,6 +133,7 @@ class ImageViewer(QtWidgets.QLabel):
                         m = self.createMarker(
                             dictatedPosition, author=mData['author'], mComments=mData['comments']
                         )
+                        m.toggleSaved()
                         m.show()
 
             else:
@@ -156,7 +157,7 @@ class ImageViewer(QtWidgets.QLabel):
 
         parsedResponse = utils.produceAndParse(self.__imageHandler.getConn, connArgs)
     
-        print('parsedResponse', parsedResponse)
+        # print('parsedResponse', parsedResponse)
         data = parsedResponse.get('data', None)
         if data:
             inOrderItems = [] 
@@ -272,13 +273,13 @@ class ImageViewer(QtWidgets.QLabel):
             )
 
             postData = parsedResponse.get('data', None)
-            print(postData)
+            # print(postData)
             if parsedResponse:
                 dbItem = postData
                 print('Memoizing a lastTimeEdit for ', self.currentFilePath)
                 self.lastEditTimeMap[self.currentFilePath] = dbItem.get('lastTimeEdit', (-1, -1))
 
-                print('postResponse', postData)
+                # print('postResponse', postData)
                 self.checkSyncOfEditTimes()
             else:
                 print("Could not post the data to the DB.Try again later")
@@ -310,7 +311,7 @@ class ImageViewer(QtWidgets.QLabel):
                     postResponse = utils.produceAndParse(
                       self.__markerHandler.postConn, markerMap
                     )
-                    print('After creating marker', postResponse)
+                    # print('After creating marker', postResponse)
                 else:
                     for retr in data:
                         commentsFromDb = retr['comments']
@@ -319,7 +320,8 @@ class ImageViewer(QtWidgets.QLabel):
                                 self.__markerHandler.putConn,
                                 dict(id=retr['id'], comments=currentComments)
                             )
-                            print('\033[45mPutResponse', putResponse, '\033[00m')
+                            # print('\033[45mPutResponse', putResponse, '\033[00m')
+                        m.toggleSaved()
 
 def main():
   import sys

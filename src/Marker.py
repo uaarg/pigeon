@@ -32,9 +32,23 @@ class Marker(QtWidgets.QPushButton):
         self.onDeleteCallback = onDeleteCallback
 
         # State variable to track if mouse in event triggered
+        self.__wasSyncd = True # By default we are in sync
         self.__withinMarker = False
 
         self.initUI()
+
+    def toggleUnsaved(self):
+        self.initIcon('mapMarkerIn.png')
+        self.__wasSyncd = False
+
+    def toggleSaved(self):
+        self.initIcon('mapMarkerOut.png')
+        self.__wasSyncd = True
+
+    def __resetToNormalIcon(self):
+        self.__wasSyncd = True
+        self.initIcon('mapMarkerOut.png')
+        self.setGeometry(self.x, self.y, self.oldW, self.oldH)
 
     def initUI(self):
         self.setGeometry(self.x, self.y, self._width, self._height)
@@ -92,7 +106,8 @@ class Marker(QtWidgets.QPushButton):
                     )
                 )
             ]
-     )
+        )
+        self.toggleUnsaved()
 
     def erase(self, x, y, needsFlush=True):
         if isinstance(self.tree, dict):
@@ -111,21 +126,19 @@ class Marker(QtWidgets.QPushButton):
 
     def enterEvent(self, event):
         if not self.__withinMarker:
-            self.oldW, self.oldH = self.width(), self.height()
-
             # Make the marker pop out
+            self.oldW, self.oldH = self.width(), self.height()
             self.setGeometry(self.x, self.y, self.oldW * 1.5, self.oldH * 1.5)
 
             self.initIcon('mapMarkerIn.png')
             self.__withinMarker = True
 
     def leaveEvent(self, event):
-        if self.__withinMarker:
+        if self.__withinMarker and self.__wasSyncd:
             self.__withinMarker = False
 
             # Revert to the original dimensions
-            self.setGeometry(self.x, self.y, self.oldW, self.oldH)
-            self.initIcon('mapMarkerOut.png')
+            self.__resetToNormalIcon()
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.QEvent.MouseButtonDblClick:
