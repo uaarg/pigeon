@@ -160,6 +160,15 @@ class MainWindow(PanedWindow.PanedWindow):
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
 
+        # Navigating
+        self.nextItemAction = QtWidgets.QAction('&Next Item', self)
+        self.nextItemAction.setShortcut('Ctrl+N')
+        self.nextItemAction.triggered.connect(self.showNext)
+
+        self.prevItemAction = QtWidgets.QAction('&Previous Item', self)
+        self.prevItemAction.setShortcut('Ctrl+P')
+        self.prevItemAction.triggered.connect(self.showPrev)
+
     def cleanUpAndExit(self):
         if hasattr(self.imageView, 'close'):
             self.imageView.close()
@@ -195,7 +204,7 @@ class MainWindow(PanedWindow.PanedWindow):
         self.imageView.saveCoords()
 
     def dbSync(self):
-        self.addFilesToStack(self.imageView.loadContentFromDb(syncForCurrentImageOnly=False))
+        self.imageView.loadContentFromDb(syncForCurrentImageOnly=True)
 
 def main():
     print("Ground station running.")

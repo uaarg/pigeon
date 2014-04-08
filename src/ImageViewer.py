@@ -15,12 +15,14 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 import utils # Local module
 import Marker # Local module
 import DbLiason # Local module
+import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
     __gcsH = DbLiason.GCSHandler('http://192.168.1.75:8000/gcs') 
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
+    __jobRunner     = mpUtils.JobRunner.JobRunner()
 
     def __init__(self, parent=None, treeMap=None):
         super(ImageViewer, self).__init__(parent)
@@ -148,54 +150,55 @@ class ImageViewer(QtWidgets.QLabel):
             self.checkSyncOfEditTimes()
 
     def loadContentFromDb(self, syncForCurrentImageOnly=False):
-      connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
-      if syncForCurrentImageOnly:
-        connArgs['title'] =  self.currentFilePath
+        connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
+        if syncForCurrentImageOnly:
+            connArgs['title'] =  self.currentFilePath
 
-      parsedResponse = utils.produceAndParse(self.__imageHandler.getConn, connArgs)
-
-      data = parsedResponse.get('data', None)
-      if data:
-          inOrderItems = [] 
+        parsedResponse = utils.produceAndParse(self.__imageHandler.getConn, connArgs)
+    
+        print('parsedResponse', parsedResponse)
+        data = parsedResponse.get('data', None)
+        if data:
+            inOrderItems = [] 
         
-          if self.lastEditTimeMap: 
-              self.lastEditTimeMap.clear()
+            if self.lastEditTimeMap: 
+                self.lastEditTimeMap.clear()
 
-          for v in data:
-            title, uri = v.get('title', None), v.get('uri', None) 
-            markerSet = v.get('marker_set', [])
+            for v in data:
+                title, uri = v.get('title', None), v.get('uri', None) 
+                markerSet = v.get('marker_set', [])
 
-            # Saving titles here since comparisons are to made with
-            # data local to your ground station
-            self.lastEditTimeMap[title] = (v['id'], float(v['lastTimeEdit']))
+                # Saving titles here since comparisons are to made with
+                # data local to your ground station
+                self.lastEditTimeMap[title] = (v['id'], float(v['lastTimeEdit']))
 
-            pathSelector = uri if uri else title
-            inOrderItems.append(
-              utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
-            )
+                pathSelector = uri if uri else title
+                inOrderItems.append(
+                    utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
+                )
 
-            if self.currentFilePath.__eq__(title):
-                childMap = self.__childrenMap.get(self.currentFilePath, dict()) 
-                markerCopy = list(childMap.keys())[:] # We need to create a copy of keys of a dict
-                                                      # that we shall be popping from to avoid data
-                                                      # contention issues
-                for mKey in markerCopy:
-                    mk = childMap[mKey]
-                    if mk:
-                      mk.erase(needsFlush=False)
+                if self.currentFilePath.__eq__(title):
+                    childMap = self.__childrenMap.get(self.currentFilePath, dict()) 
+                    markerCopy = list(childMap.keys())[:] # We need to create a copy of keys of a dict
+                                                          # that we shall be popping from to avoid data
+                                                          # contention issues
+                    for mKey in markerCopy:
+                        mk = childMap[mKey]
+                        if mk:
+                            mk.erase(mk.x, mk.y, needsFlush=False)
        
-                # Now create the markers that are recognized by the DB 
-                for mData in markerSet:
-                    if mData:
-                        m = self.createMarker(
-                            utils.DynaItem(
-                                dict(x=lambda : int(mData['x']), y=lambda : int(mData['y']))
-                            ), author=mData['author'], mComments=mData['comments']
-                        )
-                        m.show()
+                    # Now create the markers that are recognized by the DB 
+                    for mData in markerSet:
+                        if mData:
+                            m = self.createMarker(
+                                utils.DynaItem(
+                                    dict(x=lambda : int(mData['x']), y=lambda : int(mData['y']))
+                                ), author=mData['author'], mComments=mData['comments']
+                            )
+                            m.show()
 
-          return inOrderItems
-      else: return []
+            return inOrderItems
+        else: return []
         
 
     @property
@@ -207,15 +210,21 @@ class ImageViewer(QtWidgets.QLabel):
             m = self.createMarker(self.mapFromGlobal(self.cursor.pos()))
             m.show()
 
-    def createMarker(self, curPos, **kwargs):
+    def createMarker(self, curPos, **kwargs): 
+        return self.__jobRunner.run(self.__createMarker, None, None, curPos, **kwargs)
+
+    def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
           parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
           onDeleteCallback=self.deleteMarkerFromDb, **kwargs
         )
 
         return marker
-      
-    def checkSyncOfEditTimes(self):
+     
+    def checkSyncOfEditTimes(self): 
+        return self.__jobRunner.run(self.__checkSyncOfEditTimes, None, None)
+
+    def __checkSyncOfEditTimes(self, *args):
         parsedResponse = utils.produceAndParse(
           func=self.__imageHandler.getConn,
           dataIn=dict(title=self.currentFilePath,select='lastTimeEdit')
@@ -243,17 +252,14 @@ class ImageViewer(QtWidgets.QLabel):
             print("\033[41mNo data back from querying about lastTimeEdit\033[00m")
 
     def saveCoords(self, isSynchronous=False):
-      if isSynchronous:
-        return self.__saveCoords()
-      else:
-        th = Thread(target=self.__saveCoords)
-        print('\033[47mSaving using created thread\033[00m')
-        th.start()
+        if isSynchronous:
+            print('\033[46mSaving synchronously\033[00m')
+            return self.__jobRunner.run(self.__saveCoords, None, None)
+        else:
+            print('\033[47mSaving using created thread\033[00m')
+            return self.__jobRunner.run(self.__saveCoords, None, print)
 
-    def __saveCoords(self):
-        # TODO: Add guards for thread safety
-        # This function needs data protection
-
+    def __saveCoords(self, *args):
         if self.checkSyncOfEditTimes():
             print('No edit was recently performed for', self.currentFilePath)
         else: # First time image is being registered
