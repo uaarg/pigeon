@@ -7,16 +7,16 @@ import sys
 import time
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from threading import Lock
+
+import utils # Local module
 
 def labelEntryPairFromSource(srcDict):
     lbPair = LabelEntryPair(**srcDict)
     return lbPair
 
 def tagFromSource(srcDict):
-    print('srcDict', srcDict, type(srcDict))
     entryList = srcDict.get('entryList', [])
-    srcDict['entryList'] = [DynaItem(initArgs) for initArgs in entryList]
+    srcDict['entryList'] = [utils.DynaItem(initArgs) for initArgs in entryList]
     return Tag(**srcDict)
 
 class LabelEntryPair(object):
@@ -64,25 +64,12 @@ class LabelEntryPair(object):
     def __str__(self):
         return self.__dict__.__str__()
 
-class DynaItem:
-    def __init__(self, initArgs):
-        __slots__ = (arg for arg in initArgs)
-        for arg in initArgs:
-            setattr(self, arg, initArgs[arg])
-    
-    def __str__(self): 
-        return self.__dict__.__str__()
-
-    def __repr__(self):
-        return self.__str__()
-    
-
 class Tag(QtWidgets.QWidget):
     def __init__(
       self, parent=None, spacing=10, entryList=[], size=None,
       title='Tag', onSubmit=None, location=None, metaData=None
     ):
-        super(Tag, self).__init__(parent=parent)
+        super(Tag, self).__init__(parent)
         self.entryList = entryList
         self.spacing   = spacing
         self.location    = location
@@ -90,7 +77,7 @@ class Tag(QtWidgets.QWidget):
         self.title       = title
         self.metaData  = metaData
         self.parent    = parent
-        self.onSubmit    = onSubmit if onSubmit else lambda c : print(c)
+        self.onSubmit    = onSubmit if onSubmit else lambda c: print(c)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
@@ -112,12 +99,12 @@ class Tag(QtWidgets.QWidget):
             self.grid.addWidget(e.entryWidget, *e.entryLocation)
 
         saveButton = QtWidgets.QPushButton()
-        saveButton.clicked.connect(self.submit)
-        cancelButton = QtWidgets.QPushButton()
-        cancelButton.clicked.connect(lambda : self.close())
-
-        cancelButton.setText('&Cancel')
         saveButton.setText('&Save')
+        saveButton.clicked.connect(self.submit)
+
+        cancelButton = QtWidgets.QPushButton()
+        cancelButton.setText('&Cancel')
+        cancelButton.clicked.connect(lambda: self.close())
 
         lastRow = self.grid.rowCount() + 1
         self.grid.addWidget(saveButton, lastRow, 0)
@@ -132,9 +119,11 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        serialized = self.serialize()
-        self.onSubmit(serialized)
+        self.onSubmit((self.serialize(), self.getContent())) 
         self.close()
+
+        # serialized = self.serialize()
+        # self.onSubmit(serialized)
         # Uncomment to test the serialization
         # t = tagFromSource(serialized)
 
@@ -147,17 +136,20 @@ class Tag(QtWidgets.QWidget):
             ]
         )
 
+    def getContent(self):
+        return dict((k.title, k.getContent()) for k in self.entries)
+
 def main():
     app = QtWidgets.QApplication(sys.argv)
     t = Tag(
       title = 'Locked_Target',
-      size = DynaItem(dict(x=200, y=200)),
-      location = DynaItem(dict(x=600, y=200)),
-      onSubmit = lambda content : print(content),
+      size = utils.DynaItem(dict(x=200, y=200)),
+      location = utils.DynaItem(dict(x=600, y=200)),
+      onSubmit = lambda content: print(content),
       entryList = [
-        DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
-        DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
-        DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
+        utils.DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
     ])
 
     sys.exit(app.exec_())

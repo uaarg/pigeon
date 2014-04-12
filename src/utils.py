@@ -7,9 +7,10 @@ import os
 import sys
 import stat
 import glob
+import json
 
 _404_IMAGE_PATH = '404_man.jpg'
-_PLACE_HOLDER_PATH = 'uaarg.jpg'
+_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + 'uaarg.jpg'
 pyVersion = sys.hexversion/(1<<24)
 
 if pyVersion < 3:
@@ -55,9 +56,11 @@ class PseudoStack:
     self.__size = len(self.__content)
 
   def push(self, extras):
-    if isinstance(extras, list):
+    if not extras:
+      return
+    elif isinstance(extras, list):
       self.__content += extras
-    else :
+    else:
       for i in extras:
         self.__content.append(i)
     print('added content to stack')
@@ -74,7 +77,12 @@ class PseudoStack:
         if self.__ptr < 0: self.__ptr = 0
         print(outItem)
         return outItem
-        
+
+  @property
+  def contentLength(self): return len(self.__content)
+
+  def canGetPrev(self): return self.__ptr > 0 and self.contentLength
+  def canGetNext(self): return self.__ptr < self.contentLength
 
   def next(self):
     item = None
@@ -89,3 +97,30 @@ class PseudoStack:
        self.__ptr -= 1
        item = self.__content[self.__ptr]
     return item
+
+  def __str__(self):
+    return self.__ptr.__str__()
+
+def produceAndParse(func, dataIn):
+  dbCheck = func(dataIn)
+  if hasattr(dbCheck, 'reason'):
+    print(dbCheck['reason'])
+  else:
+    response = dbCheck.get('value', None)
+    if response:
+      try:
+        return json.loads(response.decode())
+      except Exception as e:
+        return dict(reason = e)
+
+class DynaItem:
+  def __init__(self, initArgs):
+    __slots__ = (arg for arg in initArgs)
+    for arg in initArgs:
+      setattr(self, arg, initArgs[arg])
+    
+  def __str__(self): 
+    return self.__dict__.__str__()
+
+  def __repr__(self):
+    return self.__str__()
