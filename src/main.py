@@ -182,9 +182,14 @@ class MainWindow(PanedWindow.PanedWindow):
         # Ensuring that paths added are relative to a common source eg
         # Files getting added from folder ./data will be present on all GCS stations
         # so only the relative path not absolute path should be added
-        self.addFilesToStack(list(
-          map(lambda p : utils.DynaItem(dict(path= '.' + p.split(curDirPath)[1], markerSet=[])), paths)
-        ))
+        normalizedPaths = []
+        for path in paths:
+            if path.find(curDirPath) >= 0:
+                path='.' + p.split(curDirPath)[1]
+
+            normalizedPaths.append(utils.DynaItem(dict(path=path, markerSet=[])))
+
+        self.addFilesToStack(normalizedPaths)
 
     # Our file explorer
     def __setUpFileExplorer(self):
