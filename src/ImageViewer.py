@@ -67,7 +67,7 @@ class ImageViewer(QtWidgets.QLabel):
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
-        # print('imgDelResponse', imgDelResponse)
+        print('imgDelResponse', imgDelResponse, title)
 
         data = imgDelResponse.get('data', dict()) 
         successfulDels = data.get('successful', [])
@@ -112,7 +112,7 @@ class ImageViewer(QtWidgets.QLabel):
         filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
         image = QImage(filename)
-        # print(filename)
+        print(filename)
         if image.isNull():
             QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
         else:

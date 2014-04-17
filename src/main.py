@@ -18,9 +18,11 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 from PyQt5.QtWidgets import *
 
 import Tag # Local module
-import utils # Local module
 import PanedWindow # Local module
 import ImageViewer # Local module
+
+import utils # Local module
+import stack # Local module
 
 curDirPath = os.path.abspath('.')
 
@@ -32,7 +34,7 @@ class MainWindow(PanedWindow.PanedWindow):
         super(MainWindow, self).__init__()
 
         self.fileDialog = None
-        self.stack = utils.PseudoStack(paths)
+        self.stack = stack.Stack(paths)
 
         # Set up window
         self.setWindowTitle("GSC")
@@ -86,18 +88,19 @@ class MainWindow(PanedWindow.PanedWindow):
         return self.currentItem
 
     def __stackToPhoto(self, method):
-        self.currentItem = method()
-        print('currentItem', self.stack) # currentItem, self.imageMap)
-        if isinstance(self.currentItem, utils.DynaItem):
-           self.imageView.openImage(
-             fPath=self.currentItem.path, markerSet=self.currentItem.markerSet
-           )
-        else:
-           self.imageView.openImage(self.currentItem)
+        invokedResult = method()
+        if invokedResult is not None:
+            self.key, self.currentItem = invokedResult
+            print('self.key', self.key)
+            if isinstance(self.currentItem, utils.DynaItem):
+                self.imageView.openImage(
+                    fPath=self.currentItem.path, markerSet=self.currentItem.markerSet
+                )
+            else:
+                self.imageView.openImage(self.currentItem)
 
     def handleItemPop(self):
         popd = self.stack.pop()
-        print('poppd', popd)
         if isinstance(popd, utils.DynaItem):
           popd = popd.path
 
@@ -106,18 +109,13 @@ class MainWindow(PanedWindow.PanedWindow):
         # We won't be shielding the GUI from harsh realities of life
         # ie if there is no more content left
 
-        itemToShow = None
+        methodToInvoke = None
         if self.stack.canGetPrev():
-            itemToShow = self.stack.prev()
+            methodToInvoke = self.stack.prev
         else:
-            itemToShow = self.stack.next()
+            methodToInvoke = self.stack.next
 
-        if isinstance(itemToShow, utils.DynaItem):
-          self.imageView.openImage(
-            fPath=itemToShow.path, markerSet=itemToShow.markerSet
-          )
-        else:
-          self.imageView.openImage(itemToShow)
+        self.__stackToPhoto(methodToInvoke)
 
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
@@ -175,7 +173,8 @@ class MainWindow(PanedWindow.PanedWindow):
         self.close()
 
     def addFilesToStack(self, dynaDictList):
-        self.stack.push(dynaDictList)
+        for dynaDict in dynaDictList[::-1]:
+            index = self.stack.push(dynaDict.path, value=dynaDict)
         self.showNext()
 
     def __normalizeFileAdding(self, paths):
