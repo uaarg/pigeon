@@ -4,9 +4,96 @@ Functions for basic GPS coordinate processing.
 Covers:
     - Extracting info from a text file sent with the images.
     - Converting UTM coordinates sent by the GPS to Decimal Degree coords.
+    - Georeferencing features in an image.
 
 Cindy Xiao <dixin@ualberta.ca>
 """
+
+class Position:
+    """
+    Position in 3D space of an object relative to the earth.
+    Latitude and longitude are for the WGS85 datum.
+    """
+    def __init__(self, lat, lon, height=0, alt=None):
+        """
+        lat - latitude in degrees
+        lon - longitude in degrees
+        height - height above ground in meters
+        alt - altitude above sea level in meters
+        """
+        self.lat = lat
+        self.lon = lon
+        self.height = height
+        self.alt = alt
+
+    def latLon(self):
+        return (self.lat, self.lon)
+
+
+class Orientation:
+    """
+    Orientation of an object with respect to the earth.
+    """
+    def __init__(self, pitch, roll, yaw):
+        """
+        pitch - angle of the nose above the horizontal plane (theta)
+                in degrees
+        roll - angle of the left wing above the horizontal plane (phi)
+                in degrees
+        yaw - angle of the nose from true north along the horizontal
+                plane measured clockwise in degrees
+        """
+        self.pitch = pitch
+        self.roll = roll
+        self.yaw = yaw
+
+class CameraSpecs:
+    """
+    Camera constants needed for geo-referencing.
+    """
+    def __init__(self, image_width, image_height, field_of_view_horiz, field_of_view_vert):
+        """
+        image_width - the horizontal size of the image in pixels.
+        image_height - the vertical size of the image in pixels.
+        field_of_view_horiz - the angle between the camera and 
+                the left and right edges of the image. In degrees.
+        field_of_view_vert - the angle between the camera and
+                the top and bottom edges of the image. In degrees.
+        """
+        self.image_width = image_width
+        self.image_height = image_height
+
+        self.field_of_view_horiz = field_of_view_horiz
+        self.field_of_view_vert = field_of_view_vert
+
+
+class GeoReference:
+    """
+    Class for geo-referencing. Create an instance with the relatively
+    contstant variables of the system. Then use the methods to perform 
+    the desired type of geo-referencing.
+    """
+    def __init__(self, camera_specs):
+        """
+        Create an instance according to the specified system constants.
+        """
+        self.camera = camera_specs
+
+    def pointInImage(self, location, orentation, pixel_x, pixel_y):
+        """
+        Calculates and returns the position of the point located at 
+        pixel_x, pixel_y in the image. The plane location and 
+        orientation at the time the image was taken should be provided 
+        as Location and Orientation objects.
+
+        location - plane location
+        orientation - plane orientation
+        pixel_x - pixel in the image at the point. Measured from left 
+                edge.
+        pixel_y - pixel in the image at the point. Measured from 
+                bottom edge.
+        """        
+        raise(NotImplementedError)
 
 def getInfoField(info_file_loc, field_name):
     """
