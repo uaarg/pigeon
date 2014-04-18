@@ -8,8 +8,6 @@ import sys
 import time
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-import Marker # Local Module
-
 class Pane(QtWidgets.QFrame):
   def __init__(self, parent=None, onClick=None):
     super(Pane, self).__init__(parent)
