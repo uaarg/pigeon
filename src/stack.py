@@ -10,11 +10,10 @@ class Stack:
 
   @property
   def size(self):
-    return len(self.__content)
+    return len(self.__contentMap)
 
   def push(self, key, value=None):
     self.__invertedIndexMap[self.size] = key
-    self.__content.append(key)
     self.__contentMap[key] = value # Save the latest value
 
   def popByKey(self, key, altValue=None):
@@ -43,11 +42,15 @@ class Stack:
     self.__ptr += 1
     return self.__accessByIndexPtr()
 
+  def accessByKey(self, keyName, altValue=None):
+    return self.__contentMap.get(keyName, altValue)
+
   def __accessByIndexPtr(self):
-    keyName = self.__invertedIndexMap.get(self.__ptr, None)
+    modBase = self.size
+    if not modBase: modBase = 1
+    keyName = self.__invertedIndexMap.get(self.__ptr % modBase, None)
     print('keyName', keyName)
-    if self.__ptr < self.size:
-      if keyName is not None:
+    if keyName is not None:
         return keyName, self.__contentMap.get(keyName, None)
 
     
