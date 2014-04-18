@@ -133,11 +133,12 @@ class ImageViewer(QtWidgets.QLabel):
                         m = self.createMarker(
                             dictatedPosition, author=mData['author'], mComments=mData['comments']
                         )
-                        m.toggleSaved()
+                        # m.toggleSaved()
                         m.show()
 
             else:
                 for k, v in self._childMap.items():
+                    print('filePath', filename, v)
                     v.show()
 
             
@@ -178,8 +179,9 @@ class ImageViewer(QtWidgets.QLabel):
                     utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
                 )
 
-                if self.currentFilePath.__eq__(title):
-                    childMap = self.__childrenMap.get(self.currentFilePath, dict()) 
+                if self.currentFilePath == title:
+                    print('self.currentFile', self.currentFilePath, title)
+                    childMap = self.__childrenMap.get(title, dict()) 
                     markerCopy = list(childMap.keys())[:] # We need to create a copy of keys of a dict
                                                           # that we shall be popping from to avoid data
                                                           # contention issues
@@ -197,6 +199,7 @@ class ImageViewer(QtWidgets.QLabel):
                                 ), author=mData['author'], mComments=mData['comments']
                             )
                             m.show()
+                            m.toggleSaved()
 
             return inOrderItems
         else: return []

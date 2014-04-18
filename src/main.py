@@ -174,7 +174,8 @@ class MainWindow(PanedWindow.PanedWindow):
 
     def addFilesToStack(self, dynaDictList):
         for dynaDict in dynaDictList[::-1]:
-            index = self.stack.push(dynaDict.path, value=dynaDict)
+            if self.stack.accessByKey(dynaDict.path, None) is None: # Doesn't exist yet
+                index = self.stack.push(dynaDict.path, value=dynaDict)
         self.showNext()
 
     def __normalizeFileAdding(self, paths):
