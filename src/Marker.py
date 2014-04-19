@@ -12,7 +12,7 @@ import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
     def __init__(
-            self, parent=None, x=0, y=0, width=10,height=20, mComments=None,
+            self, parent=None, x=0, y=0, width=30,height=58, mComments=None,
             iconPath='mapMarker.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
@@ -47,8 +47,8 @@ class Marker(QtWidgets.QPushButton):
 
     def __resetToNormalIcon(self):
         self.__wasSyncd = True
-        self.initIcon('mapMarkerOut.png')
         self.setGeometry(self.x, self.y, self.oldW, self.oldH)
+        self.initIcon('mapMarkerOut.png')
 
     def initUI(self):
         self.setGeometry(self.x, self.y, self._width, self._height)
@@ -56,6 +56,7 @@ class Marker(QtWidgets.QPushButton):
 
         self.registerWithTree()
         self.setMouseTracking(True) # To allow for hovering detection
+        self.setStyleSheet("width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;")
 
     def registerWithTree(self):
         if self.tree is not None:
@@ -65,8 +66,8 @@ class Marker(QtWidgets.QPushButton):
     def initIcon(self, iconPath):
         imagePixMap = QPixmap(iconPath)
         icon = QIcon(imagePixMap)
-        self.setIconSize(QtCore.QSize(self.width(), self.height()))
         self.setIcon(icon);
+        self.setIconSize(QtCore.QSize(self.width(), self.height()))
 
     def addTaggedInfo(self, tagIn):
         self.info, self.entryData = tagIn
