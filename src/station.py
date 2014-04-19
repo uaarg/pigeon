@@ -10,6 +10,7 @@ import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 import utils # Local module
 import stack # Local module
 import imageViewer # Local module
+from thumbnailStrip import IconStrip
 
 curDirPath = os.path.abspath('.')
 
@@ -36,12 +37,18 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initFileDialog()
         self.initImageViewer()
         self.initClicks()
+        self.initStrip()
 
     def initImageViewer(self):
         self.imageViewer = imageViewer.ImageViewer(
             self.ui_window.fullSizeImageScrollArea
         )
         self.ui_window.fullSizeImageScrollArea.setWidget(self.imageViewer)
+
+    def initStrip(self):
+        self.iconStrip = IconStrip.IconStrip(self.ui_window.thumbnailScrollArea)
+        self.iconStrip.resize(self.ui_window.thumbnailScrollArea.size())
+        # self.iconStrip.show()
 
     def initFileDialog(self):
         self.fileDialog = QtWidgets.QFileDialog()
@@ -152,6 +159,10 @@ class GroundStation(QtWidgets.QMainWindow):
             self.imageViewer.openImage(
                 fPath=path, markerSet=markerSet, pixMap=memPixMap
             )
+
+            print('path in', memPixMap)
+            self.iconStrip.addIconItem(path, memPixMap)
+
             self.ui_window.countDisplayLabel.setText(path)
 
     def handleItemPop(self):
