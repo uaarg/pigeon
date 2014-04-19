@@ -19,7 +19,7 @@ import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://192.168.1.75:8000/gcs') 
+    __gcsH = DbLiason.GCSHandler('http://192.168.1.108:8000/gcs') 
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -103,7 +103,7 @@ class ImageViewer(QtWidgets.QLabel):
     def getCurrentFilePath(self):
         return self.__fileOnDisplay
 
-    def openImage(self, fPath, markerSet=[]):
+    def openImage(self, fPath, markerSet=[], pixMap=None):
         if self._childMap is not None:
             # print('\033[44mself._childMap', self._childMap, '\033[00m')
             for k, v in self._childMap.items():
@@ -111,11 +111,20 @@ class ImageViewer(QtWidgets.QLabel):
 
         filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
-        image = QImage(filename)
-        print(filename)
-        if image.isNull():
-            QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+        print('self.imgPixMap', pixMap)
+        image = None
+        if pixMap is None:
+            image =  QImage(filename)
+            if image.isNull():
+                QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+                return
+            else:
+                self.imgPixMap = QPixmap.fromImage(image)
+        
         else:
+            self.imgPixMap = pixMap
+
+        if self.imgPixMap:
             # Convert from QImage to QPixmap, and display
             self.setCurrentFilePath(filename)
             self._childMap = self.__childrenMap[self.currentFilePath]
@@ -140,13 +149,11 @@ class ImageViewer(QtWidgets.QLabel):
                 for k, v in self._childMap.items():
                     print('filePath', filename, v)
                     v.show()
-
             
-            self.imgPixMap = QPixmap.fromImage(image)
             self.setPixmap(self.imgPixMap)
 
             # Expand to the image's full size
-            self.setGeometry(self.x(), self.y(), image.width(), image.height())
+            # self.setGeometry(self.x(), self.y(), self.imgPixMap.width(), self.imgPixMap.height())
 
             # Check again with the synchronizer
             self.checkSyncOfEditTimes()
@@ -255,15 +262,15 @@ class ImageViewer(QtWidgets.QLabel):
         else:
             print("\033[41mNo data back from querying about lastTimeEdit\033[00m")
 
-    def saveCoords(self, isSynchronous=False):
+    def syncCurrentItem(self, isSynchronous=False):
         if isSynchronous:
             print('\033[46mSaving synchronously\033[00m')
-            return self.__jobRunner.run(self.__saveCoords, None, None)
+            return self.__jobRunner.run(self.__syncCurrentItem, None, None)
         else:
             print('\033[47mSaving using created thread\033[00m')
-            return self.__jobRunner.run(self.__saveCoords, None, print)
+            return self.__jobRunner.run(self.__syncCurrentItem, None, print)
 
-    def __saveCoords(self, *args):
+    def __syncCurrentItem(self, *args):
         if self.checkSyncOfEditTimes():
             print('No edit was recently performed for', self.currentFilePath)
         else: # First time image is being registered
@@ -280,7 +287,8 @@ class ImageViewer(QtWidgets.QLabel):
             if parsedResponse:
                 dbItem = postData
                 print('Memoizing a lastTimeEdit for ', self.currentFilePath)
-                self.lastEditTimeMap[self.currentFilePath] = dbItem.get('lastTimeEdit', (-1, -1))
+                self.lastEditTimeMap[self.currentFilePath] =\
+                     dbItem.get('lastTimeEdit', (-1, -1))
 
                 # print('postResponse', postData)
                 self.checkSyncOfEditTimes()
