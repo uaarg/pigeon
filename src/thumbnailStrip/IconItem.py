@@ -7,14 +7,21 @@ from PyQt5 import QtWidgets, QtGui
 
 class IconItem(QtWidgets.QLabel):
     __pixmapMemoizer = dict()
-    def __init__(self, parent, iconPath=None, pix=None, x=10, y=10, w=50, h=50):
+    def __init__(self, parent, iconPath=None, pix=None, x=10, y=10, w=50, h=50, onClick=None):
         super(IconItem, self).__init__(parent)
 
-        self.changePixMap(iconPath)
+        self.__onClick = onClick
         self.setGeometry(x, y, w, h)
         self.__deriveStaticDimensions()
+        print('iconPath', iconPath, pix)
+        self.initPixMapInfo(iconPath, pix)
 
         self.setMouseTracking(True)
+
+    def initPixMapInfo(self, path, pix):
+        self.__pixMap = pix
+        self.__iconPath = path
+        self.setPixmap(self.__pixMap)
 
     def __deriveStaticDimensions(self):
         "Maintain static dimensions in case item gets resized"
@@ -30,30 +37,6 @@ class IconItem(QtWidgets.QLabel):
     def getPixMap(self):
         return self.__pixMap
 
-    def createPixMap(self, path):
-        "Creates a pixmap and memoizes it since regeneration\
-        of data that potentially needs no modification is expensive"
-        memPix = self.__pixmapMemoizer.get(path, None)
-        if not isinstance(memPix, QtGui.QPixmap):
-            print('\033[47mMemoizing', path, ' pixMap\033[00m')
-            self.__pixmapMemoizer[path] = QtGui.QPixmap(path)
-            memPix = self.__pixmapMemoizer[path]
-
-        return memPix
-
-    def changePixMap(self, imagePath, pixmapIn=None):
-        self.__iconPath = imagePath
-        if not isinstance(pixmapIn, QtGui.QPixmap):
-            self.__pixMap = self.createPixMap(self.__iconPath) 
-        else:
-            self.__pixMap = pixmapIn
-
-        self.setPixmap(self.__pixMap)
-
-    def setLeavePixMap(self, leavePixPath):
-        self.__leavePixPath = leavePixPath
-        self.__leavePixMap = self.createPixMap(self.__leavePixPath)
-
     def enterEvent(self, event):
         print('Entering', self.__iconPath)
         self.setGeometry(self.x(), self.y(), self.w * 2, self.h * 2)
@@ -61,6 +44,14 @@ class IconItem(QtWidgets.QLabel):
     def leaveEvent(self, event):
         print('Leaving now', self.__iconPath)
         self.setGeometry(self.x(), self.y(), self.w, self.h)
+
+    def mousePressEvent(self, event):
+        if self.__onClick is not None:
+            self.__onClick(self.__iconPath)
+
+    def close(self):
+        print('\033[96m', self, 'closing\033[00m')
+        super().close()
 
 def main():
     argc = len(sys.argv)

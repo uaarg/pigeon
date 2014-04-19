@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import sys
 import collections
@@ -11,21 +12,56 @@ except Exception as e:
 
 class IconStrip(QtWidgets.QFrame):
     def __init__(self, parent=None):
-        self.__itemDict = collections.OrderedDict()
         super(IconStrip, self).__init__(parent)
+
         self.setAcceptDrops(True)
         self.xL = 0
 
-    def addIconItem(self, path, pixIn=None):
+        self.__itemDict = dict()
+        self.__pixMapCache = dict()
+
+    def addIconItem(self, path, onClick):
         if self.__itemDict.get(path, None) is None:
-            iItem = IconItem(self, iconPath=path, pix=pixIn)
-            self.__itemDict[path] = iItem
-            iItem.setGeometry(
-                iItem.x() + (self.xL * iItem.width()),
-                iItem.y(), iItem.width(), iItem.height()
-            )
-            self.xL += 1
-            print('self.xL', self.xL, iItem.show())
+            return self.__addIconItem(path, onClick)
+
+    def __addIconItem(self, path, onClick):
+        print('path', path, onClick)
+        iItem = IconItem(self, iconPath=path, pix=self.addPixMap(path), onClick=onClick)
+        self.__itemDict[path] = iItem
+        iItem.setGeometry(
+            iItem.x() + (self.xL * iItem.width()),
+            iItem.y(), iItem.width(), iItem.height()
+        )
+        iItem.show()
+
+        self.xL += 1
+
+    def addPixMap(self, path):
+        memPixMap = self.getPixMap(path, None)
+        if memPixMap is None:
+            memPixMap = QtGui.QPixmap(path)
+            self.__pixMapCache[path] = memPixMap
+
+        return memPixMap
+
+    def popPixMap(self, path, altValue=None):
+        popd = self.__pixMapCache.pop(path, altValue)
+        if popd is not altValue:
+            popd.close()
+
+    def close(self):
+        for iconItem in self.__itemDict.values():
+            if hasattr(iconItem, 'close'):
+                iconItem.close()
+
+        del self.__pixMapCache
+        del self.__itemDict
+
+        print('\033[35m', self, 'closing\033[00m')
+        super().close()
+
+    def getPixMap(self, key, altValue=None):
+        return self.__pixMapCache.get(key, altValue)
 
 def main():
     argc = len(sys.argv)

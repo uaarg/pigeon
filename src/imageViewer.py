@@ -67,7 +67,7 @@ class ImageViewer(QtWidgets.QLabel):
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
-        print('imgDelResponse', imgDelResponse, title)
+        # print('imgDelResponse', imgDelResponse, title)
 
         data = imgDelResponse.get('data', dict()) 
         successfulDels = data.get('successful', [])
@@ -111,7 +111,7 @@ class ImageViewer(QtWidgets.QLabel):
 
         filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
-        print('self.imgPixMap', pixMap)
+        # print('self.imgPixMap', pixMap)
         image = None
         if pixMap is None:
             image =  QImage(filename)
@@ -147,7 +147,7 @@ class ImageViewer(QtWidgets.QLabel):
 
             else:
                 for k, v in self._childMap.items():
-                    print('filePath', filename, v)
+                    # print('filePath', filename, v)
                     v.show()
             
             self.setPixmap(self.imgPixMap)
@@ -187,7 +187,7 @@ class ImageViewer(QtWidgets.QLabel):
                 )
 
                 if self.currentFilePath == title:
-                    print('self.currentFile', self.currentFilePath, title)
+                    # print('self.currentFile', self.currentFilePath, title)
                     childMap = self.__childrenMap.get(title, dict()) 
                     markerCopy = list(childMap.keys())[:] # We need to create a copy of keys of a dict
                                                           # that we shall be popping from to avoid data

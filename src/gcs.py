@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Fri Apr 18 18:35:23 2014
+# Created: Sat Apr 19 05:28:25 2014
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -22,13 +22,17 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.thumbnailScrollArea = QtWidgets.QScrollArea(self.centralwidget)
-        self.thumbnailScrollArea.setGeometry(QtCore.QRect(80, 520, 711, 81))
+        self.thumbnailScrollArea.setGeometry(QtCore.QRect(10, 520, 851, 81))
         self.thumbnailScrollArea.setMinimumSize(QtCore.QSize(521, 81))
         self.thumbnailScrollArea.setWidgetResizable(True)
         self.thumbnailScrollArea.setObjectName("thumbnailScrollArea")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 709, 79))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 849, 79))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
+        self.thumbnailScrollBar = QtWidgets.QScrollBar(self.scrollAreaWidgetContents_2)
+        self.thumbnailScrollBar.setGeometry(QtCore.QRect(0, 60, 851, 16))
+        self.thumbnailScrollBar.setOrientation(QtCore.Qt.Horizontal)
+        self.thumbnailScrollBar.setObjectName("thumbnailScrollBar")
         self.thumbnailScrollArea.setWidget(self.scrollAreaWidgetContents_2)
         self.fullSizeImageScrollArea = QtWidgets.QScrollArea(self.centralwidget)
         self.fullSizeImageScrollArea.setGeometry(QtCore.QRect(10, 20, 851, 491))
@@ -44,16 +48,6 @@ class Ui_MainWindow(object):
         self.midWidget.setGeometry(QtCore.QRect(0, 0, 849, 489))
         self.midWidget.setObjectName("midWidget")
         self.fullSizeImageScrollArea.setWidget(self.midWidget)
-        self.nextButton = QtWidgets.QPushButton(self.centralwidget)
-        self.nextButton.setGeometry(QtCore.QRect(790, 520, 71, 81))
-        self.nextButton.setMinimumSize(QtCore.QSize(71, 81))
-        self.nextButton.setStyleSheet("font: 75 11pt \"URW Gothic L\";")
-        self.nextButton.setObjectName("nextButton")
-        self.previousButton = QtWidgets.QPushButton(self.centralwidget)
-        self.previousButton.setGeometry(QtCore.QRect(10, 520, 71, 81))
-        self.previousButton.setMinimumSize(QtCore.QSize(71, 81))
-        self.previousButton.setStyleSheet("font: 75 11pt \"URW Gothic L\";")
-        self.previousButton.setObjectName("previousButton")
         self.countDisplayLabel = QtWidgets.QLabel(self.centralwidget)
         self.countDisplayLabel.setGeometry(QtCore.QRect(100, 0, 641, 20))
         self.countDisplayLabel.setMinimumSize(QtCore.QSize(200, 10))
@@ -75,6 +69,4 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.nextButton.setText(_translate("MainWindow", "Next"))
-        self.previousButton.setText(_translate("MainWindow", "Previous"))
 

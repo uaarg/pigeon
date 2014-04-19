@@ -72,7 +72,7 @@ class Marker(QtWidgets.QPushButton):
         self.info, self.entryData = tagIn
         if self.tag:
             self.tag.hide()
-            print('hiding tag', self.tag)
+            # print('hiding tag', self.tag)
 
     def serialize(self):
         return self.__dict__
@@ -111,7 +111,7 @@ class Marker(QtWidgets.QPushButton):
 
     def erase(self, x, y, needsFlush=True):
         if isinstance(self.tree, dict):
-            print('Popped marker', self.tree.pop((x, y),'Not found'))
+            # print('Popped marker', self.tree.pop((x, y),'Not found'))
 
             if self.onDeleteCallback and needsFlush: 
                 print(self.onDeleteCallback(x, y))
@@ -155,7 +155,7 @@ class Marker(QtWidgets.QPushButton):
                 self.__movePos = event.globalPos()
                 self.__pressPos = event.globalPos()
 
-                print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
+                # print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
                 if not self.tag:
                     if self.info:
                         self.tag = Tag.tagFromSource(self.info)
@@ -167,11 +167,11 @@ class Marker(QtWidgets.QPushButton):
                     self.tag.activateWindow()
 
     def show(self):
-        print('\033[47mShow invoked\033[00m')
+        # print('\033[47mShow invoked\033[00m')
         super().show()
 
     def hide(self):
-        print('\033[46mHide invoked\033[00m')
+        # print('\033[46mHide invoked\033[00m')
         super().hide()
      
     def __lt__(self, other):
