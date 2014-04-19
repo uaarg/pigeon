@@ -25,7 +25,6 @@ class IconStrip(QtWidgets.QFrame):
             return self.__addIconItem(path, onClick)
 
     def __addIconItem(self, path, onClick):
-        print('path', path, onClick)
         iItem = IconItem(self, iconPath=path, pix=self.addPixMap(path), onClick=onClick)
         self.__itemDict[path] = iItem
         iItem.setGeometry(
@@ -44,9 +43,9 @@ class IconStrip(QtWidgets.QFrame):
 
         return memPixMap
 
-    def popPixMap(self, path, altValue=None):
-        popd = self.__pixMapCache.pop(path, altValue)
-        if popd is not altValue:
+    def popIconItem(self, path, altValue=None):
+        popd = self.__itemDict.pop(path, altValue)
+        if hasattr(popd, 'close'):
             popd.close()
 
     def close(self):

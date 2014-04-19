@@ -13,7 +13,6 @@ class IconItem(QtWidgets.QLabel):
         self.__onClick = onClick
         self.setGeometry(x, y, w, h)
         self.__deriveStaticDimensions()
-        print('iconPath', iconPath, pix)
         self.initPixMapInfo(iconPath, pix)
 
         self.setMouseTracking(True)
@@ -38,11 +37,11 @@ class IconItem(QtWidgets.QLabel):
         return self.__pixMap
 
     def enterEvent(self, event):
-        print('Entering', self.__iconPath)
+        # print('Entering', self.__iconPath)
         self.setGeometry(self.x(), self.y(), self.w * 2, self.h * 2)
 
     def leaveEvent(self, event):
-        print('Leaving now', self.__iconPath)
+        # print('Leaving now', self.__iconPath)
         self.setGeometry(self.x(), self.y(), self.w, self.h)
 
     def mousePressEvent(self, event):

@@ -67,22 +67,26 @@ class ImageViewer(QtWidgets.QLabel):
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
-        # print('imgDelResponse', imgDelResponse, title)
+        print('imgDelResponse', imgDelResponse, title)
 
         data = imgDelResponse.get('data', dict()) 
-        successfulDels = data.get('successful', [])
-        # TODO: Figure out what to do with the failed deletes
-        # failed = data.get('failed', [])
+        if not hasattr(data, 'get'):
+            print('Probably image was not saved to the db')
+            return
+        else:
+            successfulDels = data.get('successful', [])
+            # TODO: Figure out what to do with the failed deletes
+            # failed = data.get('failed', [])
        
-        for sId in successfulDels: 
-          # Clear out all the associated markers
-          mDelResponse = utils.produceAndParse(
-            self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
-          )
-          # print('mDelResponse', mDelResponse)
+            for sId in successfulDels: 
+                # Clear out all the associated markers
+                mDelResponse = utils.produceAndParse(
+                    self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
+                )
+                # print('mDelResponse', mDelResponse)
         
 
-        self.lastEditTimeMap.pop(title, None)
+            self.lastEditTimeMap.pop(title, None)
 
     def deleteMarkerFromDb(self, x, y):
         savValue = self.lastEditTimeMap[self.currentFilePath]

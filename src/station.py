@@ -146,6 +146,7 @@ class GroundStation(QtWidgets.QMainWindow):
             memPixMap = self.iconStrip.getPixMap(path)
             self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
             self.ui_window.countDisplayLabel.setText(path)
+            self.stack.setPtrToKeyIndex(path)
 
     def selectImageToDisplay(self, path):
         argTuple = (path, self.stack.accessByKey(path, []),)
@@ -160,7 +161,9 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(popd, utils.DynaItem):
           popd = popd.path
 
-        if popd: self.imageViewer.deleteImageFromDb(popd)
+        if popd:
+            self.imageViewer.deleteImageFromDb(popd)
+            self.iconStrip.popIconItem(popd, None)
 
         method = None
         if self.stack.canGetPrev():

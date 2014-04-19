@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Sat Apr 19 05:28:25 2014
+# Created: Sat Apr 19 05:44:54 2014
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -29,10 +29,6 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
         self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 849, 79))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
-        self.thumbnailScrollBar = QtWidgets.QScrollBar(self.scrollAreaWidgetContents_2)
-        self.thumbnailScrollBar.setGeometry(QtCore.QRect(0, 60, 851, 16))
-        self.thumbnailScrollBar.setOrientation(QtCore.Qt.Horizontal)
-        self.thumbnailScrollBar.setObjectName("thumbnailScrollBar")
         self.thumbnailScrollArea.setWidget(self.scrollAreaWidgetContents_2)
         self.fullSizeImageScrollArea = QtWidgets.QScrollArea(self.centralwidget)
         self.fullSizeImageScrollArea.setGeometry(QtCore.QRect(10, 20, 851, 491))

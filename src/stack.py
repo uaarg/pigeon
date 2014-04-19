@@ -13,21 +13,22 @@ class Stack:
     return len(self.__contentMap)
 
   def push(self, key, value=None):
-    self.__invertedIndexMap[self.size] = key
-    self.__contentMap[key] = value # Save the latest value
+    keyIndex = self.size
+    self.__invertedIndexMap[keyIndex] = key
+    self.__contentMap[key] = (keyIndex, value,) # Save the latest value
 
   def popByKey(self, key, altValue=None):
-    return self.__contentMap.pop(key, altValue)
+    popd = self.__contentMap.pop(key, (-1, altValue,))
+    return popd[1]
 
   def popByIndex(self, index, altValue=None):
     return self.__invertedIndexMap.pop(index, altValue)
 
   def pop(self):
     key = self.popByIndex(self.__ptr, None)
-    print('ptrIndex', self.__ptr)
+    # print('ptrIndex', self.__ptr)
     if key is not None:
-      contentPop = self.__contentMap.pop(key, None)
-      return contentPop
+      return self.popByKey(key, None)
 
   def reverseMapKey(self, index, altValue=None):
     return self.__invertedIndexMap.get(index, altValue) 
@@ -43,16 +44,20 @@ class Stack:
     return self.__accessByIndexPtr()
 
   def accessByKey(self, keyName, altValue=None):
-    return self.__contentMap.get(keyName, altValue)
+    return self.__contentMap.get(keyName, (-1, altValue,))[1]
 
   def __accessByIndexPtr(self):
     modBase = self.size
     if not modBase: modBase = 1
     keyName = self.__invertedIndexMap.get(self.__ptr % modBase, None)
-    print('keyName', keyName)
+    # print('keyName', keyName)
     if keyName is not None:
-        return keyName, self.__contentMap.get(keyName, None)
+        return keyName, self.__contentMap.get(keyName, (-1, None,))[1]
 
+  def setPtrToKeyIndex(self, key):
+    indexOfKey = self.__contentMap.get(key, (0, None))[0]
+    print('setting ptr to', indexOfKey)
+    self.__ptr = indexOfKey 
     
   def prev(self):
     if self.__ptr > 0:
