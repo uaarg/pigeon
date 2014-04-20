@@ -9,8 +9,8 @@ import stat
 import glob
 import json
 
-_404_IMAGE_PATH = '404_man.jpg'
-_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + 'uaarg.jpg'
+_404_IMAGE_PATH = 'icons/coyote-cliff.jpg'
+_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
 pyVersion = sys.hexversion/(1<<24)
 
 if pyVersion < 3:
