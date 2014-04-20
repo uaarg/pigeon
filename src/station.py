@@ -46,13 +46,14 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.fullSizeImageScrollArea.setWidget(self.imageViewer)
 
     def initStrip(self):
-        self.iconStrip = IconStrip.IconStrip(self.ui_window.thumbnailScrollArea)
-        self.iconStrip.resize(self.ui_window.thumbnailScrollArea.size())
+        self.iconStrip = IconStrip.IconStrip(self)
+        self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
+        self.iconStrip.setOnItemClick(self.selectImageToDisplay)
 
     def initFileDialog(self):
         self.fileDialog = QtWidgets.QFileDialog()
         self.fileDialog.setFileMode(3) # Multiple files can be selected
-        self.fileDialog.filesSelected.connect(self.__normalizeFileAdding)
+        self.fileDialog.filesSelected.connect(self.pictureDropped)
 
     def __normalizeFileAdding(self, paths):
         # Ensuring that paths added are relative to a common source eg
@@ -194,6 +195,11 @@ class GroundStation(QtWidgets.QMainWindow):
             qBox = QMessageBox(parent=self)
             qBox.setText('FileDialog was not initialized')
             qBox.show()
+
+    def pictureDropped(self, itemList):
+        for itemUri in l:
+            if os.path.exists(itemUri):
+                self.iconStrip.addIconItem(itemUri, self.selectImageToDisplay)
 
 def main():
     argc = len(sys.argv)

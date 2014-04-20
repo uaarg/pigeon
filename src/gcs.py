@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Sat Apr 19 05:44:54 2014
+# Created: Sun Apr 20 01:19:36 2014
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(873, 638)
+        MainWindow.resize(879, 693)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
@@ -22,12 +22,12 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.thumbnailScrollArea = QtWidgets.QScrollArea(self.centralwidget)
-        self.thumbnailScrollArea.setGeometry(QtCore.QRect(10, 520, 851, 81))
+        self.thumbnailScrollArea.setGeometry(QtCore.QRect(10, 520, 851, 121))
         self.thumbnailScrollArea.setMinimumSize(QtCore.QSize(521, 81))
         self.thumbnailScrollArea.setWidgetResizable(True)
         self.thumbnailScrollArea.setObjectName("thumbnailScrollArea")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 849, 79))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 849, 119))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.thumbnailScrollArea.setWidget(self.scrollAreaWidgetContents_2)
         self.fullSizeImageScrollArea = QtWidgets.QScrollArea(self.centralwidget)
@@ -51,7 +51,7 @@ class Ui_MainWindow(object):
         self.countDisplayLabel.setObjectName("countDisplayLabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 873, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 879, 25))
         self.menubar.setDefaultUp(False)
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)

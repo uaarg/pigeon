@@ -1,39 +1,39 @@
 #!/usr/bin/env python3
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
+import re
 import sys
 import collections
 from PyQt5 import Qt, QtGui, QtWidgets, QtCore
 
-try:
-    from IconItem import IconItem # Local module
-except Exception as e:
-    from .IconItem import IconItem
-
-class IconStrip(QtWidgets.QFrame):
+class IconStrip(QtWidgets.QListWidget):
     def __init__(self, parent=None):
         super(IconStrip, self).__init__(parent)
 
-        self.setAcceptDrops(True)
-        self.xL = 0
-
         self.__itemDict = dict()
         self.__pixMapCache = dict()
+        self.setIconSize(QtCore.QSize(self.width(), self.width()))
+        self.setFlow(QtWidgets.QListWidget.LeftToRight)
 
-    def addIconItem(self, path, onClick):
-        if self.__itemDict.get(path, None) is None:
-            return self.__addIconItem(path, onClick)
+        self.setAcceptDrops(True)
 
-    def __addIconItem(self, path, onClick):
-        iItem = IconItem(self, iconPath=path, pix=self.addPixMap(path), onClick=onClick)
-        self.__itemDict[path] = iItem
-        iItem.setGeometry(
-            iItem.x() + (self.xL * iItem.width()),
-            iItem.y(), iItem.width(), iItem.height()
-        )
-        iItem.show()
+    def setOnItemClick(self, clickHandler):
+        self.__onClick = clickHandler
 
-        self.xL += 1
+    def addIconItem(self, path, onClick=None):
+        icon = QtGui.QIcon(self.addPixMap(path))
+        item = QtWidgets.QListWidgetItem('', self)
+        item.setIcon(icon)
+        item.setStatusTip(path)
+
+        self.__itemDict[path] = item 
+
+    def mousePressEvent(self, event):
+        curItem = self.currentItem()
+        print(self.selectedItems())
+        if curItem:
+            print('curItemStatusTip', curItem.statusTip())
+            self.__onClick(curItem.statusTip())
 
     def addPixMap(self, path):
         memPixMap = self.getPixMap(path, None)
