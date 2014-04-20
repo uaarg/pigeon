@@ -37,17 +37,22 @@ class Marker(QtWidgets.QPushButton):
 
         self.initUI()
 
+    def initExpandDimensions(self):
+        self.origW = self.width()
+        self.origH = self.height()
+        self.expandedW = self.origW * 1.5
+        self.expandedH = self.origH * 1.5
+
     def toggleUnsaved(self):
         self.initIcon('mapMarkerIn.png')
         self.__wasSyncd = False
 
     def toggleSaved(self):
-        self.initIcon('mapMarkerOut.png')
-        self.__wasSyncd = True
+        self.__resetToNormalIcon()
 
     def __resetToNormalIcon(self):
         self.__wasSyncd = True
-        self.setGeometry(self.x, self.y, self.oldW, self.oldH)
+        self.setGeometry(self.x, self.y, self.origW, self.origH)
         self.initIcon('mapMarkerOut.png')
 
     def initUI(self):
@@ -56,7 +61,10 @@ class Marker(QtWidgets.QPushButton):
 
         self.registerWithTree()
         self.setMouseTracking(True) # To allow for hovering detection
-        self.setStyleSheet("width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;")
+        self.setStyleSheet(
+            "width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;"
+        )
+        self.initExpandDimensions()
 
     def registerWithTree(self):
         if self.tree is not None:
@@ -128,8 +136,7 @@ class Marker(QtWidgets.QPushButton):
     def enterEvent(self, event):
         if not self.__withinMarker:
             # Make the marker pop out
-            self.oldW, self.oldH = self.width(), self.height()
-            self.setGeometry(self.x, self.y, self.oldW * 1.5, self.oldH * 1.5)
+            self.setGeometry(self.x, self.y, self.expandedW, self.expandedH)
 
             self.initIcon('mapMarkerIn.png')
             self.__withinMarker = True
