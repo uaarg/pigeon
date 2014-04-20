@@ -30,9 +30,8 @@ class IconStrip(QtWidgets.QListWidget):
 
     def mousePressEvent(self, event):
         curItem = self.currentItem()
-        print(self.selectedItems())
         if curItem:
-            print('curItemStatusTip', curItem.statusTip())
+            curIndex = self.currentIndex()
             self.__onClick(curItem.statusTip())
 
     def addPixMap(self, path):
@@ -45,8 +44,14 @@ class IconStrip(QtWidgets.QListWidget):
 
     def popIconItem(self, path, altValue=None):
         popd = self.__itemDict.pop(path, altValue)
-        if hasattr(popd, 'close'):
-            popd.close()
+        self.takeItem(self.row(self.currentItem()))
+
+        newlySelectedPath = None
+        curItem = self.currentItem()
+        if hasattr(curItem, 'statusTip'):
+            newlySelectedPath = curItem.statusTip() 
+
+        return newlySelectedPath
 
     def close(self):
         for iconItem in self.__itemDict.values():

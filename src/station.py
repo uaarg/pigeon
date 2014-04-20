@@ -8,10 +8,9 @@ from PyQt5 import QtWidgets, QtGui
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
 import utils # Local module
-import stack # Local module
+import iconStrip # Local module
 import imageViewer # Local module
-import mpUtils.JobRunner
-from thumbnailStrip import IconStrip
+import mpUtils.JobRunner # Local module
 
 curDirPath = os.path.abspath('.')
 
@@ -23,10 +22,10 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window = gcs.Ui_MainWindow()
         self.ui_window.setupUi(self)
 
-        self.stack = stack.Stack(None)
+        self.__resourcePool = dict()
 
         self.initUI()
-        self.addFilesToStack(self.imageViewer.loadContentFromDb())
+        self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
 
     def initUI(self):
         # Set up actions
@@ -46,9 +45,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.fullSizeImageScrollArea.setWidget(self.imageViewer)
 
     def initStrip(self):
-        self.iconStrip = IconStrip.IconStrip(self)
+        self.iconStrip = iconStrip.IconStrip(self)
         self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
-        self.iconStrip.setOnItemClick(self.selectImageToDisplay)
+        self.iconStrip.setOnItemClick(self.displayThisImage)
 
     def initFileDialog(self):
         self.fileDialog = QtWidgets.QFileDialog()
@@ -68,15 +67,17 @@ class GroundStation(QtWidgets.QMainWindow):
                 utils.DynaItem(dict(path=path, markerSet=[]))
             )
 
-        self.addFilesToStack(normalizedPaths)
+        self.preparePathsForDisplay(normalizedPaths)
 
-    def __addFilesToStack(self, dynaDictList):
+    def __preparePathsForDisplay(self, dynaDictList):
         for dynaDict in dynaDictList:
-            self.stack.push(dynaDict.path, dynaDict)
-            self.iconStrip.addIconItem(dynaDict.path, self.selectImageToDisplay)
+            self.__resourcePool[dynaDict.path] = dynaDict
+            self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
 
-    def addFilesToStack(self, dynaDictList, **kwargs):
-        return self.__jobRunner.run(self.__addFilesToStack, None, None, dynaDictList, **kwargs)
+    def preparePathsForDisplay(self, dynaDictList, **kwargs):
+        return self.__jobRunner.run(
+            self.__preparePathsForDisplay, None, None, dynaDictList, **kwargs
+        )
         
     def initMenus(self):
         self.fileMenu = QtWidgets.QMenu("&File", self)
@@ -121,22 +122,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
 
-        # Navigating
-        self.nextItemAction = QtWidgets.QAction('&Next Item', self)
-        self.nextItemAction.setShortcut('Ctrl+N')
-        self.nextItemAction.triggered.connect(self.showNext)
-
-        self.prevItemAction = QtWidgets.QAction('&Previous Item', self)
-        self.prevItemAction.setShortcut('Ctrl+P')
-        self.prevItemAction.triggered.connect(self.showPrev)
-
-    def showNext(self):
-        self.__stackToPhoto(self.stack.next)
-
-    def showPrev(self):
-        self.__stackToPhoto(self.stack.prev)
-
     def __invokeOpenImage(self, displayArgs):
+        print('displayArgs', displayArgs)
         if displayArgs is not None:
             self.key, self.currentItem = displayArgs 
             path, markerSet = self.key, []
@@ -147,32 +134,25 @@ class GroundStation(QtWidgets.QMainWindow):
             memPixMap = self.iconStrip.getPixMap(path)
             self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
             self.ui_window.countDisplayLabel.setText(path)
-            self.stack.setPtrToKeyIndex(path)
 
-    def selectImageToDisplay(self, path):
-        argTuple = (path, self.stack.accessByKey(path, []),)
+    def displayThisImage(self, path):
+        argTuple = (path, self.__resourcePool.get(path, []))
         self.__invokeOpenImage(argTuple)
 
-    def __stackToPhoto(self, method):
-        self.__invokeOpenImage(method())
-
     def handleItemPop(self):
-        popd = self.stack.pop()
+        popd = self.__resourcePool.pop( 
+            self.ui_window.countDisplayLabel.text(), None
+        )
 
         if isinstance(popd, utils.DynaItem):
           popd = popd.path
 
+        nextItemOnDisplay = None
         if popd:
             self.imageViewer.deleteImageFromDb(popd)
-            self.iconStrip.popIconItem(popd, None)
+            nextItemOnDisplay = self.iconStrip.popIconItem(popd, None)
 
-        method = None
-        if self.stack.canGetPrev():
-            method = self.stack.prev
-        else:
-            method = self.stack.next
-
-        self.__stackToPhoto(method)
+        self.displayThisImage(nextItemOnDisplay)
 
     def syncCurrentItem(self):
         self.imageViewer.syncCurrentItem()
@@ -197,9 +177,7 @@ class GroundStation(QtWidgets.QMainWindow):
             qBox.show()
 
     def pictureDropped(self, itemList):
-        for itemUri in itemList:
-            if os.path.exists(itemUri):
-                self.iconStrip.addIconItem(itemUri, self.selectImageToDisplay)
+        self.__normalizeFileAdding(itemList)
 
 def main():
     argc = len(sys.argv)
