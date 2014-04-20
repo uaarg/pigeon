@@ -197,7 +197,7 @@ class GroundStation(QtWidgets.QMainWindow):
             qBox.show()
 
     def pictureDropped(self, itemList):
-        for itemUri in l:
+        for itemUri in itemList:
             if os.path.exists(itemUri):
                 self.iconStrip.addIconItem(itemUri, self.selectImageToDisplay)
 
