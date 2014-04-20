@@ -71,8 +71,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def __preparePathsForDisplay(self, dynaDictList):
         for dynaDict in dynaDictList:
+            if dynaDict.path not in self.__resourcePool:
+                self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
             self.__resourcePool[dynaDict.path] = dynaDict
-            self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
 
     def preparePathsForDisplay(self, dynaDictList, **kwargs):
         return self.__jobRunner.run(
@@ -87,9 +88,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.exitAction)
         self.fileMenu.addAction(self.findImagesAction)
 
-        self.editMenu.addAction(self.syncCurrentItemAction)
         self.editMenu.addAction(self.popCurrentImageAction)
 
+        self.syncMenu.addAction(self.syncCurrentItemAction)
         self.syncMenu.addAction(self.dbSyncAction)
 
         self.menuBar().addMenu(self.fileMenu)
@@ -102,13 +103,12 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
-        # Save coordinates
-        self.syncCurrentItemAction = QtWidgets.QAction("&Save Coordinates", self)
+        # Synchronization with DB
+        self.syncCurrentItemAction = QtWidgets.QAction("&Save", self)
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        # Synchronization with DB
-        self.dbSyncAction = QtWidgets.QAction("&Sync with DB", self)
+        self.dbSyncAction = QtWidgets.QAction("&Sync all", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
 
@@ -123,7 +123,6 @@ class GroundStation(QtWidgets.QMainWindow):
         self.findImagesAction.triggered.connect(self.findImages)
 
     def __invokeOpenImage(self, displayArgs):
-        print('displayArgs', displayArgs)
         if displayArgs is not None:
             self.key, self.currentItem = displayArgs 
             path, markerSet = self.key, []
@@ -158,7 +157,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.imageViewer.syncCurrentItem()
 
     def dbSync(self):
-        self.imageViewer.loadContentFromDb(syncForCurrentImageOnly=True)
+        self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
 
     def cleanUpAndExit(self):
         self.iconStrip.close()

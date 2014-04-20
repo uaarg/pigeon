@@ -57,10 +57,17 @@ class ImageViewer(QtWidgets.QLabel):
 
     def deleteImageFromDb(self, title, isSynchronous=False):
       if isSynchronous:
-        self.__deleteImageFromDb(title)
+        return self.__deleteImageFromDb(title)
       else:
-        th = Thread(target=self.__deleteImageFromDb, args=(title,))
-        th.start()
+        return self.__jobRunner.run(self.__deleteImageFromDb, None, None, title)
+
+    def popAllMarkers(self, path):
+        return self.__jobRunner.run(self.__popAllMarkers, None, None, path)
+
+    def __popAllMarkers(self, path, **kwargs):
+        markers = self.__childrenMap.pop(path, [])
+        for marker in markers.values():
+            marker.close()
 
     def __deleteImageFromDb(self, title):
         imgDelResponse = utils.produceAndParse(
@@ -87,6 +94,7 @@ class ImageViewer(QtWidgets.QLabel):
         
 
             self.lastEditTimeMap.pop(title, None)
+            self.__popAllMarkers(title)
 
     def deleteMarkerFromDb(self, x, y):
         savValue = self.lastEditTimeMap[self.currentFilePath]
