@@ -60,6 +60,8 @@ def produceAndParse(func, dataIn):
         return json.loads(response.decode())
       except Exception as e:
         return dict(reason = e)
+    else:
+        return dict()
 
 class DynaItem:
   def __init__(self, initArgs):

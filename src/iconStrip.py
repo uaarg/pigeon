@@ -27,6 +27,7 @@ class IconStrip(QtWidgets.QListWidget):
         item.setStatusTip(path)
 
         self.__itemDict[path] = item 
+        return self.currentRow()
 
     def mousePressEvent(self, event):
         curItem = self.currentItem()

@@ -295,10 +295,11 @@ class ImageViewer(QtWidgets.QLabel):
               )
             )
 
-            postData = parsedResponse.get('data', None)
+            syncResponse = parsedResponse.get('data', None)
             # print(postData)
-            if parsedResponse:
-                dbItem = postData
+            if syncResponse:
+                print(syncResponse)
+                dbItem = syncResponse
                 print('Memoizing a lastTimeEdit for ', self.__fileOnDisplay)
                 self.lastEditTimeMap[self.__fileOnDisplay] =\
                      (dbItem.get('id', -1), dbItem.get('lastTimeEdit', -1),)

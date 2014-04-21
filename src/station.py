@@ -70,10 +70,16 @@ class GroundStation(QtWidgets.QMainWindow):
         self.preparePathsForDisplay(normalizedPaths)
 
     def __preparePathsForDisplay(self, dynaDictList):
+        lastItem = None
         for dynaDict in dynaDictList:
             if dynaDict.path not in self.__resourcePool:
                 self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
+                lastItem = dynaDict.path
+
             self.__resourcePool[dynaDict.path] = dynaDict
+
+        # Display the last added item
+        self.displayThisImage(lastItem)
 
     def preparePathsForDisplay(self, dynaDictList, **kwargs):
         return self.__jobRunner.run(
