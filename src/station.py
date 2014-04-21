@@ -61,7 +61,7 @@ class GroundStation(QtWidgets.QMainWindow):
         normalizedPaths = []
         for path in paths:
             if path.find(curDirPath) >= 0:
-                path = '.' + p.split(curDirPath)[1]
+                path = '.' + path.split(curDirPath)[1]
 
             normalizedPaths.append(
                 utils.DynaItem(dict(path=path, markerSet=[]))
