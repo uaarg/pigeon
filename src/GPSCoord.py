@@ -9,10 +9,13 @@ Covers:
 Cindy Xiao <dixin@ualberta.ca>
 """
 
+from math import *
+import pyproj
+
 class Position:
     """
     Position in 3D space of an object relative to the earth.
-    Latitude and longitude are for the WGS85 datum.
+    Latitude and longitude are for the WGS84 datum.
     """
     def __init__(self, lat, lon, height=0, alt=None):
         """
@@ -47,6 +50,10 @@ class Orientation:
         self.roll = roll
         self.yaw = yaw
 
+        self.pitch_rad = radians(pitch)
+        self.roll_rad = radians(roll)
+        self.yaw_rad = radians(yaw)
+
 class CameraSpecs:
     """
     Camera constants needed for geo-referencing.
@@ -66,6 +73,14 @@ class CameraSpecs:
         self.field_of_view_horiz = field_of_view_horiz
         self.field_of_view_vert = field_of_view_vert
 
+        self.field_of_view_horiz_rad = radians(self.field_of_view_horiz)
+        self.field_of_view_vert_rad = radians(self.field_of_view_vert)
+
+        # Used repeatedly in calculations so pre-calculating result for speed
+        self.tan_angle_div_2_horiz = tan(self.field_of_view_horiz_rad/2)
+        self.tan_angle_div_2_vert = tan(self.field_of_view_vert_rad/2)
+
+
 
 class GeoReference:
     """
@@ -79,7 +94,7 @@ class GeoReference:
         """
         self.camera = camera_specs
 
-    def pointInImage(self, location, orentation, pixel_x, pixel_y):
+    def pointInImage(self, location, orientation, pixel_x, pixel_y):
         """
         Calculates and returns the position of the point located at 
         pixel_x, pixel_y in the image. The plane location and 
@@ -89,11 +104,42 @@ class GeoReference:
         location - plane location
         orientation - plane orientation
         pixel_x - pixel in the image at the point. Measured from left 
-                edge.
-        pixel_y - pixel in the image at the point. Measured from 
-                bottom edge.
-        """        
-        raise(NotImplementedError)
+                edge. Should be the same dimension as the image_width.
+        pixel_y - pixel in the image at the point. Measured from bottom 
+                edge. Should be the same dimension as the image_height.
+
+        Algorithm described here: 
+        sftp://uaargarchive@142.244.63.77/Upload/Ground Station Imaging/Geo-referencing Calculations
+        https://drive.google.com/a/ualberta.ca/folderview?id=0BxmxpOgS5RpSbU1pWHN5dlBTelk&usp=sharing
+        """
+
+        camera = self.camera
+
+        # Step 1: claculating angle offsets of pixel selected
+        delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) / camera.tan_angle_div_2_horiz)
+        delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) / camera.tan_angle_div_2_vert)
+
+        # Step 2: calculating effective pitch and roll
+        pitch = orientation.pitch_rad + delta_theta_vert
+        roll = orientation.roll_rad + delta_theta_horiz
+
+        # Step 3: calculating level distance and angle to pixel
+        distance_x = location.height * tan(pitch)
+        distance_y = location.height * tan(-roll)
+        distance = sqrt(pow(distance_x, 2) + pow(distance_y, 2))
+        phi = atan2(distance_y, distance_x) # atan2 used to provide 
+                # angle properly for any quadrant
+
+        # Step 4: calculating angle from north to pixel
+        forward_azimuth = phi + orientation.yaw_rad
+
+        # Step 5: claculating endpoint using pyproj GIS module
+        geod = pyproj.Geod(ellps="WGS84")
+        pixel_lon, pixel_lat, back_azimuth = geod.fwd(location.lon, location.lat, degrees(forward_azimuth), distance)
+
+        # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
+
+        return Position(pixel_lat, pixel_lon)
 
 def getInfoField(info_file_loc, field_name):
     """
