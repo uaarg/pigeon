@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Sun Apr 20 05:06:25 2014
+# Created: Mon Apr 21 23:39:32 2014
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1030, 739)
+        MainWindow.resize(1056, 736)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
@@ -53,13 +53,16 @@ class Ui_MainWindow(object):
         self.countDisplayLabel.setObjectName("countDisplayLabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1030, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1056, 25))
         self.menubar.setDefaultUp(False)
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.toolBar = QtWidgets.QToolBar(MainWindow)
+        self.toolBar.setObjectName("toolBar")
+        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -67,4 +70,5 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
 

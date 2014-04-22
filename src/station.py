@@ -32,11 +32,12 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initActions()
 
         # Set up menus
-        self.initMenus()
+        self.initToolBar()
 
         self.initFileDialog()
         self.initImageViewer()
         self.initStrip()
+        self.ui_window.countDisplayLabel.hide()
 
     def initImageViewer(self):
         self.imageViewer = imageViewer.ImageViewer(
@@ -86,45 +87,38 @@ class GroundStation(QtWidgets.QMainWindow):
             self.__preparePathsForDisplay, None, None, dynaDictList, **kwargs
         )
         
-    def initMenus(self):
-        self.fileMenu = QtWidgets.QMenu("&File", self)
-        self.editMenu = QtWidgets.QMenu("&Edit", self)
-        self.syncMenu = QtWidgets.QMenu("&Sync", self)
+    def initToolBar(self):
+        self.toolbar  = self.ui_window.toolBar;
 
-        self.fileMenu.addAction(self.exitAction)
-        self.fileMenu.addAction(self.findImagesAction)
+        self.toolbar.addAction(self.findImagesAction)
 
-        self.editMenu.addAction(self.popCurrentImageAction)
-
-        self.syncMenu.addAction(self.syncCurrentItemAction)
-        self.syncMenu.addAction(self.dbSyncAction)
-
-        self.menuBar().addMenu(self.fileMenu)
-        self.menuBar().addMenu(self.editMenu)
-        self.menuBar().addMenu(self.syncMenu)
+        self.toolbar.addAction(self.syncCurrentItemAction)
+        self.toolbar.addAction(self.dbSyncAction)
+        self.toolbar.addAction(self.popCurrentImageAction)
+        self.toolbar.addAction(self.exitAction)
 
     def initActions(self):
-        self.popCurrentImageAction = QtWidgets.QAction(
+        self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
             "&Remove currentImage", self
         )
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
-        self.syncCurrentItemAction = QtWidgets.QAction("&Save", self)
+        self.syncCurrentItemAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save", self)
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        self.dbSyncAction = QtWidgets.QAction("&Sync all", self)
+        self.dbSyncAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-save.png'), "&Sync all", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
 
         # Exit
-        self.exitAction = QtWidgets.QAction("&Exit", self)
+        self.exitAction = QtWidgets.QAction(QtGui.QIcon('icons/exit.png'), "&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
-        self.findImagesAction = QtWidgets.QAction("&Add Images", self)
+        self.findImagesAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self)
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
 
