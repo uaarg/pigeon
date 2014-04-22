@@ -3,7 +3,7 @@
 
 import os
 import sys
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
@@ -25,7 +25,11 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__resourcePool = dict()
 
         self.initUI()
+        self.initSaveSound()
         self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
+
+    def initSaveSound(self):
+        self.__saveSound = QtMultimedia.QSound('sounds/bubblePop.wav')
 
     def initUI(self):
         # Set up actions
@@ -37,7 +41,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initFileDialog()
         self.initImageViewer()
         self.initStrip()
-        self.ui_window.countDisplayLabel.hide()
+        self.ui_window.countDisplayLabel.show()
 
     def initImageViewer(self):
         self.imageViewer = imageViewer.ImageViewer(
@@ -75,12 +79,14 @@ class GroundStation(QtWidgets.QMainWindow):
         for dynaDict in dynaDictList:
             if dynaDict.path not in self.__resourcePool:
                 self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
-                lastItem = dynaDict.path
+
+            lastItem = dynaDict.path
 
             self.__resourcePool[dynaDict.path] = dynaDict
 
         # Display the last added item
         self.displayThisImage(lastItem)
+        self.__saveSound.play()
 
     def preparePathsForDisplay(self, dynaDictList, **kwargs):
         return self.__jobRunner.run(
@@ -90,11 +96,11 @@ class GroundStation(QtWidgets.QMainWindow):
     def initToolBar(self):
         self.toolbar  = self.ui_window.toolBar;
 
+        self.toolbar.addAction(self.editCurrentImageAction)
+        self.toolbar.addAction(self.popCurrentImageAction)
         self.toolbar.addAction(self.findImagesAction)
-
         self.toolbar.addAction(self.syncCurrentItemAction)
         self.toolbar.addAction(self.dbSyncAction)
-        self.toolbar.addAction(self.popCurrentImageAction)
         self.toolbar.addAction(self.exitAction)
 
     def initActions(self):
@@ -104,11 +110,11 @@ class GroundStation(QtWidgets.QMainWindow):
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
-        self.syncCurrentItemAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save", self)
+        self.syncCurrentItemAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self)
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        self.dbSyncAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-save.png'), "&Sync all", self)
+        self.dbSyncAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
 
@@ -121,6 +127,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.findImagesAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self)
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
+        self.editCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self)
+        self.editCurrentImageAction.setShortcut('Ctrl+E')
+
 
     def __invokeOpenImage(self, displayArgs):
         if displayArgs is not None:

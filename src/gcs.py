@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Mon Apr 21 23:39:32 2014
+# Created: Tue Apr 22 01:51:43 2014
 #      by: PyQt5 UI code generator 5.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -19,7 +19,7 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         MainWindow.setMinimumSize(QtCore.QSize(200, 200))
-        MainWindow.setMaximumSize(QtCore.QSize(1056, 855))
+        MainWindow.setMaximumSize(QtCore.QSize(1056, 736))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.thumbnailScrollArea = QtWidgets.QScrollArea(self.centralwidget)
