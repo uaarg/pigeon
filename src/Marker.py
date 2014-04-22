@@ -38,7 +38,6 @@ class Marker(QtWidgets.QPushButton):
 
         self.initUI()
 
-
     def initExpandDimensions(self):
         self.origW = self.width()
         self.origH = self.height()
@@ -46,16 +45,16 @@ class Marker(QtWidgets.QPushButton):
         self.expandedH = self.origH * 1.5
 
     def toggleUnsaved(self):
-        self.initIcon('icons/mapMarkerIn.png')
         self.__wasSyncd = False
+        self.initIcon('icons/mapMarkerIn.png')
 
     def toggleSaved(self):
         self.__resetToNormalIcon()
+        self.__wasSyncd = True
+        self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):
-        self.__wasSyncd = True
         self.setGeometry(self.x, self.y, self.origW, self.origH)
-        self.initIcon(self.iconPath)
 
     def initUI(self):
         self.setGeometry(self.x, self.y, self._width, self._height)
@@ -74,7 +73,7 @@ class Marker(QtWidgets.QPushButton):
             # print('Tree after self-registration', self.tree)
 
     def memoizeIcon(self, path):
-        memPixMap, memIcon = self.__pixmapCache.get(path, (None, None))
+        memPixMap, memIcon = self.__pixmapCache.get(path, (None, None,))
         NEEDS_MEMOIZE = False
         if memPixMap is None:
             NEEDS_MEMOIZE = True
@@ -92,7 +91,7 @@ class Marker(QtWidgets.QPushButton):
     def initIcon(self, iconPath):
         memIcon = self.memoizeIcon(iconPath)
         self.setIcon(memIcon);
-        self.setIconSize(QtCore.QSize(self.width(), self.height()))
+        self.setIconSize(QtCore.QSize(self.width() * 0.7, self.height() * 0.7))
 
     def addTaggedInfo(self, tagIn):
         self.info, self.entryData = tagIn
@@ -152,19 +151,14 @@ class Marker(QtWidgets.QPushButton):
         super().close()
 
     def enterEvent(self, event):
-        if not self.__withinMarker:
-            # Make the marker pop out
-            self.setGeometry(self.x, self.y, self.expandedW, self.expandedH)
+        # Make the marker pop out
+        self.setGeometry(self.x, self.y, self.expandedW, self.expandedH)
 
-            self.initIcon('icons/mapMarkerIn.png')
-            self.__withinMarker = True
 
     def leaveEvent(self, event):
-        if self.__withinMarker and self.__wasSyncd:
-            self.__withinMarker = False
+        # Revert to the original dimensions
+        self.__resetToNormalIcon()
 
-            # Revert to the original dimensions
-            self.__resetToNormalIcon()
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.QEvent.MouseButtonDblClick:

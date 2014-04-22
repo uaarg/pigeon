@@ -148,8 +148,8 @@ class ImageViewer(QtWidgets.QLabel):
                                 author=mData['author'], mComments=mData['comments']
                             ))
                         )
-                        # m.toggleSaved()
                         m.show()
+                        m.toggleSaved()
 
             else:
                 for k, v in self._childMap.items():
@@ -338,7 +338,7 @@ class ImageViewer(QtWidgets.QLabel):
                     postResponse = utils.produceAndParse(
                       self.__markerHandler.postConn, markerMap
                     )
-                    # print('After creating marker', postResponse)
+                    m.toggleSaved()
                 else:
                     for retr in data:
                         commentsFromDb = retr['comments']
@@ -347,8 +347,8 @@ class ImageViewer(QtWidgets.QLabel):
                                 self.__markerHandler.putConn,
                                 dict(id=retr['id'], comments=currentComments)
                             )
-                            # print('\033[45mPutResponse', putResponse, '\033[00m')
-                        m.toggleSaved()
+                            print('\033[45mPutResponse', putResponse, '\033[00m')
+                            m.toggleSaved()
 
 def main():
     import sys
