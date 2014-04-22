@@ -16,6 +16,8 @@ Qt 5.2.1
 Pyinotify - for watching directories (linux-only)
 (https://github.com/seb-m/pyinotify)
 
+pyproj - for UTM to lat lon conversion and other GIS needs
+
 Installation
 ------------
 Download the Qt5 installer first from http://qt-project.org/downloads
@@ -123,3 +125,10 @@ Install restAssured:
         + python manage.py runserver 192.168.1.75:8000
         + vi ImageViewer.py 
             ++ ... GCSHandler('http://192.168.1.75:8000/gcs')
+
+### Install pyproj ###
+
+On Ubuntu: pip install pyproj
+
+On Windows: download and run the appropriate executable from here:
+http://code.google.com/p/pyproj/downloads/list

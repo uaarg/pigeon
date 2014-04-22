@@ -83,6 +83,9 @@ class GeoReferencingTests(BaseTestCase):
     Tests geo-referencing algorithms: determining the latitude and
     longitude of features on the earth in an image that was taken 
     from a plane.
+
+    Distance from point calculations for correct positions done using:
+    http://williams.best.vwh.net/gccalc.htm
     """
     def setUp(self):
         self.simple_camera = CameraSpecs(1000, 500, 30, 15)
@@ -92,7 +95,7 @@ class GeoReferencingTests(BaseTestCase):
         self.geo_reference = GeoReference(self.simple_camera)
 
 
-        self.plane_position = Position(53.12345, -130.12345, 100)
+        self.plane_position = Position(53.634426, -113.287097, 100)
         self.orientation = Orientation(0, 0, 0)
 
     def assertGeoReferencing(self):
@@ -103,12 +106,34 @@ class GeoReferencingTests(BaseTestCase):
 
         self.assertPositionsEqual(feature_position, self.correct_position)
 
-    @unittest.skip("Not implemented yet.")
     def testPerfectlyLevel(self):
         self.correct_position = self.plane_position
         self.assertGeoReferencing()
 
+    def testSimple45Roll(self):
+        self.orientation = Orientation(0, 45, 0)
+        self.correct_position = Position(53.634427, -113.288608)
+        self.assertGeoReferencing()
 
+    def testNegative45Roll(self):
+        self.orientation = Orientation(0, -45, 0)
+        self.correct_position = Position(53.634427, -113.285585)
+        self.assertGeoReferencing()
+
+    def test45Roll234Yaw(self):
+        self.orientation = Orientation(0, -45, 234)
+        self.correct_position = Position(53.635153, -113.287985)
+        self.assertGeoReferencing()
+
+    def testSimple45Pitch(self):
+        self.orientation = Orientation(45, 0, 0)
+        self.correct_position = Position(53.635325, -113.287097)
+        self.assertGeoReferencing()
+
+    def test45Pitch90Yaw(self):
+        self.orientation = Orientation(45, 0, 90)
+        self.correct_position = Position(53.634427, -113.285585)
+        self.assertGeoReferencing()
 
 
 
