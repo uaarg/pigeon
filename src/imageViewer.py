@@ -19,7 +19,7 @@ import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://192.168.1.75:8000/gcs') 
+    __gcsH = DbLiason.GCSHandler('http://142.244.112.66:8000/gcs')
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
