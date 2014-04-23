@@ -18,7 +18,7 @@ class JobRunner(object):
             # by current holder Just go to the else-clause and the
             # appropriate action will follow
             if hasLockAttrs and lock.acquire(False):
-                print('\033[47mAcquired lock for func:', func, '\033[00m')
+                # print('\033[47mAcquired lock for func:', func, '\033[00m')
                 results = dict()
                 try:
                     results['data'] = func(*args, **kwargs)
@@ -26,7 +26,7 @@ class JobRunner(object):
                     results['error'] = ex
                 finally:
                     # Release the lock
-                    print('\033[46mReleased lock for func:', func, '\033[00m')
+                    # print('\033[46mReleased lock for func:', func, '\033[00m')
                     lock.release()
                 return results
             else:
@@ -49,7 +49,7 @@ class JobRunner(object):
             if results and hasattr(results, 'get'):
                 data = results.get('data', None)
                 if data:
-                    print('Successful response from ', func, data)
+                    # print('Successful response from ', func, data)
                     return data
                 elif results.get('needsRetry', False):
                     print('\033[33mRetrying after', timeout, ' secs\033[00m')

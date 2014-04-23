@@ -4,9 +4,142 @@ Functions for basic GPS coordinate processing.
 Covers:
     - Extracting info from a text file sent with the images.
     - Converting UTM coordinates sent by the GPS to Decimal Degree coords.
+    - Georeferencing features in an image.
 
 Cindy Xiao <dixin@ualberta.ca>
 """
+
+from math import *
+import pyproj
+
+class Position:
+    """
+    Position in 3D space of an object relative to the earth.
+    Latitude and longitude are for the WGS84 datum.
+    """
+    def __init__(self, lat, lon, height=0, alt=None):
+        """
+        lat - latitude in degrees
+        lon - longitude in degrees
+        height - height above ground in meters
+        alt - altitude above sea level in meters
+        """
+        self.lat = lat
+        self.lon = lon
+        self.height = height
+        self.alt = alt
+
+    def latLon(self):
+        return (self.lat, self.lon)
+
+
+class Orientation:
+    """
+    Orientation of an object with respect to the earth.
+    """
+    def __init__(self, pitch, roll, yaw):
+        """
+        pitch - angle of the nose above the horizontal plane (theta)
+                in degrees
+        roll - angle of the left wing above the horizontal plane (phi)
+                in degrees
+        yaw - angle of the nose from true north along the horizontal
+                plane measured clockwise in degrees
+        """
+        self.pitch = pitch
+        self.roll = roll
+        self.yaw = yaw
+
+        self.pitch_rad = radians(pitch)
+        self.roll_rad = radians(roll)
+        self.yaw_rad = radians(yaw)
+
+class CameraSpecs:
+    """
+    Camera constants needed for geo-referencing.
+    """
+    def __init__(self, image_width, image_height, field_of_view_horiz, field_of_view_vert):
+        """
+        image_width - the horizontal size of the image in pixels.
+        image_height - the vertical size of the image in pixels.
+        field_of_view_horiz - the angle between the camera and 
+                the left and right edges of the image. In degrees.
+        field_of_view_vert - the angle between the camera and
+                the top and bottom edges of the image. In degrees.
+        """
+        self.image_width = image_width
+        self.image_height = image_height
+
+        self.field_of_view_horiz = field_of_view_horiz
+        self.field_of_view_vert = field_of_view_vert
+
+        self.field_of_view_horiz_rad = radians(self.field_of_view_horiz)
+        self.field_of_view_vert_rad = radians(self.field_of_view_vert)
+
+        # Used repeatedly in calculations so pre-calculating result for speed
+        self.tan_angle_div_2_horiz = tan(self.field_of_view_horiz_rad/2)
+        self.tan_angle_div_2_vert = tan(self.field_of_view_vert_rad/2)
+
+
+
+class GeoReference:
+    """
+    Class for geo-referencing. Create an instance with the relatively
+    contstant variables of the system. Then use the methods to perform 
+    the desired type of geo-referencing.
+    """
+    def __init__(self, camera_specs):
+        """
+        Create an instance according to the specified system constants.
+        """
+        self.camera = camera_specs
+
+    def pointInImage(self, location, orientation, pixel_x, pixel_y):
+        """
+        Calculates and returns the position of the point located at 
+        pixel_x, pixel_y in the image. The plane location and 
+        orientation at the time the image was taken should be provided 
+        as Location and Orientation objects.
+
+        location - plane location
+        orientation - plane orientation
+        pixel_x - pixel in the image at the point. Measured from left 
+                edge. Should be the same dimension as the image_width.
+        pixel_y - pixel in the image at the point. Measured from bottom 
+                edge. Should be the same dimension as the image_height.
+
+        Algorithm described here: 
+        sftp://uaargarchive@142.244.63.77/Upload/Ground Station Imaging/Geo-referencing Calculations
+        https://drive.google.com/a/ualberta.ca/folderview?id=0BxmxpOgS5RpSbU1pWHN5dlBTelk&usp=sharing
+        """
+
+        camera = self.camera
+
+        # Step 1: claculating angle offsets of pixel selected
+        delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) / camera.tan_angle_div_2_horiz)
+        delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) / camera.tan_angle_div_2_vert)
+
+        # Step 2: calculating effective pitch and roll
+        pitch = orientation.pitch_rad + delta_theta_vert
+        roll = orientation.roll_rad + delta_theta_horiz
+
+        # Step 3: calculating level distance and angle to pixel
+        distance_x = location.height * tan(pitch)
+        distance_y = location.height * tan(-roll)
+        distance = sqrt(pow(distance_x, 2) + pow(distance_y, 2))
+        phi = atan2(distance_y, distance_x) # atan2 used to provide 
+                # angle properly for any quadrant
+
+        # Step 4: calculating angle from north to pixel
+        forward_azimuth = phi + orientation.yaw_rad
+
+        # Step 5: claculating endpoint using pyproj GIS module
+        geod = pyproj.Geod(ellps="WGS84")
+        pixel_lon, pixel_lat, back_azimuth = geod.fwd(location.lon, location.lat, degrees(forward_azimuth), distance)
+
+        # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
+
+        return Position(pixel_lat, pixel_lon)
 
 def getInfoField(info_file_loc, field_name):
     """

@@ -9,8 +9,8 @@ import stat
 import glob
 import json
 
-_404_IMAGE_PATH = '404_man.jpg'
-_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + 'uaarg.jpg'
+_404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
+_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
 pyVersion = sys.hexversion/(1<<24)
 
 if pyVersion < 3:
@@ -49,58 +49,6 @@ def getPathsLike(regexList, srcDir=None):
 
   return matches
 
-class PseudoStack:
-  def __init__(self, content=list()):
-    self.__ptr = 0
-    self.__content = content
-    self.__size = len(self.__content)
-
-  def push(self, extras):
-    if not extras:
-      return
-    elif isinstance(extras, list):
-      self.__content += extras
-    else:
-      for i in extras:
-        self.__content.append(i)
-    print('added content to stack')
-    self.__size = len(self.__content)
-
-  def pop(self):
-    curPtr = self.__ptr - 1
-    if curPtr >= 0 and curPtr < self.__size:
-        outItem = self.__content.pop(curPtr)
-        self.__ptr = curPtr
-        self.__size = len(self.__content) # Recoup
-        if self.__ptr >= self.__size:
-            self.__ptr -= 1
-        if self.__ptr < 0: self.__ptr = 0
-        print(outItem)
-        return outItem
-
-  @property
-  def contentLength(self): return len(self.__content)
-
-  def canGetPrev(self): return self.__ptr > 0 and self.contentLength
-  def canGetNext(self): return self.__ptr < self.contentLength
-
-  def next(self):
-    item = None
-    if self.__ptr < self.__size:
-       item = self.__content[self.__ptr]
-       self.__ptr += 1
-    return item
-    
-  def prev(self):
-    item = None
-    if self.__ptr > 0:
-       self.__ptr -= 1
-       item = self.__content[self.__ptr]
-    return item
-
-  def __str__(self):
-    return self.__ptr.__str__()
-
 def produceAndParse(func, dataIn):
   dbCheck = func(dataIn)
   if hasattr(dbCheck, 'reason'):
@@ -112,6 +60,8 @@ def produceAndParse(func, dataIn):
         return json.loads(response.decode())
       except Exception as e:
         return dict(reason = e)
+    else:
+        return dict()
 
 class DynaItem:
   def __init__(self, initArgs):
