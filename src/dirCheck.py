@@ -5,8 +5,8 @@ import os
 import time
 from threading import Thread
 
-accessTimeChecker = lambda statDict: statDict.st_atime
-creationTimeChecker = lambda statDict: statDict.st_ctime
+accessTimeChecker = lambda path: os.path.getatime(path)
+creationTimeChecker = lambda path: os.path.getctime(path)
 pathExists = lambda qPath: qPath and os.path.exists(qPath)
 
 class DirWatch:
@@ -24,8 +24,7 @@ class DirWatch:
         for root, dirs, paths in os.walk(self.__pathToWatch):
             for path in paths:
                 joinedPath = os.path.join(root, path)
-                statDict = os.stat(joinedPath)
-                if statTimeAccessor(statDict) >= lastSaveTime:
+                if statTimeAccessor(joinedPath) >= lastSaveTime:
                     freshPaths.append(joinedPath)
                 else:
                     purgeable.append(joinedPath)
