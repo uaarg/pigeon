@@ -19,7 +19,7 @@ import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://192.168.1.75:8000/gcs') 
+    __gcsH = DbLiason.GCSHandler('http://142.244.112.66:8000/gcs')
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -33,11 +33,10 @@ class ImageViewer(QtWidgets.QLabel):
 
         self.__fileOnDisplay = None
 
-        # Set up for storing tagged info
-        self.setFrameShape(QFrame.Shape(10))
         self.imgPixMap = None
         self._childMap = None
         self.__childrenMap = collections.defaultdict(lambda : None)
+
         self.initLastEditTimeMap()
 
     def initLastEditTimeMap(self):
@@ -57,53 +56,62 @@ class ImageViewer(QtWidgets.QLabel):
 
     def deleteImageFromDb(self, title, isSynchronous=False):
       if isSynchronous:
-        self.__deleteImageFromDb(title)
+        return self.__deleteImageFromDb(title)
       else:
-        th = Thread(target=self.__deleteImageFromDb, args=(title,))
-        th.start()
+        return self.__jobRunner.run(self.__deleteImageFromDb, None, None, title)
+
+    def popAllMarkers(self, path):
+        return self.__jobRunner.run(self.__popAllMarkers, None, None, path)
+
+    def __popAllMarkers(self, path, **kwargs):
+        markers = self.__childrenMap.pop(path, [])
+        for marker in markers.values():
+            marker.close()
 
     def __deleteImageFromDb(self, title):
         imgDelResponse = utils.produceAndParse(
             self.__imageHandler.deleteConn, dict(title=title)
         )
 
-        # print('imgDelResponse', imgDelResponse)
+        print('imgDelResponse', imgDelResponse, title)
 
         data = imgDelResponse.get('data', dict()) 
-        successfulDels = data.get('successful', [])
-        # TODO: Figure out what to do with the failed deletes
-        # failed = data.get('failed', [])
+        if not hasattr(data, 'get'):
+            print('Probably image was not saved to the db')
+            return
+        else:
+            successfulDels = data.get('successful', [])
+            # TODO: Figure out what to do with the failed deletes
+            # failed = data.get('failed', [])
        
-        for sId in successfulDels: 
-          # Clear out all the associated markers
-          mDelResponse = utils.produceAndParse(
-            self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
-          )
-          # print('mDelResponse', mDelResponse)
-        
+            for sId in successfulDels: 
+                # Clear out all the associated markers
+                mDelResponse = utils.produceAndParse(
+                    self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
+                )
 
-        self.lastEditTimeMap.pop(title, None)
+            self.lastEditTimeMap.pop(title, None)
+            self.__popAllMarkers(title)
 
     def deleteMarkerFromDb(self, x, y):
-        savValue = self.lastEditTimeMap[self.currentFilePath]
+        savValue = self.lastEditTimeMap[self.__fileOnDisplay]
 
         iId, savedLastEditTime = savValue
         if iId > 0:
-          mDelResponse = utils.produceAndParse(
-            self.__markerHandler.deleteConn,
-            dict(x=x, y=y, associatedImage_id=iId)
-          )
+            mDelResponse = utils.produceAndParse(
+                self.__markerHandler.deleteConn,
+                dict(x=x, y=y, associatedImage_id=iId)
+            )
 
-          # print('After markerDeletion', mDelResponse)
-          return mDelResponse
-
-    def setCurrentFilePath(self, path):
-        self.__fileOnDisplay = path
+            print('After markerDeletion', mDelResponse)
+            # Now lets clear the marker from the actual object map
+        
+            return mDelResponse
 
     def getCurrentFilePath(self):
         return self.__fileOnDisplay
 
-    def openImage(self, fPath, markerSet=[]):
+    def openImage(self, fPath, markerSet=[], pixMap=None):
         if self._childMap is not None:
             # print('\033[44mself._childMap', self._childMap, '\033[00m')
             for k, v in self._childMap.items():
@@ -111,41 +119,47 @@ class ImageViewer(QtWidgets.QLabel):
 
         filename = fPath if fPath else utils._PLACE_HOLDER_PATH
 
-        image = QImage(filename)
-        # print(filename)
-        if image.isNull():
-            QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+        # print('self.imgPixMap', pixMap)
+        image = None
+        if pixMap is None:
+            image =  QImage(filename)
+            if image.isNull():
+                QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+                return
+            else:
+                self.imgPixMap = QPixmap.fromImage(image)
+        
         else:
-            # Convert from QImage to QPixmap, and display
-            self.setCurrentFilePath(filename)
-            self._childMap = self.__childrenMap[self.currentFilePath]
+            self.imgPixMap = pixMap
+
+        if self.imgPixMap:
+            self.__fileOnDisplay = filename
+            self._childMap = self.__childrenMap.get(self.__fileOnDisplay, None)
 
             if self._childMap is None:
                 self._childMap = dict()
-                self.__childrenMap[self.currentFilePath] = self._childMap
+                self.__childrenMap[self.__fileOnDisplay] = self._childMap
 
                 for mData in markerSet:
                     if mData:
-                        dictatedPosition =utils.DynaItem(
-                          dict(x= lambda : int(mData['x']), y= lambda : int(mData['y']))
-                        )
-                           
                         m = self.createMarker(
-                            dictatedPosition, author=mData['author'], mComments=mData['comments']
+                            utils.DynaItem(dict(
+                                x=lambda : int(mData['x']), y=lambda : int(mData['y']),
+                                author=mData['author'], mComments=mData['comments']
+                            ))
                         )
-                        m.toggleSaved()
                         m.show()
+                        m.toggleSaved()
 
             else:
                 for k, v in self._childMap.items():
+                    # print('filePath', filename, v)
                     v.show()
-
             
-            self.imgPixMap = QPixmap.fromImage(image)
             self.setPixmap(self.imgPixMap)
 
             # Expand to the image's full size
-            self.setGeometry(self.x(), self.y(), image.width(), image.height())
+            # self.setGeometry(self.x(), self.y(), self.imgPixMap.width(), self.imgPixMap.height())
 
             # Check again with the synchronizer
             self.checkSyncOfEditTimes()
@@ -153,11 +167,12 @@ class ImageViewer(QtWidgets.QLabel):
     def loadContentFromDb(self, syncForCurrentImageOnly=False):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
         if syncForCurrentImageOnly:
-            connArgs['title'] =  self.currentFilePath
+            connArgs['title'] =  self.__fileOnDisplay
 
-        parsedResponse = utils.produceAndParse(self.__imageHandler.getConn, connArgs)
+        parsedResponse = utils.produceAndParse(
+            self.__imageHandler.getConn, connArgs
+        )
     
-        # print('parsedResponse', parsedResponse)
         data = parsedResponse.get('data', None)
         if data:
             inOrderItems = [] 
@@ -178,11 +193,12 @@ class ImageViewer(QtWidgets.QLabel):
                     utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
                 )
 
-                if self.currentFilePath.__eq__(title):
-                    childMap = self.__childrenMap.get(self.currentFilePath, dict()) 
-                    markerCopy = list(childMap.keys())[:] # We need to create a copy of keys of a dict
-                                                          # that we shall be popping from to avoid data
-                                                          # contention issues
+                if self.__fileOnDisplay == title:
+                    childMap = self.__childrenMap.get(title, dict()) 
+                    # We need to create a copy of keys of a dict
+                    # that we shall be popping from to avoid data
+                    # contention issues
+                    markerCopy = list(childMap.keys())[:] 
                     for mKey in markerCopy:
                         mk = childMap[mKey]
                         if mk:
@@ -192,32 +208,36 @@ class ImageViewer(QtWidgets.QLabel):
                     for mData in markerSet:
                         if mData:
                             m = self.createMarker(
-                                utils.DynaItem(
-                                    dict(x=lambda : int(mData['x']), y=lambda : int(mData['y']))
-                                ), author=mData['author'], mComments=mData['comments']
+                                utils.DynaItem(dict(
+                                    x=lambda : int(mData['x']), y=lambda : int(mData['y']),
+                                    author=mData['author'], mComments=mData['comments']
+                                ))
                             )
                             m.show()
+                            m.toggleSaved()
 
             return inOrderItems
         else: return []
         
-
-    @property
-    def currentFilePath(self): return self.__fileOnDisplay
-
     def mousePressEvent(self, e):
         # Event handler for mouse clicks on image area.
         if e.button() == 2: # Right click
-            m = self.createMarker(self.mapFromGlobal(self.cursor.pos()))
+            curPos = self.mapFromGlobal(self.cursor.pos())
+            m = self.createMarker(utils.DynaItem(
+                dict(x=curPos.x, y=curPos.y, mComments='', author=None))
+            )
             m.show()
+            m.toggleUnsaved()
 
     def createMarker(self, curPos, **kwargs): 
-        return self.__jobRunner.run(self.__createMarker, None, None, curPos, **kwargs)
+        return self.__jobRunner.run(
+            self.__createMarker, None, None, curPos, **kwargs
+        )
 
     def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
-          parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
-          onDeleteCallback=self.deleteMarkerFromDb, **kwargs
+            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
+            mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDb, **kwargs
         )
 
         return marker
@@ -228,13 +248,13 @@ class ImageViewer(QtWidgets.QLabel):
     def __checkSyncOfEditTimes(self, *args):
         parsedResponse = utils.produceAndParse(
           func=self.__imageHandler.getConn,
-          dataIn=dict(title=self.currentFilePath,select='lastTimeEdit')
+          dataIn=dict(title=self.__fileOnDisplay,select='lastTimeEdit')
         )
 
         data = parsedResponse.get('data', None) if hasattr(parsedResponse, 'get') else None
 
         if data:
-            savedValueTuple = self.lastEditTimeMap[self.currentFilePath]
+            savedValueTuple = self.lastEditTimeMap[self.__fileOnDisplay]
             iId, savedLastEditTime = savedValueTuple
 
             itemInfo = data[0]
@@ -244,52 +264,57 @@ class ImageViewer(QtWidgets.QLabel):
                 print('\033[47mDetected a need for saving here since')
                 print('your last memoized local editTime was', savedLastEditTime)
                 print('Most recent db editTime is\033[00m', lastEditTimeFromDb)
-                self.lastEditTimeMap[self.getCurrentFilePath()] = (itemInfo['id'], lastEditTimeFromDb)
+                self.lastEditTimeMap[self.__fileOnDisplay] =\
+                            (itemInfo['id'], lastEditTimeFromDb,)
                 return False
             else:
-                print('\033[42mAll good! No need for an extra save for', self.getCurrentFilePath(), '\033[00m')
+                print('\033[42mAll good! No need for an extra save for',\
+                     self.__fileOnDisplay, '\033[00m'
+                )
                 return True
         else:
             print("\033[41mNo data back from querying about lastTimeEdit\033[00m")
 
-    def saveCoords(self, isSynchronous=False):
+    def syncCurrentItem(self, isSynchronous=False):
         if isSynchronous:
             print('\033[46mSaving synchronously\033[00m')
-            return self.__jobRunner.run(self.__saveCoords, None, None)
+            return self.__jobRunner.run(self.__syncCurrentItem, None, None)
         else:
             print('\033[47mSaving using created thread\033[00m')
-            return self.__jobRunner.run(self.__saveCoords, None, print)
+            return self.__jobRunner.run(self.__syncCurrentItem, None, print)
 
-    def __saveCoords(self, *args):
+    def __syncCurrentItem(self, *args):
         if self.checkSyncOfEditTimes():
-            print('No edit was recently performed for', self.currentFilePath)
+            print('No edit was recently performed for', self.__fileOnDisplay)
         else: # First time image is being registered
             parsedResponse = utils.produceAndParse(
               func=self.__imageHandler.postConn,
               dataIn= dict(
-                uri=self.currentFilePath, title=self.currentFilePath,
+                uri=self.__fileOnDisplay, title=self.__fileOnDisplay,
                 author=utils.getDefaultUserName()
               )
             )
 
-            postData = parsedResponse.get('data', None)
+            syncResponse = parsedResponse.get('data', None)
             # print(postData)
-            if parsedResponse:
-                dbItem = postData
-                print('Memoizing a lastTimeEdit for ', self.currentFilePath)
-                self.lastEditTimeMap[self.currentFilePath] = dbItem.get('lastTimeEdit', (-1, -1))
+            if syncResponse:
+                print(syncResponse)
+                dbItem = syncResponse
+                print('Memoizing a lastTimeEdit for ', self.__fileOnDisplay)
+                self.lastEditTimeMap[self.__fileOnDisplay] =\
+                     (dbItem.get('id', -1), dbItem.get('lastTimeEdit', -1),)
 
                 # print('postResponse', postData)
                 self.checkSyncOfEditTimes()
             else:
                 print("Could not post the data to the DB.Try again later")
 
-
         # Markers may have changed
-        childMap = self.__childrenMap.get(self.currentFilePath, None)
+        childMap = self.__childrenMap.get(self.__fileOnDisplay, None)
 
         if childMap:
-            targetId = self.lastEditTimeMap[self.currentFilePath][0]
+            targetId = self.lastEditTimeMap[self.__fileOnDisplay][0]
+            print('targetId', targetId)
             if targetId > 0: # Save only markers of registered images
               for k, m in childMap.items():
                 markerMap = dict(
@@ -304,6 +329,8 @@ class ImageViewer(QtWidgets.QLabel):
                 mInfo = m.entryData
                 if mInfo:
                     currentComments = mInfo.get('Comments', dict()).get('entryText', '')
+
+                # print('currentComments', currentComments, data)
                 if not data: # First time this marker is being created
                     markerMap['author'] = utils.getDefaultUserName()
                     markerMap['comments'] = currentComments
@@ -311,24 +338,24 @@ class ImageViewer(QtWidgets.QLabel):
                     postResponse = utils.produceAndParse(
                       self.__markerHandler.postConn, markerMap
                     )
-                    # print('After creating marker', postResponse)
+                    m.toggleSaved()
                 else:
                     for retr in data:
                         commentsFromDb = retr['comments']
-                        if not currentComments.__eq__(commentsFromDb): # Time for a put here
+                        if not currentComments == commentsFromDb: # Time for a put here
                             putResponse = utils.produceAndParse(
                                 self.__markerHandler.putConn,
                                 dict(id=retr['id'], comments=currentComments)
                             )
-                            # print('\033[45mPutResponse', putResponse, '\033[00m')
-                        m.toggleSaved()
+                            print('\033[45mPutResponse', putResponse, '\033[00m')
+                            m.toggleSaved()
 
 def main():
-  import sys
-  app = QtWidgets.QApplication(sys.argv)
-  imViewer = ImageViewer()
-  imViewer.show()
-  sys.exit(app.exec_())
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    imViewer = ImageViewer()
+    imViewer.show()
+    sys.exit(app.exec_())
 
 if __name__ == '__main__':
   main()

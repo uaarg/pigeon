@@ -12,8 +12,8 @@ import DbLiason # Local module
 
 class Marker(QtWidgets.QPushButton):
     def __init__(
-            self, parent=None, x=0, y=0, width=10,height=20, mComments=None,
-            iconPath='mapMarker.png', tree=None,onDeleteCallback=None, author=None
+        self, parent=None, x=0, y=0, width=30,height=58, mComments=None,
+        iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -34,45 +34,70 @@ class Marker(QtWidgets.QPushButton):
         # State variable to track if mouse in event triggered
         self.__wasSyncd = True # By default we are in sync
         self.__withinMarker = False
+        self.__pixmapCache = dict() # Keep private to avoid resource leaks
 
         self.initUI()
 
+    def initExpandDimensions(self):
+        self.origW = self.width()
+        self.origH = self.height()
+        self.expandedW = self.origW * 1.5
+        self.expandedH = self.origH * 1.5
+
     def toggleUnsaved(self):
-        self.initIcon('mapMarkerIn.png')
         self.__wasSyncd = False
+        self.initIcon('icons/mapMarkerIn.png')
 
     def toggleSaved(self):
-        self.initIcon('mapMarkerOut.png')
+        self.__resetToNormalIcon()
         self.__wasSyncd = True
+        self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):
-        self.__wasSyncd = True
-        self.initIcon('mapMarkerOut.png')
-        self.setGeometry(self.x, self.y, self.oldW, self.oldH)
+        self.setGeometry(self.x, self.y, self.origW, self.origH)
 
     def initUI(self):
         self.setGeometry(self.x, self.y, self._width, self._height)
-        self.initIcon('mapMarkerOut.png')
+        self.initIcon(self.iconPath)
 
         self.registerWithTree()
         self.setMouseTracking(True) # To allow for hovering detection
+        self.setStyleSheet(
+            "width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;"
+        )
+        self.initExpandDimensions()
 
     def registerWithTree(self):
         if self.tree is not None:
             self.tree[(self.x, self.y)] = self
             # print('Tree after self-registration', self.tree)
 
+    def memoizeIcon(self, path):
+        memPixMap, memIcon = self.__pixmapCache.get(path, (None, None,))
+        NEEDS_MEMOIZE = False
+        if memPixMap is None:
+            NEEDS_MEMOIZE = True
+            memPixMap = QPixmap(path)
+
+        if memIcon is None:
+            NEEDS_MEMOIZE = True
+            memIcon = QIcon(memPixMap)
+
+        if NEEDS_MEMOIZE:
+            self.__pixmapCache[path] = (memPixMap, memIcon,)
+
+        return memIcon
+
     def initIcon(self, iconPath):
-        imagePixMap = QPixmap(iconPath)
-        icon = QIcon(imagePixMap)
-        self.setIconSize(QtCore.QSize(self.width(), self.height()))
-        self.setIcon(icon);
+        memIcon = self.memoizeIcon(iconPath)
+        self.setIcon(memIcon);
+        self.setIconSize(QtCore.QSize(self.width() * 0.7, self.height() * 0.7))
 
     def addTaggedInfo(self, tagIn):
         self.info, self.entryData = tagIn
         if self.tag:
             self.tag.hide()
-            print('hiding tag', self.tag)
+            # print('hiding tag', self.tag)
 
     def serialize(self):
         return self.__dict__
@@ -111,7 +136,7 @@ class Marker(QtWidgets.QPushButton):
 
     def erase(self, x, y, needsFlush=True):
         if isinstance(self.tree, dict):
-            print('Popped marker', self.tree.pop((x, y),'Not found'))
+            # print('Popped marker', self.tree.pop((x, y),'Not found'))
 
             if self.onDeleteCallback and needsFlush: 
                 print(self.onDeleteCallback(x, y))
@@ -122,23 +147,18 @@ class Marker(QtWidgets.QPushButton):
         if hasattr(self.tag, 'close'):
             self.tag.close()
 
+        print(self, 'closing')
         super().close()
 
     def enterEvent(self, event):
-        if not self.__withinMarker:
-            # Make the marker pop out
-            self.oldW, self.oldH = self.width(), self.height()
-            self.setGeometry(self.x, self.y, self.oldW * 1.5, self.oldH * 1.5)
+        # Make the marker pop out
+        self.setGeometry(self.x, self.y, self.expandedW, self.expandedH)
 
-            self.initIcon('mapMarkerIn.png')
-            self.__withinMarker = True
 
     def leaveEvent(self, event):
-        if self.__withinMarker and self.__wasSyncd:
-            self.__withinMarker = False
+        # Revert to the original dimensions
+        self.__resetToNormalIcon()
 
-            # Revert to the original dimensions
-            self.__resetToNormalIcon()
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.QEvent.MouseButtonDblClick:
@@ -155,7 +175,7 @@ class Marker(QtWidgets.QPushButton):
                 self.__movePos = event.globalPos()
                 self.__pressPos = event.globalPos()
 
-                print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
+                # print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
                 if not self.tag:
                     if self.info:
                         self.tag = Tag.tagFromSource(self.info)
@@ -167,11 +187,11 @@ class Marker(QtWidgets.QPushButton):
                     self.tag.activateWindow()
 
     def show(self):
-        print('\033[47mShow invoked\033[00m')
+        # print('\033[47mShow invoked\033[00m')
         super().show()
 
     def hide(self):
-        print('\033[46mHide invoked\033[00m')
+        # print('\033[46mHide invoked\033[00m')
         super().hide()
      
     def __lt__(self, other):

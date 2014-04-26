@@ -18,6 +18,8 @@ MongoDB - For the marker database.
 Pymongo - For the python bindings to MongoDB.
 
 
+pyproj - for UTM to lat lon conversion and other GIS needs
+
 Installation
 ------------
 Download the Qt5 installer first from http://qt-project.org/downloads
@@ -104,21 +106,31 @@ To check your PYTHONPATH, open up a python session and type in:
 > import sys
 > print(sys.path)
 
-## Install MongoDB ##
-There is a Ubuntu package for mongodb. You will need to configure your package manager before installing:
-> sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
-> echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' | sudo tee /etc/apt/sources.list.d/mongodb.list
-> sudo apt-get update
-> sudo apt-get install mongodb-10gen
+To run the project with the  DB component rigged up:
+Install restAssured:
+    Requires Django Installation on your computer, as well as any Python 2.X.
+    To get the source for restAssured clone it from:
+        git@github.com:odeke-em/restAssured.git 
 
-More details on the ubuntu installation can be found at http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/.
-General installation and download instructions are at http://www.mongodb.org/downloads/.
+        Please follow the intro in the main directory or view it online at:
+            https://github.com/odeke-em/restAssured/blob/master/README.md
 
-## Install PyMongo ##
-Again, it's highly recommended that you do this while within a virtualenv.
+    Once Django is installed, and so is restAssured
+    Go to directory restAssured's main directory and run the server like this:
+        python manage.py runserver <desiredIp:port>
+    ## Note that the project runs off Python 2.X.
 
-> workon pigeon-virtualenv
+    ## Make sure that you set address from which restAssured is serving, in
+        file ImageViewer.py. Search for keywords 'GCSHandler' and set it there
 
-If you have the tool pip, you can install via:
+    Stepping through the steps:
+        + python manage.py runserver 192.168.1.75:8000
+        + vi ImageViewer.py 
+            ++ ... GCSHandler('http://192.168.1.75:8000/gcs')
 
-> pip install pymongo
+### Install pyproj ###
+
+On Ubuntu: pip install pyproj
+
+On Windows: download and run the appropriate executable from here:
+http://code.google.com/p/pyproj/downloads/list
