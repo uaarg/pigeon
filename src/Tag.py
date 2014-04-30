@@ -119,7 +119,7 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        self.onSubmit((self.serialize(), self.getContent())) 
+        self.onSubmit(self.getContent())
         self.close()
 
         # serialized = self.serialize()

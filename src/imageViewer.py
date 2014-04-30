@@ -19,7 +19,7 @@ import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://142.244.112.66:8000/gcs')
+    __gcsH = DbLiason.GCSHandler('http://127.0.0.1:8000/gcs')
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -35,7 +35,8 @@ class ImageViewer(QtWidgets.QLabel):
 
         self.imgPixMap = None
         self._childMap = None
-        self.__childrenMap = collections.defaultdict(lambda : None)
+        self.__childrenMap = collections.defaultdict(lambda key: None)
+        self.__resourceMap = dict()
 
         self.initLastEditTimeMap()
 
@@ -111,6 +112,19 @@ class ImageViewer(QtWidgets.QLabel):
     def getCurrentFilePath(self):
         return self.__fileOnDisplay
 
+    def saveImageAttributes(self, imageTitle, imageAttributeDict):
+        funcToInvoke = self.__imageHandler.postConn
+        memData = self.__resourceMap.get(imageTitle, None)
+        # print('memData', memData)
+        if memData is not None and memData.get('id', -1) != -1:
+            funcToInvoke = self.__imageHandler.putConn
+            imageAttributeDict['id'] = memData['id']
+        else:
+            imageAttributeDict['title'] = imageTitle
+
+        parsedResponse = utils.produceAndParse(func=funcToInvoke, dataIn=imageAttributeDict)
+        # print('After saving image attributes', parsedResponse)
+
     def openImage(self, fPath, markerSet=[], pixMap=None):
         if self._childMap is not None:
             # print('\033[44mself._childMap', self._childMap, '\033[00m')
@@ -162,7 +176,10 @@ class ImageViewer(QtWidgets.QLabel):
             # self.setGeometry(self.x(), self.y(), self.imgPixMap.width(), self.imgPixMap.height())
 
             # Check again with the synchronizer
-            self.checkSyncOfEditTimes()
+            self.checkSyncOfEditTimes(onlyRequiresLastTimeCheck=False)
+
+            # Return the most current state information
+            return self.__resourceMap.get(filename, None)
 
     def loadContentFromDb(self, syncForCurrentImageOnly=False):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
@@ -242,13 +259,18 @@ class ImageViewer(QtWidgets.QLabel):
 
         return marker
      
-    def checkSyncOfEditTimes(self): 
-        return self.__jobRunner.run(self.__checkSyncOfEditTimes, None, None)
+    def checkSyncOfEditTimes(self, onlyRequiresLastTimeCheck=True): 
+        outArgs = (onlyRequiresLastTimeCheck, None,)
+        return self.__jobRunner.run(self.__checkSyncOfEditTimes, None, *outArgs)
 
-    def __checkSyncOfEditTimes(self, *args):
+    def __checkSyncOfEditTimes(self, onlyRequiresLastTimeCheck, *args):
+        queryDict = dict(format='short', title=self.__fileOnDisplay)
+
+        if onlyRequiresLastTimeCheck:
+            queryDict['select'] = 'lastTimeEdit'
+
         parsedResponse = utils.produceAndParse(
-          func=self.__imageHandler.getConn,
-          dataIn=dict(title=self.__fileOnDisplay,select='lastTimeEdit')
+          func=self.__imageHandler.getConn, dataIn=queryDict
         )
 
         data = parsedResponse.get('data', None) if hasattr(parsedResponse, 'get') else None
@@ -258,6 +280,10 @@ class ImageViewer(QtWidgets.QLabel):
             iId, savedLastEditTime = savedValueTuple
 
             itemInfo = data[0]
+
+            if not onlyRequiresLastTimeCheck: # Extra attributes of the image were queried for 
+                self.__resourceMap[self.__fileOnDisplay] = itemInfo
+
             lastEditTimeFromDb = float(itemInfo['lastTimeEdit'])
 
             if (lastEditTimeFromDb > savedLastEditTime):
@@ -298,7 +324,6 @@ class ImageViewer(QtWidgets.QLabel):
             syncResponse = parsedResponse.get('data', None)
             # print(postData)
             if syncResponse:
-                print(syncResponse)
                 dbItem = syncResponse
                 print('Memoizing a lastTimeEdit for ', self.__fileOnDisplay)
                 self.lastEditTimeMap[self.__fileOnDisplay] =\
@@ -347,7 +372,7 @@ class ImageViewer(QtWidgets.QLabel):
                                 self.__markerHandler.putConn,
                                 dict(id=retr['id'], comments=currentComments)
                             )
-                            print('\033[45mPutResponse', putResponse, '\033[00m')
+                            # print('\033[45mPutResponse', putResponse, '\033[00m')
                             m.toggleSaved()
 
 def main():

@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets, QtGui, QtMultimedia
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
 import utils # Local module
+import Tag # Local module
 import iconStrip # Local module
 import imageViewer # Local module
 import mpUtils.JobRunner # Local module
@@ -23,6 +24,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.setupUi(self)
 
         self.__resourcePool = dict()
+        self.__currentImageStateData = dict()
 
         self.initUI()
         self.initSaveSound()
@@ -103,6 +105,48 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.dbSyncAction)
         self.toolbar.addAction(self.exitAction)
 
+    def editCurrentImage(self):
+        print('Editing Current Image', self.ui_window.countDisplayLabel.text())
+
+        orderedEntries = [
+            'phi', 'psi', 'theta', 'altitude', 'author', 'utmEast', 'utmNorth', 'speed',
+            'pixelPerMeter', 'ppmDifference', 'captureTimeEpoch', 'course'
+        ]
+
+        entryList = []
+        previousStateInfoFunc = lambda key: self.__currentImageStateData.get(key, '0.0')
+        noPreviousStateInfoFunc = lambda key: '0.0'
+
+        textExtractor = previousStateInfoFunc if isinstance(self.__currentImageStateData, dict) else noPreviousStateInfoFunc
+
+        for index, entry in enumerate(orderedEntries):
+            entryList.append(
+                utils.DynaItem(dict(
+                    title=entry, isMultiLine=False, labelLocation=(index, 0,), entryLocation=(index, 1,), 
+                    entryText=textExtractor(entry)
+                )
+            ))
+
+        imgAttrFrame = self.ui_window.imageAttributesFrame
+
+        imageTag = Tag.Tag(
+            size=utils.DynaItem(dict(x=imgAttrFrame.width(), y=imgAttrFrame.height())),
+            location=utils.DynaItem(dict(x=imgAttrFrame.x(), y=imgAttrFrame.y())),
+            title=self.ui_window.countDisplayLabel.text(),
+            onSubmit=self.saveCurrentImageContent,
+            entryList=entryList
+        )
+        imageTag.show()
+
+    def saveCurrentImageContent(self, content):
+        # print('Content to save', content)
+        outDict = dict()
+        for key in content:
+            attrDict = content[key]
+            outDict[key] = attrDict.get('entryText', '')
+
+        self.imageViewer.saveImageAttributes(self.ui_window.countDisplayLabel.text(), outDict)
+
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
             "&Remove currentImage", self
@@ -128,6 +172,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
         self.editCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self)
+        self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
 
@@ -140,8 +185,9 @@ class GroundStation(QtWidgets.QMainWindow):
                 markerSet = self.currentItem.markerSet
 
             memPixMap = self.iconStrip.getPixMap(path)
-            self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
             self.ui_window.countDisplayLabel.setText(path)
+
+            self.__currentImageStateData = self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
 
     def displayThisImage(self, path):
         argTuple = (path, self.__resourcePool.get(path, []))

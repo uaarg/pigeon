@@ -94,7 +94,7 @@ class Marker(QtWidgets.QPushButton):
         self.setIconSize(QtCore.QSize(self.width() * 0.7, self.height() * 0.7))
 
     def addTaggedInfo(self, tagIn):
-        self.info, self.entryData = tagIn
+        self.entryData = tagIn
         if self.tag:
             self.tag.hide()
             # print('hiding tag', self.tag)
