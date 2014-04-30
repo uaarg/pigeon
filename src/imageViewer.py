@@ -15,11 +15,12 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 import utils # Local module
 import Marker # Local module
 import DbLiason # Local module
+import GPSCoord # Local module for GPS coordinate calculations
 import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
     # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://142.244.112.66:8000/gcs')
+    __gcsH = DbLiason.GCSHandler('http://127.0.0.1:8000/gcs')
     __imageHandler  = __gcsH.imageHandler
     __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -32,6 +33,15 @@ class ImageViewer(QtWidgets.QLabel):
         self.setCursor(self.cursor)
 
         self.__fileOnDisplay = None
+
+        # Set up camera
+        self.image_width = 1294
+        self.image_height = 964
+        self.viewangle_horiz = 21.733333
+        self.viewangle_vert = 16.833333
+        self.camera = GPSCoord.CameraSpecs(self.image_width, self.image_height, self.viewangle_horiz, self.viewangle_vert) # Need to implement read from configuration file
+        self.image_center_x = self.image_width/2
+        self.image_center_y = self.image_height/2
 
         self.imgPixMap = None
         self._childMap = None
@@ -164,6 +174,45 @@ class ImageViewer(QtWidgets.QLabel):
             # Check again with the synchronizer
             self.checkSyncOfEditTimes()
 
+    def openImageInfo(self, fPath):
+        """
+        Opens information associated with the image - gps coords, orientation, etc.
+        Currently associates image with data by checkint that they have the same filename.
+
+        utm_north = utm northing in meters.
+        utm_east = utm easting in meters.
+        theta = angle of the nose above the horizontal plane (pitch)
+                in degrees
+        phi = angle of the left wing above the horizontal plane (roll)
+                in degrees
+        psi = angle of the nose from true north along the horizontal (yaw)
+                plane measured clockwise in degrees
+
+        """
+
+        if fPath and fPath[-4:-1] == ".jpg":
+            infoFilename = fPath[:-4] + ".txt"
+        else:
+            printf("Could not find an info file associated with the image" + fPath)
+            return -1
+
+        # Get position 
+        northing = GPSCoord.getInfoField(infoFilename, "utm_north")
+        easting = GPSCoord.getInfoField(infoFilename, "utm_east")
+        zone = GPSCoord.getInfoField(infoFilename, "utm_zone")
+        altitude = GPSCoord.getInfoField(infoFilename, "z")
+        dd_coord = GPSCoord.utm_to_DD(northing, easting, zone) # lat, lon
+
+        self.plane_position = Position(dd_coord[0], dd_coord[1], altitude)
+
+        # Get orientation
+        pitch = GPSCoord.getInfoField(infoFilename, "theta")
+        roll = GPSCoord.getInfoField(infoFilename, "phi")
+        yaw = GPSCoord.getInfoField(infoFilename, "psi")
+
+        self.plane_orientation = Orientation(pitch, roll, yaw)
+
+
     def loadContentFromDb(self, syncForCurrentImageOnly=False):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
         if syncForCurrentImageOnly:
@@ -221,7 +270,9 @@ class ImageViewer(QtWidgets.QLabel):
         
     def mousePressEvent(self, e):
         # Event handler for mouse clicks on image area.
-        if e.button() == 2: # Right click
+
+        # Right click - target marker creation
+        if e.button() == 2:
             curPos = self.mapFromGlobal(self.cursor.pos())
             m = self.createMarker(utils.DynaItem(
                 dict(x=curPos.x, y=curPos.y, mComments='', author=None))

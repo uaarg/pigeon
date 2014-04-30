@@ -43,7 +43,7 @@ class Orientation:
                 in degrees
         roll - angle of the left wing above the horizontal plane (phi)
                 in degrees
-        yaw - angle of the nose from true north along the horizontal
+        yaw - angle of the nose from true north along the horizontal (psi)
                 plane measured clockwise in degrees
         """
         self.pitch = pitch
@@ -222,6 +222,7 @@ def offset_gps(lon, lat, pitch, roll, yaw, altitude):
 def utm_to_DD(x, y, zone, mode = "DD"):
     """
     Converts a set of UTM GPS coordinates to Decimal Degree or DMS coodinates.
+    Returns lat, long as a list with 2 items.
     x - UTM easting
     y - UTM northing
     zone - current UTM zone

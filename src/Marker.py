@@ -9,6 +9,7 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap, QIcon
 import Tag # Local module
 import utils # Local module
 import DbLiason # Local module
+import GPSCoord # Local GPS calculation module
 
 class Marker(QtWidgets.QPushButton):
     def __init__(
