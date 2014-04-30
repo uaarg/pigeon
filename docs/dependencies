@@ -13,8 +13,10 @@ PyQt 5.2
 
 Qt 5.2.1
 
-Pyinotify - for watching directories (linux-only)
-(https://github.com/seb-m/pyinotify)
+MongoDB - For the marker database.
+
+Pymongo - For the python bindings to MongoDB.
+
 
 pyproj - for UTM to lat lon conversion and other GIS needs
 
@@ -62,7 +64,7 @@ To get in and out of your virtual environment:
 > (install libraries, work on code, do stuff...)
 > deactivate
 
-All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.
+**All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.**
 
 If you want to get rid of the virtual environment:
 > rmvirtualenv pigeon-virtualenv
