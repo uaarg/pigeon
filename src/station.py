@@ -2,6 +2,7 @@
 # Author: Cindy Xiao <dixin@ualberta.ca>, Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
+import re
 import sys
 from PyQt5 import QtWidgets, QtGui, QtMultimedia
 
@@ -14,6 +15,7 @@ import imageViewer # Local module
 import mpUtils.JobRunner # Local module
 
 curDirPath = os.path.abspath('.')
+ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -40,7 +42,7 @@ class GroundStation(QtWidgets.QMainWindow):
         # Set up menus
         self.initToolBar()
 
-        self.initFileDialog()
+        self.initFileDialogs()
         self.initImageViewer()
         self.initStrip()
         self.ui_window.countDisplayLabel.show()
@@ -56,10 +58,14 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
         self.iconStrip.setOnItemClick(self.displayThisImage)
 
-    def initFileDialog(self):
+    def initFileDialogs(self):
         self.fileDialog = QtWidgets.QFileDialog()
         self.fileDialog.setFileMode(3) # Multiple files can be selected
         self.fileDialog.filesSelected.connect(self.pictureDropped)
+
+        self.locationDataDialog = QtWidgets.QFileDialog()
+        self.locationDataDialog.setFileMode(3) # Multiple files can be selected
+        self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
 
     def __normalizeFileAdding(self, paths):
         # Ensuring that paths added are relative to a common source eg
@@ -103,6 +109,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar  = self.ui_window.toolBar;
 
         self.toolbar.addAction(self.editCurrentImageAction)
+        self.toolbar.addAction(self.addLocationDataAction)
         self.toolbar.addAction(self.popCurrentImageAction)
         self.toolbar.addAction(self.findImagesAction)
         self.toolbar.addAction(self.syncCurrentItemAction)
@@ -194,6 +201,10 @@ class GroundStation(QtWidgets.QMainWindow):
         self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
+        self.addLocationDataAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-note.png'), "&Add Telemetry Info", self
+        )
+        self.addLocationDataAction.triggered.connect(self.addLocationData)
 
     def __invokeOpenImage(self, displayArgs):
         if displayArgs is not None:
@@ -251,6 +262,48 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
+
+    def addLocationData(self):
+        if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
+            self.locationDataDialog.show()
+        else:
+            qBox = QMessageBox(parent=self)
+            qBox.setText('FileDialog was not initialized')
+            qBox.show()
+
+    def processAssociatedDataFiles(self, pathList, **kwargs):
+        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, None, pathList, **kwargs)
+
+    def __processAssociatedDataFiles(self, pathList, **kwargs):
+        outMap = dict()
+        for path in pathList:
+            print(path)
+            with open(path, 'r') as f:
+                dataIn=f.readlines()
+                outDict = dict()
+                for line in dataIn:
+                    line = line.strip('\n')
+                    print("line", line)
+                    regexMatch = ATTR_VALUE_REGEX_COMPILE.match(line)
+                    if regexMatch:
+                        attr, value = regexMatch.groups(1)
+                        print('attr', attr, 'value', value)
+                        
+                        outDict[attr] = value
+                
+                outMap[path] = outDict
+
+        # Time to swap out the fields and replace
+        for k in outMap:
+            resourceMapped = self.__resourcePool.get(k, dict())
+            if resourceMapped is not None:
+                freshValue = outMap[k]
+                print('freshValue', freshValue)
+                for k, v in freshValue.items():
+                    resourceMapped[k] = v
+
+        print('outMap', outMap)
+        return outMap
 
 def main():
     argc = len(sys.argv)
