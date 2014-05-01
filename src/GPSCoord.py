@@ -9,8 +9,17 @@ Covers:
 Cindy Xiao <dixin@ualberta.ca>
 """
 
+import sys
+
+try:
+    import pyproj
+except ImportError as e:
+    sys.stderr.write(
+        "\033[91mNeeds module 'pyproj'. Install it by 'pip install pyproj' or 'easy_install pyproj'\033[00m"
+    )
+    sys.exit(-1)
+    
 from math import *
-import pyproj
 
 class Position:
     """
