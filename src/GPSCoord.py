@@ -144,6 +144,7 @@ class GeoReference:
 def getInfoField(info_file_loc, field_name):
     """
     Gets the information in a field of the image info file specified by field_name.
+    Returns the data as a float.
     
     info_file_loc - name of the image info file. 
     field_name - name of the field whose information is being retrieved.
@@ -162,7 +163,7 @@ def getInfoField(info_file_loc, field_name):
     print("Field %s: %s" %(field_name, data) )
     
     fin.close()
-    
+
     return data
 
 def centre_gps_offset(pitch, roll, yaw, alt):

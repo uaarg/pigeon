@@ -190,27 +190,45 @@ class ImageViewer(QtWidgets.QLabel):
 
         """
 
-        if fPath and fPath[-4:-1] == ".jpg":
+        print(fPath[-4:])
+        if fPath and fPath[-4:] == ".jpg":
             infoFilename = fPath[:-4] + ".txt"
         else:
             printf("Could not find an info file associated with the image" + fPath)
             return -1
 
         # Get position 
-        northing = GPSCoord.getInfoField(infoFilename, "utm_north")
-        easting = GPSCoord.getInfoField(infoFilename, "utm_east")
-        zone = GPSCoord.getInfoField(infoFilename, "utm_zone")
-        altitude = GPSCoord.getInfoField(infoFilename, "z")
+        northing = float(GPSCoord.getInfoField(infoFilename, "utm_north"))
+        easting = float(GPSCoord.getInfoField(infoFilename, "utm_east"))
+        zone = float(GPSCoord.getInfoField(infoFilename, "utm_zone"))
+        altitude = float(GPSCoord.getInfoField(infoFilename, "z"))
         dd_coord = GPSCoord.utm_to_DD(northing, easting, zone) # lat, lon
 
-        self.plane_position = Position(dd_coord[0], dd_coord[1], altitude)
+        self.plane_position = GPSCoord.Position(dd_coord[0], dd_coord[1], altitude)
 
         # Get orientation
-        pitch = GPSCoord.getInfoField(infoFilename, "theta")
-        roll = GPSCoord.getInfoField(infoFilename, "phi")
-        yaw = GPSCoord.getInfoField(infoFilename, "psi")
+        pitch = float(GPSCoord.getInfoField(infoFilename, "theta"))
+        roll = float(GPSCoord.getInfoField(infoFilename, "phi"))
+        yaw = float(GPSCoord.getInfoField(infoFilename, "psi"))
 
-        self.plane_orientation = Orientation(pitch, roll, yaw)
+        self.plane_orientation = GPSCoord.Orientation(pitch, roll, yaw)
+        print("orientation object set up")
+
+        # Set up georeference object
+        self.georeference = GPSCoord.GeoReference(self.camera)
+        print("georef object set up")
+
+    def pointGeoReference(self, georeference_obj, position, orientation, point_x, point_y):
+        """
+        Returns the georeferenced point in the image as a new Position object with DD lat, long.
+        georeference_obj = 
+        position =  Position object containing lat, long, and altitude of the plane frm GPSCoord
+        orientation = Orientation object containing pitch, roll, yaw of the plane from GPSCoord
+        point_x = pixels from left edge of image.
+        point_y = pixels from right edge of image.
+        """
+        point_gpsPosition = georeference_obj.pointInImage(position, orientation, point_x, point_y)
+        return point_gpsPosition
 
 
     def loadContentFromDb(self, syncForCurrentImageOnly=False):
@@ -271,11 +289,24 @@ class ImageViewer(QtWidgets.QLabel):
     def mousePressEvent(self, e):
         # Event handler for mouse clicks on image area.
 
+        # Left click - target location marking (temporary)
+        if e.button() == 1:
+            curPos = self.mapFromGlobal(self.cursor.pos())
+            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            (lat, lon) = pointGPSPos.latLon()
+            print([lat, lon])
+
+
         # Right click - target marker creation
         if e.button() == 2:
             curPos = self.mapFromGlobal(self.cursor.pos())
+            # Georeference the marker location
+            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            (lat, lon) = pointGPSPos.latLon()
+            print(lat, lon)
+
             m = self.createMarker(utils.DynaItem(
-                dict(x=curPos.x, y=curPos.y, mComments='', author=None))
+                dict(x=curPos.x, y=curPos.y, lat=lat, lon=lon, mComments='', author=None))
             )
             m.show()
             m.toggleUnsaved()
@@ -287,7 +318,7 @@ class ImageViewer(QtWidgets.QLabel):
 
     def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
-            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
+            parent=self, x=curPos.x(), y=curPos.y(), lat=lat, lon=lon, tree=self.childMap,
             mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDb, **kwargs
         )
 

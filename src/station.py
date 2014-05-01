@@ -141,6 +141,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
             memPixMap = self.iconStrip.getPixMap(path)
             self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
+            self.imageViewer.openImageInfo(fPath=path)
             self.ui_window.countDisplayLabel.setText(path)
 
     def displayThisImage(self, path):
