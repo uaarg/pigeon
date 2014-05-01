@@ -31,12 +31,15 @@ class ImageViewer(QtWidgets.QLabel):
         self.cursor = QCursor(Qt.CrossCursor)
         self.setCursor(self.cursor)
 
+        self.initResources()
+
+    def initResources(self):
         self.__fileOnDisplay = None
 
         self.imgPixMap = None
         self._childMap = None
         self.__childrenMap = collections.defaultdict(lambda key: None)
-        self.__resourceMap = dict()
+        self.__resourcePool = dict()
 
         self.initLastEditTimeMap()
 
@@ -70,6 +73,13 @@ class ImageViewer(QtWidgets.QLabel):
             marker.close()
 
     def __deleteImageFromDb(self, title):
+        memData = self.__resourcePool.pop(title, None)
+        if memData and memData.get('id', -1) != -1:
+            mDelResponse = utils.produceAndParse(
+                self.__markerHandler.deleteConn, dict(associatedImage_id=memData['id'])
+            )
+            print('mDelResponse', mDelResponse)
+
         imgDelResponse = utils.produceAndParse(
             self.__imageHandler.deleteConn, dict(title=title)
         )
@@ -79,18 +89,7 @@ class ImageViewer(QtWidgets.QLabel):
         data = imgDelResponse.get('data', dict()) 
         if not hasattr(data, 'get'):
             print('Probably image was not saved to the db')
-            return
         else:
-            successfulDels = data.get('successful', [])
-            # TODO: Figure out what to do with the failed deletes
-            # failed = data.get('failed', [])
-       
-            for sId in successfulDels: 
-                # Clear out all the associated markers
-                mDelResponse = utils.produceAndParse(
-                    self.__markerHandler.deleteConn, dict(associatedImage_id=sId)
-                )
-
             self.lastEditTimeMap.pop(title, None)
             self.__popAllMarkers(title)
 
@@ -112,18 +111,30 @@ class ImageViewer(QtWidgets.QLabel):
     def getCurrentFilePath(self):
         return self.__fileOnDisplay
 
+    def getFromResourcePool(self, key, notFoundValue=None):
+        return self.__resourcePool.get(key, notFoundValue)
+
+    def setIntoResourcePool(self, key, value):
+        self.__resourcePool[key] = value
+
     def saveImageAttributes(self, imageTitle, imageAttributeDict):
         funcToInvoke = self.__imageHandler.postConn
-        memData = self.__resourceMap.get(imageTitle, None)
-        # print('memData', memData)
+        memData = self.__resourcePool.get(imageTitle, None)
         if memData is not None and memData.get('id', -1) != -1:
             funcToInvoke = self.__imageHandler.putConn
-            imageAttributeDict['id'] = memData['id']
+            imageAttributeDict['id'] = memData['id'] # Checking with the old
+            parsedResponse = utils.produceAndParse(func=funcToInvoke, dataIn=imageAttributeDict)
+
+            # Now getting attributes returned from db syncing
+            imageAttributeDict['id'] = parsedResponse.get('id', -1)
+            return imageAttributeDict
+
         else:
             imageAttributeDict['title'] = imageTitle
 
-        parsedResponse = utils.produceAndParse(func=funcToInvoke, dataIn=imageAttributeDict)
-        # print('After saving image attributes', parsedResponse)
+            parsedResponse = utils.produceAndParse(func=funcToInvoke, dataIn=imageAttributeDict)
+            print('FuncToInvoke', funcToInvoke, 'parsedResponse', parsedResponse)
+            return parsedResponse.get('data', None)
 
     def openImage(self, fPath, markerSet=[], pixMap=None):
         if self._childMap is not None:
@@ -167,21 +178,17 @@ class ImageViewer(QtWidgets.QLabel):
 
             else:
                 for k, v in self._childMap.items():
-                    # print('filePath', filename, v)
                     v.show()
             
             self.setPixmap(self.imgPixMap)
-
-            # Expand to the image's full size
-            # self.setGeometry(self.x(), self.y(), self.imgPixMap.width(), self.imgPixMap.height())
 
             # Check again with the synchronizer
             self.checkSyncOfEditTimes(onlyRequiresLastTimeCheck=False)
 
             # Return the most current state information
-            return self.__resourceMap.get(filename, None)
+            return self.__resourcePool.get(filename, None)
 
-    def loadContentFromDb(self, syncForCurrentImageOnly=False):
+    def getContentFromDB(self, syncForCurrentImageOnly=False):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
         if syncForCurrentImageOnly:
             connArgs['title'] =  self.__fileOnDisplay
@@ -190,7 +197,12 @@ class ImageViewer(QtWidgets.QLabel):
             self.__imageHandler.getConn, connArgs
         )
     
-        data = parsedResponse.get('data', None)
+        data = parsedResponse.get('data', [])
+        return data
+
+    def loadContentFromDb(self, syncForCurrentImageOnly=False):
+        data = self.getContentFromDB(syncForCurrentImageOnly)
+
         if data:
             inOrderItems = [] 
         
@@ -206,9 +218,7 @@ class ImageViewer(QtWidgets.QLabel):
                 self.lastEditTimeMap[title] = (v['id'], float(v['lastTimeEdit']))
 
                 pathSelector = uri if uri else title
-                inOrderItems.append(
-                    utils.DynaItem(dict(path=pathSelector, markerSet=markerSet))
-                )
+                inOrderItems.append(v)
 
                 if self.__fileOnDisplay == title:
                     childMap = self.__childrenMap.get(title, dict()) 
@@ -282,7 +292,7 @@ class ImageViewer(QtWidgets.QLabel):
             itemInfo = data[0]
 
             if not onlyRequiresLastTimeCheck: # Extra attributes of the image were queried for 
-                self.__resourceMap[self.__fileOnDisplay] = itemInfo
+                self.__resourcePool[self.__fileOnDisplay] = itemInfo
 
             lastEditTimeFromDb = float(itemInfo['lastTimeEdit'])
 

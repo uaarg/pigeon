@@ -70,21 +70,25 @@ class GroundStation(QtWidgets.QMainWindow):
             if path.find(curDirPath) >= 0:
                 path = '.' + path.split(curDirPath)[1]
 
-            normalizedPaths.append(
-                utils.DynaItem(dict(path=path, markerSet=[]))
-            )
+            normalizedPaths.append(dict(uri=path))
 
         self.preparePathsForDisplay(normalizedPaths)
 
-    def __preparePathsForDisplay(self, dynaDictList):
+    def __preparePathsForDisplay(self, pathDictList):
         lastItem = None
-        for dynaDict in dynaDictList:
-            if dynaDict.path not in self.__resourcePool:
-                self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
+        for index, pathDict in enumerate(pathDictList):
+        
+            # print('path', index, pathDict.keys())
+            path = pathDict.get('uri', None)
+    
+            if path not in self.__resourcePool:
+                self.iconStrip.addIconItem(path, self.displayThisImage)
 
-            lastItem = dynaDict.path
+            lastItem = path
 
-            self.__resourcePool[dynaDict.path] = dynaDict
+            # print('pathDictAttr', pathDict[path])
+            print('adding', pathDict)
+            self.__resourcePool[path] = pathDict
 
         # Display the last added item
         self.displayThisImage(lastItem)
@@ -109,15 +113,18 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Editing Current Image', self.ui_window.countDisplayLabel.text())
 
         orderedEntries = [
-            'phi', 'psi', 'theta', 'altitude', 'author', 'utmEast', 'utmNorth', 'speed',
-            'pixelPerMeter', 'ppmDifference', 'captureTimeEpoch', 'course'
+            'phi', 'psi', 'theta', 'alt', 'author', 'utm_east', 'utm_north', 'speed',
+            'pixel_per_meter', 'ppm_difference', 'time', 'course'
         ]
 
+        stateDict = self.imageViewer.getFromResourcePool(self.ui_window.countDisplayLabel.text(), {})
+        print('stateDict', stateDict)
+
         entryList = []
-        previousStateInfoFunc = lambda key: self.__currentImageStateData.get(key, '0.0')
+        previousStateInfoFunc = lambda key: stateDict.get(key, '0.0')
         noPreviousStateInfoFunc = lambda key: '0.0'
 
-        textExtractor = previousStateInfoFunc if isinstance(self.__currentImageStateData, dict) else noPreviousStateInfoFunc
+        textExtractor = previousStateInfoFunc if isinstance(stateDict, dict) else noPreviousStateInfoFunc
 
         for index, entry in enumerate(orderedEntries):
             entryList.append(
@@ -141,11 +148,17 @@ class GroundStation(QtWidgets.QMainWindow):
     def saveCurrentImageContent(self, content):
         # print('Content to save', content)
         outDict = dict()
+        srcPath = self.ui_window.countDisplayLabel.text()
         for key in content:
             attrDict = content[key]
             outDict[key] = attrDict.get('entryText', '')
 
-        self.imageViewer.saveImageAttributes(self.ui_window.countDisplayLabel.text(), outDict)
+        saveData = self.imageViewer.saveImageAttributes(srcPath, outDict)
+        if saveData:
+            self.__resourcePool[self.ui_window.countDisplayLabel.text()] = saveData
+
+            # Give back the latest data
+            self.imageViewer.setIntoResourcePool(srcPath, saveData)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
@@ -154,7 +167,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
-        self.syncCurrentItemAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self)
+        self.syncCurrentItemAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self
+        )
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
@@ -168,10 +183,14 @@ class GroundStation(QtWidgets.QMainWindow):
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
-        self.findImagesAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self)
+        self.findImagesAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self
+        )
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
-        self.editCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self)
+        self.editCurrentImageAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self
+        )
         self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
@@ -180,31 +199,31 @@ class GroundStation(QtWidgets.QMainWindow):
         if displayArgs is not None:
             self.key, self.currentItem = displayArgs 
             path, markerSet = self.key, []
-            if isinstance(self.currentItem, utils.DynaItem):
-                path = self.currentItem.path
-                markerSet = self.currentItem.markerSet
+            if self.currentItem:
+                curItem = self.currentItem
+                path = self.key
+                markerSet = curItem.get('marker_set', [])
+                print('markerSet', markerSet)
 
             memPixMap = self.iconStrip.getPixMap(path)
             self.ui_window.countDisplayLabel.setText(path)
 
-            self.__currentImageStateData = self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
+            self.__currentImageStateData = self.imageViewer.openImage(
+                fPath=path, markerSet=markerSet, pixMap=memPixMap
+            )
 
     def displayThisImage(self, path):
         argTuple = (path, self.__resourcePool.get(path, []))
         self.__invokeOpenImage(argTuple)
 
     def handleItemPop(self):
-        popd = self.__resourcePool.pop( 
-            self.ui_window.countDisplayLabel.text(), None
-        )
-
-        if isinstance(popd, utils.DynaItem):
-          popd = popd.path
+        currentItem = self.ui_window.countDisplayLabel.text()
 
         nextItemOnDisplay = None
-        if popd:
-            self.imageViewer.deleteImageFromDb(popd)
-            nextItemOnDisplay = self.iconStrip.popIconItem(popd, None)
+
+        if currentItem:
+            self.imageViewer.deleteImageFromDb(currentItem)
+            nextItemOnDisplay = self.iconStrip.popIconItem(currentItem, None)
 
         self.displayThisImage(nextItemOnDisplay)
 
