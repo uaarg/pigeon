@@ -90,11 +90,7 @@ class GroundStation(QtWidgets.QMainWindow):
         lastItem = None
         for index, pathDict in enumerate(pathDictList):
         
-            # print('path', index, pathDict.keys())
             path = pathDict.get('uri', None)
- 
-            print('adding', path, pathDict.keys())
-
             key = utils.getLocalName(path) or path
    
             if key not in self.__resourcePool:
@@ -141,8 +137,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
             entryList.append(
                 utils.DynaItem(dict(
-                    title=entry, isMultiLine=False, labelLocation=(index, 0,), entryLocation=(index, 1,), 
-                    entryText=str(textExtracted)
+                    title=entry, isMultiLine=False, labelLocation=(index, 0,),
+                    isEditable=True, entryLocation=(index, 1,), entryText=str(textExtracted)
                 )
             ))
 
@@ -151,7 +147,7 @@ class GroundStation(QtWidgets.QMainWindow):
         imageTag = Tag.Tag(
             size=utils.DynaItem(dict(x=imgAttrFrame.width(), y=imgAttrFrame.height())),
             location=utils.DynaItem(dict(x=imgAttrFrame.x(), y=imgAttrFrame.y())),
-            title=self.ui_window.countDisplayLabel.text(),
+            title='Location data for: ' + utils.getLocalName(self.ui_window.countDisplayLabel.text()),
             onSubmit=self.saveCurrentImageContent,
             entryList=entryList
         )
@@ -177,8 +173,6 @@ class GroundStation(QtWidgets.QMainWindow):
 
             # Give back the latest data
             self.imageViewer.setIntoResourcePool(key, outDict)
-
-        print('isFirstEntry', isFirstEntry)
 
         self.imageViewer.checkSyncOfEditTimes(path=curPath, onlyRequiresLastTimeCheck=True)
 
@@ -305,23 +299,19 @@ class GroundStation(QtWidgets.QMainWindow):
                         outDict[attr] = value
                 
                 key = utils.getLocalName(path) or path
-                # print('key', key)
                 outMap[key] = outDict
 
         # Time to swap out the fields and replace
         for k in outMap:
             resourceMapped = self.__resourcePool.get(k, None)
-            # print('before\033[94m', resourceMapped, '\033[00m')
             if resourceMapped is not None:
                 freshValue = outMap[k]
                 for key, value in freshValue.items():
                     resourceMapped[key] = value
 
-                # print('after \033[95mresourceMapped', resourceMapped, '\033[00m')
                 self.__resourcePool[k] = resourceMapped
                 self.imageViewer.setIntoResourcePool(k, resourceMapped)
 
-        # print('outMap', outMap)
         return outMap
 
 def main():

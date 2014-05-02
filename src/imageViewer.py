@@ -131,8 +131,6 @@ class ImageViewer(QtWidgets.QLabel):
         memData = self.__resourcePool.get(key, None)
         needsPut = memData is not None and memData.get('id', -1) != -1
 
-        # print('\033[92mmemData here', memData, '\033[00m', needsPut)
-
         if needsPut:
             isFirstEntry = False
             imageAttributeDict['id'] = memData['id'] # Checking with the old
@@ -216,7 +214,7 @@ class ImageViewer(QtWidgets.QLabel):
         if data:
             inOrderItems = [] 
         
-            if self.lastEditTimeMap: 
+            if self.lastEditTimeMap:
                 self.lastEditTimeMap.clear()
 
             for v in data:
@@ -240,11 +238,13 @@ class ImageViewer(QtWidgets.QLabel):
                     for mKey in markerCopy:
                         mk = childMap[mKey]
                         if mk:
+                            print(mk.memComments)
                             mk.erase(mk.x, mk.y, needsFlush=False)
        
                     # Now create the markers that are recognized by the DB 
                     for mData in markerSet:
                         if mData:
+                            print('mData', mData)
                             m = self.createMarker(
                                 utils.DynaItem(dict(
                                     x=lambda : int(mData['x']), y=lambda : int(mData['y']),
@@ -276,7 +276,7 @@ class ImageViewer(QtWidgets.QLabel):
 
     def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
-            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap,
+            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap, author=curPos.author,
             mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDb, **kwargs
         )
 
@@ -388,10 +388,12 @@ class ImageViewer(QtWidgets.QLabel):
                 else:
                     for retr in data:
                         commentsFromDb = retr['comments']
-                        if not currentComments == commentsFromDb: # Time for a put here
+                        # print('currentComments', currentComments, commentsFromDb)
+                        if currentComments != commentsFromDb: # Time for a put here
                             putResponse = utils.produceAndParse(
                                 self.__markerHandler.putConn, dict(id=retr['id'], comments=currentComments)
                             )
+                            print('putResponse', putResponse)
 
                             m.toggleSaved()
 
