@@ -78,7 +78,7 @@ class Tag(QtWidgets.QWidget):
         self.metaData  = metaData
         self.parent    = parent
         self.onSubmit    = onSubmit if onSubmit else lambda c: print(c)
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        # self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
     def initUI(self):
