@@ -11,16 +11,23 @@ import json
 
 _404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
 _PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
-pyVersion = sys.hexversion/(1<<24)
-
-if pyVersion < 3:
-  import Tkinter as tkModule
-else:
-  import tkinter as tkModule
 
 def getStatDict(path):
   if pathExists(path):
     return os.stat(path)
+
+def massagePath(path):
+    if path:
+        extractedPath = os.path.split(path)
+        nameExtSplit = (extractedPath[-1]).split('.')
+        return [extractedPath[0]] + nameExtSplit
+
+def getLocalName(path):
+    splitPath = massagePath(path)
+    print('SplitPath', splitPath)
+    if splitPath:
+        dirLocation, localName, extension = splitPath
+        return localName
 
 getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 pathExists = lambda p : p and os.path.exists(p)

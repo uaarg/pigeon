@@ -14,6 +14,7 @@ import iconStrip # Local module
 import imageViewer # Local module
 import mpUtils.JobRunner # Local module
 
+
 curDirPath = os.path.abspath('.')
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
@@ -26,7 +27,6 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.setupUi(self)
 
         self.__resourcePool = dict()
-        self.__currentImageStateData = dict()
 
         self.initUI()
         self.initSaveSound()
@@ -59,11 +59,11 @@ class GroundStation(QtWidgets.QMainWindow):
         self.iconStrip.setOnItemClick(self.displayThisImage)
 
     def initFileDialogs(self):
-        self.fileDialog = QtWidgets.QFileDialog()
+        self.fileDialog = QtWidgets.QFileDialog(caption='Add captured Images')
         self.fileDialog.setFileMode(3) # Multiple files can be selected
         self.fileDialog.filesSelected.connect(self.pictureDropped)
 
-        self.locationDataDialog = QtWidgets.QFileDialog()
+        self.locationDataDialog = QtWidgets.QFileDialog(caption='Add telemetry files')
         self.locationDataDialog.setFileMode(3) # Multiple files can be selected
         self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
 
@@ -86,15 +86,17 @@ class GroundStation(QtWidgets.QMainWindow):
         
             # print('path', index, pathDict.keys())
             path = pathDict.get('uri', None)
-    
-            if path not in self.__resourcePool:
+ 
+            print('adding', path, pathDict.keys())
+
+            key = utils.getLocalName(path) or path
+   
+            if key not in self.__resourcePool:
                 self.iconStrip.addIconItem(path, self.displayThisImage)
 
-            lastItem = path
+            self.__resourcePool[key] = pathDict
 
-            # print('pathDictAttr', pathDict[path])
-            print('adding', pathDict)
-            self.__resourcePool[path] = pathDict
+            lastItem = path
 
         # Display the last added item
         self.displayThisImage(lastItem)
@@ -124,8 +126,10 @@ class GroundStation(QtWidgets.QMainWindow):
             'pixel_per_meter', 'ppm_difference', 'time', 'course'
         ]
 
-        stateDict = self.imageViewer.getFromResourcePool(self.ui_window.countDisplayLabel.text(), {})
-        print('stateDict', stateDict)
+        srcPath = self.ui_window.countDisplayLabel.text()
+
+        key = utils.getLocalName(srcPath) or srcPath
+        stateDict = self.__resourcePool.get(key, None) or self.imageViewer.getFromResourcePool(key, {})
 
         entryList = []
         previousStateInfoFunc = lambda key: stateDict.get(key, '0.0')
@@ -153,19 +157,29 @@ class GroundStation(QtWidgets.QMainWindow):
         imageTag.show()
 
     def saveCurrentImageContent(self, content):
-        # print('Content to save', content)
-        outDict = dict()
-        srcPath = self.ui_window.countDisplayLabel.text()
+       
+        curPath = self.ui_window.countDisplayLabel.text()
+        key = utils.getLocalName(curPath) or curPath
+        
+        currentMap = self.__resourcePool.get(key, {})
+        outDict = dict(id=currentMap.get('id', -1), uri=currentMap.get('uri', ''))
+
         for key in content:
             attrDict = content[key]
             outDict[key] = attrDict.get('entryText', '')
 
-        saveData = self.imageViewer.saveImageAttributes(srcPath, outDict)
-        if saveData:
-            self.__resourcePool[self.ui_window.countDisplayLabel.text()] = saveData
+        # Getting the original ids in
+        isFirstEntry, saveData = self.imageViewer.saveImageAttributes(curPath, outDict)
+
+        if isFirstEntry:
+            self.__resourcePool[key] = outDict
 
             # Give back the latest data
-            self.imageViewer.setIntoResourcePool(srcPath, saveData)
+            self.imageViewer.setIntoResourcePool(key, outDict)
+
+        print('isFirstEntry', isFirstEntry)
+
+        self.imageViewer.checkSyncOfEditTimes(path=curPath, onlyRequiresLastTimeCheck=True)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
@@ -206,26 +220,22 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.addLocationDataAction.triggered.connect(self.addLocationData)
 
-    def __invokeOpenImage(self, displayArgs):
-        if displayArgs is not None:
-            self.key, self.currentItem = displayArgs 
-            path, markerSet = self.key, []
-            if self.currentItem:
-                curItem = self.currentItem
-                path = self.key
-                markerSet = curItem.get('marker_set', [])
-                print('markerSet', markerSet)
-
-            memPixMap = self.iconStrip.getPixMap(path)
-            self.ui_window.countDisplayLabel.setText(path)
-
-            self.__currentImageStateData = self.imageViewer.openImage(
-                fPath=path, markerSet=markerSet, pixMap=memPixMap
-            )
-
     def displayThisImage(self, path):
-        argTuple = (path, self.__resourcePool.get(path, []))
-        self.__invokeOpenImage(argTuple)
+        localName = utils.getLocalName(path) or path
+        curItem = self.__resourcePool.get(localName, {})
+        markerSet = []
+
+        if curItem:
+            markerSet = curItem.get('marker_set', [])
+
+        memPixMap = self.iconStrip.getPixMap(path)
+        valueFromResourcePool = self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
+       
+        if valueFromResourcePool: 
+            key = utils.getLocalName(path) or path
+            self.__resourcePool[key] = valueFromResourcePool
+
+        self.ui_window.countDisplayLabel.setText(path)
 
     def handleItemPop(self):
         currentItem = self.ui_window.countDisplayLabel.text()
@@ -239,14 +249,19 @@ class GroundStation(QtWidgets.QMainWindow):
         self.displayThisImage(nextItemOnDisplay)
 
     def syncCurrentItem(self):
-        self.imageViewer.syncCurrentItem()
+        savText = self.ui_window.countDisplayLabel.text()
+        
+        self.imageViewer.syncCurrentItem(path=savText)
 
     def dbSync(self):
         self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
 
     def cleanUpAndExit(self):
         self.iconStrip.close()
+
         self.fileDialog.close()
+        self.locationDataDialog.close()
+
         self.imageViewer.close()
 
         print(self, 'closing')
@@ -277,32 +292,35 @@ class GroundStation(QtWidgets.QMainWindow):
     def __processAssociatedDataFiles(self, pathList, **kwargs):
         outMap = dict()
         for path in pathList:
-            print(path)
             with open(path, 'r') as f:
                 dataIn=f.readlines()
                 outDict = dict()
                 for line in dataIn:
                     line = line.strip('\n')
-                    print("line", line)
                     regexMatch = ATTR_VALUE_REGEX_COMPILE.match(line)
                     if regexMatch:
                         attr, value = regexMatch.groups(1)
-                        print('attr', attr, 'value', value)
                         
                         outDict[attr] = value
                 
-                outMap[path] = outDict
+                key = utils.getLocalName(path) or path
+                # print('key', key)
+                outMap[key] = outDict
 
         # Time to swap out the fields and replace
         for k in outMap:
-            resourceMapped = self.__resourcePool.get(k, dict())
+            resourceMapped = self.__resourcePool.get(k, None)
+            # print('before\033[94m', resourceMapped, '\033[00m')
             if resourceMapped is not None:
                 freshValue = outMap[k]
-                print('freshValue', freshValue)
-                for k, v in freshValue.items():
-                    resourceMapped[k] = v
+                for key, value in freshValue.items():
+                    resourceMapped[key] = value
 
-        print('outMap', outMap)
+                # print('after \033[95mresourceMapped', resourceMapped, '\033[00m')
+                self.__resourcePool[k] = resourceMapped
+                self.imageViewer.setIntoResourcePool(k, resourceMapped)
+
+        # print('outMap', outMap)
         return outMap
 
 def main():
