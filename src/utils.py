@@ -24,7 +24,6 @@ def massagePath(path):
 
 def getLocalName(path):
     splitPath = massagePath(path)
-    print('SplitPath', splitPath)
     if splitPath:
         dirLocation, localName, extension = splitPath
         return localName

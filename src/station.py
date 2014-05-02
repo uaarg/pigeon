@@ -18,6 +18,12 @@ import mpUtils.JobRunner # Local module
 curDirPath = os.path.abspath('.')
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
+DEFAULT_IMAGE_FORM_DICT = dict(
+    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0, time=0,
+    utm_north=0, speed=0, image_width=1294.0, image_height=964.0, viewangle_horiz=21.733333,
+    viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0, course=0
+)
+
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
     def __init__(self, parent=None):
@@ -121,27 +127,22 @@ class GroundStation(QtWidgets.QMainWindow):
     def editCurrentImage(self):
         print('Editing Current Image', self.ui_window.countDisplayLabel.text())
 
-        orderedEntries = [
-            'phi', 'psi', 'theta', 'alt', 'author', 'utm_east', 'utm_north', 'speed',
-            'pixel_per_meter', 'ppm_difference', 'time', 'course'
-        ]
-
         srcPath = self.ui_window.countDisplayLabel.text()
 
         key = utils.getLocalName(srcPath) or srcPath
-        stateDict = self.__resourcePool.get(key, None) or self.imageViewer.getFromResourcePool(key, {})
+        stateDict = self.__resourcePool.get(key, None) or self.imageViewer.getFromResourcePool(key, None)
 
         entryList = []
-        previousStateInfoFunc = lambda key: stateDict.get(key, '0.0')
-        noPreviousStateInfoFunc = lambda key: '0.0'
 
-        textExtractor = previousStateInfoFunc if isinstance(stateDict, dict) else noPreviousStateInfoFunc
+        for index, entry in enumerate(DEFAULT_IMAGE_FORM_DICT.keys()):
+            textExtracted = stateDict.get(entry, None)
+            if textExtracted is None:
+                textExtracted = DEFAULT_IMAGE_FORM_DICT[entry]
 
-        for index, entry in enumerate(orderedEntries):
             entryList.append(
                 utils.DynaItem(dict(
                     title=entry, isMultiLine=False, labelLocation=(index, 0,), entryLocation=(index, 1,), 
-                    entryText=textExtractor(entry)
+                    entryText=str(textExtracted)
                 )
             ))
 
