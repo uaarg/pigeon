@@ -7,6 +7,7 @@ Covers:
     - Georeferencing features in an image.
 
 Cindy Xiao <dixin@ualberta.ca>
+Cameron Lee <cwlee1@ualberta.ca>
 """
 
 from math import *

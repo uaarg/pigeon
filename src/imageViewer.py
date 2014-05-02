@@ -202,8 +202,7 @@ class ImageViewer(QtWidgets.QLabel):
         easting = float(GPSCoord.getInfoField(infoFilename, "utm_east"))
         zone = float(GPSCoord.getInfoField(infoFilename, "utm_zone"))
         altitude = float(GPSCoord.getInfoField(infoFilename, "z"))
-        dd_coord = GPSCoord.utm_to_DD(northing, easting, zone) # lat, lon
-
+        dd_coord = GPSCoord.utm_to_DD(easting, northing, zone) # lat, lon
         self.plane_position = GPSCoord.Position(dd_coord[0], dd_coord[1], altitude)
 
         # Get orientation
@@ -294,6 +293,7 @@ class ImageViewer(QtWidgets.QLabel):
             curPos = self.mapFromGlobal(self.cursor.pos())
             pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
             (lat, lon) = pointGPSPos.latLon()
+            print(curPos.x(), curPos.y())
             print([lat, lon])
 
 
