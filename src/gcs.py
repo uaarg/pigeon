@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Wed Apr 30 00:41:09 2014
+# Created: Fri May  2 22:43:33 2014
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1247, 736)
+        MainWindow.resize(1034, 736)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
@@ -50,14 +50,9 @@ class Ui_MainWindow(object):
         self.countDisplayLabel.setStyleSheet("text-align:\"center\"")
         self.countDisplayLabel.setText("")
         self.countDisplayLabel.setObjectName("countDisplayLabel")
-        self.imageAttributesFrame = QtWidgets.QFrame(self.centralwidget)
-        self.imageAttributesFrame.setGeometry(QtCore.QRect(1010, 20, 221, 521))
-        self.imageAttributesFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.imageAttributesFrame.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.imageAttributesFrame.setObjectName("imageAttributesFrame")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1247, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1034, 22))
         self.menubar.setDefaultUp(False)
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
