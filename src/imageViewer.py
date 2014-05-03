@@ -51,6 +51,8 @@ class ImageViewer(QtWidgets.QLabel):
         return self._childMap
 
     def close(self, **kwargs):
+        self.__jobRunner.close()
+
         for markerMap in self.__childrenMap.values():
             for marker in markerMap.values():
                 if marker and hasattr(marker, 'close'):

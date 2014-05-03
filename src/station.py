@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import threading
 from PyQt5 import QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
@@ -98,7 +99,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
             self.__resourcePool[key] = pathDict
 
-            lastItem = path
+            if lastItem is None:
+                lastItem = path
 
         # Display the last added item
         self.displayThisImage(lastItem)
@@ -260,6 +262,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.imageViewer.close()
 
         print(self, 'closing')
+
+        print('close', self.__jobRunner.close())
+
         self.close()
 
     def findImages(self):

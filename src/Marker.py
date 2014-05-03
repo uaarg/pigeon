@@ -154,7 +154,7 @@ class Marker(QtWidgets.QPushButton):
         if hasattr(self.tag, 'close'):
             self.tag.close()
 
-        print(self, 'closing')
+        # print(self, 'closing')
         super().close()
 
     def enterEvent(self, event):
