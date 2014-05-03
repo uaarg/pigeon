@@ -2,17 +2,28 @@
 # Author: Cindy Xiao <dixin@ualberta.ca>, Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
+import re
 import sys
+import threading
 from PyQt5 import QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
 import utils # Local module
+import Tag # Local module
 import iconStrip # Local module
 import imageViewer # Local module
 import mpUtils.JobRunner # Local module
 
+
 curDirPath = os.path.abspath('.')
+ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
+
+DEFAULT_IMAGE_FORM_DICT = dict(
+    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0, time=0,
+    utm_north=0, speed=0, image_width=1294.0, image_height=964.0, viewangle_horiz=21.733333,
+    viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0, course=0
+)
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -38,7 +49,7 @@ class GroundStation(QtWidgets.QMainWindow):
         # Set up menus
         self.initToolBar()
 
-        self.initFileDialog()
+        self.initFileDialogs()
         self.initImageViewer()
         self.initStrip()
         self.ui_window.countDisplayLabel.show()
@@ -54,10 +65,14 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
         self.iconStrip.setOnItemClick(self.displayThisImage)
 
-    def initFileDialog(self):
-        self.fileDialog = QtWidgets.QFileDialog()
+    def initFileDialogs(self):
+        self.fileDialog = QtWidgets.QFileDialog(caption='Add captured Images')
         self.fileDialog.setFileMode(3) # Multiple files can be selected
         self.fileDialog.filesSelected.connect(self.pictureDropped)
+
+        self.locationDataDialog = QtWidgets.QFileDialog(caption='Add telemetry files')
+        self.locationDataDialog.setFileMode(3) # Multiple files can be selected
+        self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
 
     def __normalizeFileAdding(self, paths):
         # Ensuring that paths added are relative to a common source eg
@@ -68,21 +83,24 @@ class GroundStation(QtWidgets.QMainWindow):
             if path.find(curDirPath) >= 0:
                 path = '.' + path.split(curDirPath)[1]
 
-            normalizedPaths.append(
-                utils.DynaItem(dict(path=path, markerSet=[]))
-            )
+            normalizedPaths.append(dict(uri=path))
 
         self.preparePathsForDisplay(normalizedPaths)
 
-    def __preparePathsForDisplay(self, dynaDictList):
+    def __preparePathsForDisplay(self, pathDictList):
         lastItem = None
-        for dynaDict in dynaDictList:
-            if dynaDict.path not in self.__resourcePool:
-                self.iconStrip.addIconItem(dynaDict.path, self.displayThisImage)
+        for index, pathDict in enumerate(pathDictList):
+        
+            path = pathDict.get('uri', None)
+            key = utils.getLocalName(path) or path
+   
+            if key not in self.__resourcePool:
+                self.iconStrip.addIconItem(path, self.displayThisImage)
 
-            lastItem = dynaDict.path
+            self.__resourcePool[key] = pathDict
 
-            self.__resourcePool[dynaDict.path] = dynaDict
+            if lastItem is None:
+                lastItem = path
 
         # Display the last added item
         self.displayThisImage(lastItem)
@@ -97,11 +115,68 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar  = self.ui_window.toolBar;
 
         self.toolbar.addAction(self.editCurrentImageAction)
+        self.toolbar.addAction(self.addLocationDataAction)
         self.toolbar.addAction(self.popCurrentImageAction)
         self.toolbar.addAction(self.findImagesAction)
         self.toolbar.addAction(self.syncCurrentItemAction)
         self.toolbar.addAction(self.dbSyncAction)
         self.toolbar.addAction(self.exitAction)
+
+    def editCurrentImage(self):
+        print('Editing Current Image', self.ui_window.countDisplayLabel.text())
+
+        srcPath = self.ui_window.countDisplayLabel.text()
+
+        key = utils.getLocalName(srcPath) or srcPath
+        stateDict = self.__resourcePool.get(key, None) or self.imageViewer.getFromResourcePool(key, None)
+
+        entryList = []
+
+        for index, entry in enumerate(DEFAULT_IMAGE_FORM_DICT.keys()):
+            textExtracted = stateDict.get(entry, None)
+            if textExtracted is None:
+                textExtracted = DEFAULT_IMAGE_FORM_DICT[entry]
+
+            entryList.append(
+                utils.DynaItem(dict(
+                    title=entry, isMultiLine=False, labelLocation=(index, 0,),
+                    isEditable=True, entryLocation=(index, 1,), entryText=str(textExtracted)
+                )
+            ))
+
+        imgAttrFrame = self.ui_window.imageAttributesFrame
+
+        imageTag = Tag.Tag(
+            size=utils.DynaItem(dict(x=imgAttrFrame.width(), y=imgAttrFrame.height())),
+            location=utils.DynaItem(dict(x=imgAttrFrame.x(), y=imgAttrFrame.y())),
+            title='Location data for: ' + utils.getLocalName(self.ui_window.countDisplayLabel.text()),
+            onSubmit=self.saveCurrentImageContent,
+            entryList=entryList
+        )
+        imageTag.show()
+
+    def saveCurrentImageContent(self, content):
+       
+        curPath = self.ui_window.countDisplayLabel.text()
+        key = utils.getLocalName(curPath) or curPath
+        
+        currentMap = self.__resourcePool.get(key, {})
+        outDict = dict(id=currentMap.get('id', -1), uri=currentMap.get('uri', ''))
+
+        for key in content:
+            attrDict = content[key]
+            outDict[key] = attrDict.get('entryText', '')
+
+        # Getting the original ids in
+        isFirstEntry, saveData = self.imageViewer.saveImageAttributes(curPath, outDict)
+
+        if isFirstEntry:
+            self.__resourcePool[key] = outDict
+
+            # Give back the latest data
+            self.imageViewer.setIntoResourcePool(key, outDict)
+
+        self.imageViewer.checkSyncOfEditTimes(path=curPath, onlyRequiresLastTimeCheck=True)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
@@ -110,7 +185,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
-        self.syncCurrentItemAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self)
+        self.syncCurrentItemAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self
+        )
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
@@ -124,57 +201,70 @@ class GroundStation(QtWidgets.QMainWindow):
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
-        self.findImagesAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self)
+        self.findImagesAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self
+        )
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
-        self.editCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self)
+        self.editCurrentImageAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self
+        )
+        self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
-
-    def __invokeOpenImage(self, displayArgs):
-        if displayArgs is not None:
-            self.key, self.currentItem = displayArgs 
-            path, markerSet = self.key, []
-            if isinstance(self.currentItem, utils.DynaItem):
-                path = self.currentItem.path
-                markerSet = self.currentItem.markerSet
-
-            memPixMap = self.iconStrip.getPixMap(path)
-            self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
-            self.imageViewer.openImageInfo(fPath=path)
-            self.ui_window.countDisplayLabel.setText(path)
+        self.addLocationDataAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-note.png'), "&Add Telemetry Info", self
+        )
+        self.addLocationDataAction.triggered.connect(self.addLocationData)
 
     def displayThisImage(self, path):
-        argTuple = (path, self.__resourcePool.get(path, []))
-        self.__invokeOpenImage(argTuple)
+        localName = utils.getLocalName(path) or path
+        curItem = self.__resourcePool.get(localName, {})
+        markerSet = []
+
+        if curItem:
+            markerSet = curItem.get('marker_set', [])
+
+        memPixMap = self.iconStrip.getPixMap(path)
+        valueFromResourcePool = self.imageViewer.openImage(fPath=path, markerSet=markerSet, pixMap=memPixMap)
+       
+        if valueFromResourcePool: 
+            key = utils.getLocalName(path) or path
+            self.__resourcePool[key] = valueFromResourcePool
+
+        self.ui_window.countDisplayLabel.setText(path)
 
     def handleItemPop(self):
-        popd = self.__resourcePool.pop( 
-            self.ui_window.countDisplayLabel.text(), None
-        )
-
-        if isinstance(popd, utils.DynaItem):
-          popd = popd.path
+        currentItem = self.ui_window.countDisplayLabel.text()
 
         nextItemOnDisplay = None
-        if popd:
-            self.imageViewer.deleteImageFromDb(popd)
-            nextItemOnDisplay = self.iconStrip.popIconItem(popd, None)
+
+        if currentItem:
+            self.imageViewer.deleteImageFromDb(currentItem)
+            nextItemOnDisplay = self.iconStrip.popIconItem(currentItem, None)
 
         self.displayThisImage(nextItemOnDisplay)
 
     def syncCurrentItem(self):
-        self.imageViewer.syncCurrentItem()
+        savText = self.ui_window.countDisplayLabel.text()
+        
+        self.imageViewer.syncCurrentItem(path=savText)
 
     def dbSync(self):
         self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
 
     def cleanUpAndExit(self):
         self.iconStrip.close()
+
         self.fileDialog.close()
+        self.locationDataDialog.close()
+
         self.imageViewer.close()
 
         print(self, 'closing')
+
+        print('close', self.__jobRunner.close())
+
         self.close()
 
     def findImages(self):
@@ -187,6 +277,47 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
+
+    def addLocationData(self):
+        if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
+            self.locationDataDialog.show()
+        else:
+            qBox = QMessageBox(parent=self)
+            qBox.setText('FileDialog was not initialized')
+            qBox.show()
+
+    def processAssociatedDataFiles(self, pathList, **kwargs):
+        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, None, pathList, **kwargs)
+
+    def __processAssociatedDataFiles(self, pathList, **kwargs):
+        outMap = dict()
+        for path in pathList:
+            with open(path, 'r') as f:
+                dataIn=f.readlines()
+                outDict = dict()
+                for line in dataIn:
+                    line = line.strip('\n')
+                    regexMatch = ATTR_VALUE_REGEX_COMPILE.match(line)
+                    if regexMatch:
+                        attr, value = regexMatch.groups(1)
+                        
+                        outDict[attr] = value
+                
+                key = utils.getLocalName(path) or path
+                outMap[key] = outDict
+
+        # Time to swap out the fields and replace
+        for k in outMap:
+            resourceMapped = self.__resourcePool.get(k, None)
+            if resourceMapped is not None:
+                freshValue = outMap[k]
+                for key, value in freshValue.items():
+                    resourceMapped[key] = value
+
+                self.__resourcePool[k] = resourceMapped
+                self.imageViewer.setIntoResourcePool(k, resourceMapped)
+
+        return outMap
 
 def main():
     argc = len(sys.argv)

@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Tue Apr 22 01:51:43 2014
-#      by: PyQt5 UI code generator 5.2
+# Created: Fri May  2 22:43:33 2014
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,14 +12,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1056, 736)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        MainWindow.resize(1034, 736)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         MainWindow.setMinimumSize(QtCore.QSize(200, 200))
-        MainWindow.setMaximumSize(QtCore.QSize(1056, 736))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.thumbnailScrollArea = QtWidgets.QScrollArea(self.centralwidget)
@@ -38,7 +37,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(100)
         sizePolicy.setHeightForWidth(self.fullSizeImageScrollArea.sizePolicy().hasHeightForWidth())
         self.fullSizeImageScrollArea.setSizePolicy(sizePolicy)
-        self.fullSizeImageScrollArea.setMinimumSize(QtCore.QSize(681, 451))
+        self.fullSizeImageScrollArea.setMinimumSize(QtCore.QSize(971, 521))
         self.fullSizeImageScrollArea.setWidgetResizable(True)
         self.fullSizeImageScrollArea.setObjectName("fullSizeImageScrollArea")
         self.midWidget = QtWidgets.QWidget()
@@ -53,7 +52,7 @@ class Ui_MainWindow(object):
         self.countDisplayLabel.setObjectName("countDisplayLabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1056, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1034, 22))
         self.menubar.setDefaultUp(False)
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)

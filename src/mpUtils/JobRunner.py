@@ -3,12 +3,12 @@
 
 import time
 import inspect
+import threading
 import multiprocessing
-from threading import Thread
 
 class JobRunner(object):
     def __init__(self):
-        pass
+        self.__spawnedThreadList = []
 
     def locker(self, func, lock):
         def __anon(*args, **kwargs):
@@ -72,20 +72,28 @@ class JobRunner(object):
             return results
 
     def __runASync(self, func, callback, *args, **kwargs):
-        runnable = Thread(
+        runnable = threading.Thread(
             target=self.__run, args=(func, callback, args, kwargs,)
         )
         runnable.start()
+        self.__spawnedThreadList.append(runnable)
 
     def __runSync(self, func, *args, **kwargs):
         return self.__run(func, None, *args, **kwargs)
 
     def run(self, func, lock, callback, *args, **kwargs):
+        print('\033[47m', self.__spawnedThreadList, '\033[00m')
         __functor = self.locker(func, lock if lock else multiprocessing.RLock())
         if callback:
             return self.__runASync(__functor, callback, *args, **kwargs)
         else:
             return self.__runSync(__functor, *args, **kwargs)
+
+    def close(self):
+        for i, th in enumerate(self.__spawnedThreadList):
+            if th.isAlive():
+                print('\033[42mJoining thread: #', i, th, '\033[00m')
+                th.join()
 
 def main():
     sharedResource = dict()

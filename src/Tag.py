@@ -21,13 +21,17 @@ def tagFromSource(srcDict):
 
 class LabelEntryPair(object):
     def __init__(
-      self, labelText, isMultiLine=True, title=None, parent=None,
+      self, labelText, isEditable, isMultiLine=True, title=None, parent=None,
       labelLocation=(), entryText=None, entryLocation=()
     ):
         self.__title = title
         self.__labelWidget = QtWidgets.QLabel(labelText, parent=parent)
         self.isMultiLine = isMultiLine
-        __widget = QtWidgets.QTextEdit if isMultiLine else QtWidgets.QLineEdit
+
+        __widget = QtWidgets.QLabel
+        if isEditable:
+            __widget = QtWidgets.QTextEdit if isMultiLine else QtWidgets.QLineEdit
+
         self.__textGetter = 'toPlainText' if isMultiLine else 'text'
         self.__entryWidget = __widget(parent)
         self.__entryWidget.setText(entryText)
@@ -78,19 +82,19 @@ class Tag(QtWidgets.QWidget):
         self.metaData  = metaData
         self.parent    = parent
         self.onSubmit    = onSubmit if onSubmit else lambda c: print(c)
-        self.setWindowFlags(Qt.FramelessWindowHint)
+        # self.setWindowFlags(Qt.FramelessWindowHint)
         self.initUI()
 
     def initUI(self):
         self.entries = []
         for entry in self.entryList:
             labelEntryItem = LabelEntryPair(
-              entry.title, title=entry.title,
-              isMultiLine = entry.isMultiLine,
-              labelLocation=entry.labelLocation,
-              entryLocation=entry.entryLocation, entryText=entry.entryText
+                entry.title, title=entry.title,isMultiLine = entry.isMultiLine,
+                labelLocation=entry.labelLocation, isEditable=entry.isEditable,
+                entryLocation=entry.entryLocation, entryText=entry.entryText
             )
             self.entries.append(labelEntryItem)
+
         self.grid = QtWidgets.QGridLayout()
         self.grid.setSpacing(self.spacing)
 
@@ -119,7 +123,7 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        self.onSubmit((self.serialize(), self.getContent())) 
+        self.onSubmit(self.getContent())
         self.close()
 
         # serialized = self.serialize()
@@ -147,9 +151,9 @@ def main():
       location = utils.DynaItem(dict(x=600, y=200)),
       onSubmit = lambda content: print(content),
       entryList = [
-        utils.DynaItem(dict(title='Target', isMultiLine=False, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
-        utils.DynaItem(dict(title='Author', isMultiLine=False, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
-        utils.DynaItem(dict(title='Approx', isMultiLine=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
+        utils.DynaItem(dict(title='Target', isMultiLine=False, isEditable=True, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Author', isMultiLine=False, isEditable=True, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
+        utils.DynaItem(dict(title='Approx', isMultiLine=True,  isEditable=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
     ])
 
     sys.exit(app.exec_())

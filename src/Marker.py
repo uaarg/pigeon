@@ -95,7 +95,7 @@ class Marker(QtWidgets.QPushButton):
         self.setIconSize(QtCore.QSize(self.width() * 0.7, self.height() * 0.7))
 
     def addTaggedInfo(self, tagIn):
-        self.info, self.entryData = tagIn
+        self.entryData = tagIn
         if self.tag:
             self.tag.hide()
             # print('hiding tag', self.tag)
@@ -123,12 +123,19 @@ class Marker(QtWidgets.QPushButton):
                 utils.DynaItem(
                     dict(
                         labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
-                        title='Location', isMultiLine=False,entryLocation=(1, 1,)
+                        title='Location', isMultiLine=False,entryLocation=(1, 1,), isEditable=False
                     )
                 ),
-                utils.DynaItem(dict(
-                        labelLocation=(2, 0,), entryText=self.memComments,
-                        title='Comments', isMultiLine=True, entryLocation=(2, 1, 5, 1)
+                utils.DynaItem(
+                    dict(
+                        labelLocation=(2, 0), entryText=self.author, title='Author', isMultiLine=False,
+                        entryLocation=(2, 1,), isEditable=False
+                    )
+                ),
+                utils.DynaItem(
+                    dict(
+                        labelLocation=(3, 0,), entryText=self.memComments, isEditable=True,
+                        title='Comments', isMultiLine=True, entryLocation=(3, 1, 6, 1)
                     )
                 )
             ]
@@ -148,7 +155,7 @@ class Marker(QtWidgets.QPushButton):
         if hasattr(self.tag, 'close'):
             self.tag.close()
 
-        print(self, 'closing')
+        # print(self, 'closing')
         super().close()
 
     def enterEvent(self, event):
