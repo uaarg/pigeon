@@ -3,6 +3,7 @@
 # Author: Cindy Xiao <dixin@ualberta.ca>
 #         Emmanuel Odeke <odeke@ualberta.ca>
 
+import os
 import time
 import collections
 from threading import Thread
@@ -225,12 +226,31 @@ class ImageViewer(QtWidgets.QLabel):
 
         """
 
-        print(fPath[-4:])
-        if fPath and fPath[-4:] == ".jpg":
-            infoFilename = fPath[:-4] + ".txt"
-        else:
-            printf("Could not find an info file associated with the image" + fPath)
+        if not fPath:
             return -1
+
+        splitPath = os.path.split(fPath)
+        print('splitPath', splitPath)
+
+        parentDir, axiom = os.path.split(fPath)
+        print('parentDir', parentDir, 'axiom', axiom)
+
+        seqIDExtSplit = axiom.split('.')
+
+        if not seqIDExtSplit:
+            print('Erraneous format, expecting pathId and extension eg from 12.jpg')
+            return -1
+
+        seqID, ext = seqIDExtSplit
+        if ext != 'jpg':
+            print("Could not find an info file associated with the image" + fPath)
+            return -1
+
+        # Scheme assumed is that directories [info, data] have the same parent
+        grandParentDir, endAxiom = os.path.split(parentDir)
+
+        infoFilename = os.sep.join([grandParentDir, 'info', seqID + '.txt'])
+        print('infoFileName', infoFilename)
 
         # Get position 
         northing = float(GPSCoord.getInfoField(infoFilename, "utm_north"))

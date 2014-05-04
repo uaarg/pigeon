@@ -233,7 +233,6 @@ class GroundStation(QtWidgets.QMainWindow):
             self.__resourcePool[key] = valueFromResourcePool
 
         self.imageViewer.openImageInfo(fPath=path)
-
         self.ui_window.countDisplayLabel.setText(path)
 
     def handleItemPop(self):

@@ -8,19 +8,26 @@ Covers:
 
 Cindy Xiao <dixin@ualberta.ca>
 Cameron Lee <cwlee1@ualberta.ca>
+Emmanuel Odeke <odeke@ualberta.ca>
 """
 
+import os
+import re
 import sys
+
+ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 try:
     import pyproj
 except ImportError as e:
     sys.stderr.write(
-        "\033[91mNeeds module 'pyproj'. Install it by 'pip install pyproj' or 'easy_install pyproj'\033[00m"
+        "\033[91mNeeds module 'pyproj'. Install it by 'pip install pyproj' or 'easy_install pyproj'\n\033[00m"
     )
     sys.exit(-1)
     
 from math import *
+
+__INFO_FILE_CACHE__ = dict()
 
 class Position:
     """
@@ -182,6 +189,30 @@ class GeoReference:
 
         return Position(pixel_lat, pixel_lon)
 
+def getInfoDict(info_file_loc, needsRefresh=False):
+    cachedInfoDict = (not needsRefresh) and __INFO_FILE_CACHE__.get(info_file_loc, None)
+    if cachedInfoDict:
+        return cachedInfoDict
+    else: # Cache miss detected
+        if os.path.exists(info_file_loc):
+            with open(info_file_loc, 'r') as f:
+                dataIn=f.readlines()
+                outDict = dict()
+                for line in dataIn:
+                    line = line.strip('\n')
+                    regexMatch = ATTR_VALUE_REGEX_COMPILE.match(line)
+                    if regexMatch:
+                        attr, value = regexMatch.groups(1)
+                        
+                        outDict[attr] = value
+                
+                __INFO_FILE_CACHE__[info_file_loc] = outDict
+                return outDict
+        else:
+            print('\033[91mNon-existant file', info_file_loc, '\033[00m')
+
+
+
 def getInfoField(info_file_loc, field_name):
     """
     Gets the information in a field of the image info file specified by field_name.
@@ -190,22 +221,11 @@ def getInfoField(info_file_loc, field_name):
     info_file_loc - name of the image info file. 
     field_name - name of the field whose information is being retrieved.
     """
-    import re
-    
-    fin = open(info_file_loc, 'r') 
-    
-    # Search for field data
-    field_regex = re.compile( r'%s\s*=\s*(-?\d+\.?\d+)\n?' % (field_name))
-    data =  field_regex.findall( fin.read() )[0] # Better way to extract data from single-element list?
-    try:
-        float(data)
-    except:
-        data = 0
-    print("Field %s: %s" %(field_name, data) )
-    
-    fin.close()
-
-    return data
+    fileExtractedDict = getInfoDict(info_file_loc)
+    if fileExtractedDict and hasattr(fileExtractedDict, 'get'):
+        return fileExtractedDict.get(field_name, -1)
+    else:
+        return -1
 
 def centre_gps_offset(pitch, roll, yaw, alt):
     """
