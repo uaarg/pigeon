@@ -82,7 +82,6 @@ class JobRunner(object):
         return self.__run(func, None, *args, **kwargs)
 
     def run(self, func, lock, callback, *args, **kwargs):
-        print('\033[47m', self.__spawnedThreadList, '\033[00m')
         __functor = self.locker(func, lock if lock else multiprocessing.RLock())
         if callback:
             return self.__runASync(__functor, callback, *args, **kwargs)

@@ -17,6 +17,7 @@ import mpUtils.JobRunner # Local module
 
 
 curDirPath = os.path.abspath('.')
+REPORTS_DIR = './reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 DEFAULT_IMAGE_FORM_DICT = dict(
@@ -41,6 +42,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def initSaveSound(self):
         self.__saveSound = QtMultimedia.QSound('sounds/bubblePop.wav')
+
+    def initPrinter(self):
+        self.__printer = QtGui.QPrinter()
 
     def initUI(self):
         # Set up actions
@@ -291,6 +295,40 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def printCurrentImageData(self):
         print('printCurrentImageData')
+        srcPath = self.ui_window.countDisplayLabel.text()
+        key = utils.getLocalName(srcPath) or srcPath
+        
+        storedMap = self.__resourcePool.get(key, None)
+        if storedMap:
+            if not os.path.exists(REPORTS_DIR):
+                try:
+                    os.mkdir(REPORTS_DIR)
+                except Exception as e:
+                    print('\033[91m', e, '\033[00m')
+                    return
+
+            print('for', key, 'storedMap', storedMap)
+            imageInfoPath = os.path.join(REPORTS_DIR, key + '.csv')
+            with open(imageInfoPath, 'w') as f:
+                keysCurrently = [k for k in storedMap.keys() if k != 'marker_set']
+                f.write(','.join(keysCurrently))
+                f.write('\n')
+                f.write(','.join(str(storedMap[k]) for k in keysCurrently))
+                f.write('\n')
+                print('\033[92mWrote image attributes to', imageInfoPath, '\033[00m')
+
+            markerSet = storedMap.get('marker_set', [])
+            if markerSet:
+                markerInfoPath = os.path.join(REPORTS_DIR, key + '-markers.csv')
+                with open(markerInfoPath, 'w') as g:
+                    sampleElement = markerSet[0]
+                    representativeKeys = sampleElement.keys()
+                    g.write(','.join(representativeKeys))
+                    g.write('\n')
+                    for elem in markerSet:
+                        g.write(','.join([str(elem[k]) for k in representativeKeys]))
+                        g.write('\n')
+                    print('\033[94mWrote marker attributes to', markerInfoPath, '\033[00m')
         
 
     def addLocationData(self):
