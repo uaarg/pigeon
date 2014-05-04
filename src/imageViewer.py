@@ -264,6 +264,10 @@ class ImageViewer(QtWidgets.QLabel):
         point_gpsPosition = georeference_obj.pointInImage(position, orientation, point_x, point_y)
         return point_gpsPosition
 
+    def centerGeoReference(self, georeference_obj, position, orientation):
+        center_gpsPosition = georeference_obj.centerOfImage(position, orientation)
+        return center_gpsPosition
+
     def getContentFromDB(self, syncForCurrentImageOnly=False):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
         if syncForCurrentImageOnly:
@@ -333,8 +337,10 @@ class ImageViewer(QtWidgets.QLabel):
         # Left click - target location marking (temporary)
         if e.button() == 1:
             curPos = self.mapFromGlobal(self.cursor.pos())
-            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
-            (lat, lon) = pointGPSPos.latLon()
+            # pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            # (lat, lon) = pointGPSPos.latLon()
+            centerGPSPos = self.centerGeoReference(self.georeference, self.plane_position, self.plane_orientation)
+            (lat, lon) = centerGPSPos.latLon()
             print(curPos.x(), curPos.y())
             print([lat, lon])
 
@@ -343,8 +349,10 @@ class ImageViewer(QtWidgets.QLabel):
         if e.button() == 2:
             curPos = self.mapFromGlobal(self.cursor.pos())
             # Georeference the marker location
-            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
-            (lat, lon) = pointGPSPos.latLon()
+            # pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            # (lat, lon) = pointGPSPos.latLon()
+            centerGPSPos = self.centerGeoReference(self.georeference, self.plane_position, self.plane_orientation)
+            (lat, lon) = centerGPSPos.latLon()
             print(lat, lon)
 
             m = self.createMarker(utils.DynaItem(
