@@ -308,7 +308,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     return
 
             print('for', key, 'storedMap', storedMap)
-            imageInfoPath = os.path.join(REPORTS_DIR, key + '.csv')
+            imageInfoPath = os.path.join(REPORTS_DIR, key + '-image.csv')
             with open(imageInfoPath, 'w') as f:
                 keysCurrently = [k for k in storedMap.keys() if k != 'marker_set']
                 f.write(','.join(keysCurrently))
