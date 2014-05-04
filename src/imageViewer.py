@@ -193,7 +193,7 @@ class ImageViewer(QtWidgets.QLabel):
                         m = self.createMarker(
                             utils.DynaItem(dict(
                                 x=lambda : int(mData['x']), y=lambda : int(mData['y']),
-                                lat=mData['latitude'], lon=mData['longitude'],
+                                lat=mData['lat'], lon=mData['lon'],
                                 author=mData['author'], mComments=mData['comments']
                             ))
                         )
@@ -388,7 +388,7 @@ class ImageViewer(QtWidgets.QLabel):
 
     def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
-            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap, author=curPos.author,
+            parent=self, x=curPos.x(), y=curPos.y(), tree=self.childMap, author=curPos.author, lat=curPos.lat, lon=curPos.lon,
             mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDb, **kwargs
         )
 
@@ -490,6 +490,8 @@ class ImageViewer(QtWidgets.QLabel):
                     currentComments = mInfo.get('Comments', dict()).get('entryText', '')
 
                 if not data: # First time this marker is being created
+                    markerMap['lat'] = m.lat
+                    markerMap['lon'] = m.lon
                     markerMap['author'] = utils.getDefaultUserName()
                     markerMap['comments'] = currentComments
 
