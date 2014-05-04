@@ -104,7 +104,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         # Display the last added item
         self.displayThisImage(lastItem)
-        self.__saveSound.play()
+
+        if lastItem: # Sound only if there is an item to be displayed
+            self.__saveSound.play()
 
     def preparePathsForDisplay(self, dynaDictList, **kwargs):
         return self.__jobRunner.run(
@@ -120,6 +122,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.findImagesAction)
         self.toolbar.addAction(self.syncCurrentItemAction)
         self.toolbar.addAction(self.dbSyncAction)
+        self.toolbar.addAction(self.printCurrentImageDataAction)
         self.toolbar.addAction(self.exitAction)
 
     def editCurrentImage(self):
@@ -217,6 +220,11 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.addLocationDataAction.triggered.connect(self.addLocationData)
 
+        self.printCurrentImageDataAction = QtWidgets.QAction(
+            QtGui.QIcon('icons/iconmonstr-printer.png'), "&Print Current Image Info", self
+        )
+        self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
+
     def displayThisImage(self, path):
         localName = utils.getLocalName(path) or path
         curItem = self.__resourcePool.get(localName, {})
@@ -280,6 +288,10 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
+
+    def printCurrentImageData(self):
+        print('printCurrentImageData')
+        
 
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
