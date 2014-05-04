@@ -13,13 +13,15 @@ import GPSCoord # Local GPS calculation module
 
 class Marker(QtWidgets.QPushButton):
     def __init__(
-        self, parent=None, x=0, y=0, width=30,height=58, mComments=None,
+        self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, mComments=None,
         iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
         self.x = x
         self.y = y
+        self.lat = lat
+        self.lon = lon
         self.tag = None
         self.info = None
         self.tree = tree
@@ -123,19 +125,25 @@ class Marker(QtWidgets.QPushButton):
                 utils.DynaItem(
                     dict(
                         labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
-                        title='Location', isMultiLine=False,entryLocation=(1, 1,), isEditable=False
+                        title='Pixel Coords', isMultiLine=False,entryLocation=(1, 1,), isEditable=False
                     )
                 ),
                 utils.DynaItem(
                     dict(
-                        labelLocation=(2, 0), entryText=self.author, title='Author', isMultiLine=False,
-                        entryLocation=(2, 1,), isEditable=False
+                        labelLocation=(2, 0,), entryText='%s, %s'%(self.lat, self.lon),
+                        title='GPS Location', isMultiLine=False,entryLocation=(2, 1,), isEditable=False
                     )
                 ),
                 utils.DynaItem(
                     dict(
-                        labelLocation=(3, 0,), entryText=self.memComments, isEditable=True,
-                        title='Comments', isMultiLine=True, entryLocation=(3, 1, 6, 1)
+                        labelLocation=(3, 0), entryText=self.author, title='Author', isMultiLine=False,
+                        entryLocation=(3, 1,), isEditable=False
+                    )
+                ),
+                utils.DynaItem(
+                    dict(
+                        labelLocation=(4, 0,), entryText=self.memComments, isEditable=True,
+                        title='Comments', isMultiLine=True, entryLocation=(4, 1, 6, 1)
                     )
                 )
             ]

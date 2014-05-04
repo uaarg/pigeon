@@ -192,10 +192,11 @@ class ImageViewer(QtWidgets.QLabel):
                         m = self.createMarker(
                             utils.DynaItem(dict(
                                 x=lambda : int(mData['x']), y=lambda : int(mData['y']),
+                                lat=mData['latitude'], lon=mData['longitude'],
                                 author=mData['author'], mComments=mData['comments']
                             ))
                         )
-                        m.show()
+                        m.sho,w()
                         m.toggleSaved()
 
             else:
