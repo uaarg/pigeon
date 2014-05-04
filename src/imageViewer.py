@@ -197,7 +197,7 @@ class ImageViewer(QtWidgets.QLabel):
                                 author=mData['author'], mComments=mData['comments']
                             ))
                         )
-                        m.sho,w()
+                        m.show()
                         m.toggleSaved()
 
             else:
@@ -271,6 +271,8 @@ class ImageViewer(QtWidgets.QLabel):
         # Set up georeference object
         self.georeference = GPSCoord.GeoReference(self.camera)
         print("georef object set up")
+
+        return infoFilename
 
     def pointGeoReference(self, georeference_obj, position, orientation, point_x, point_y):
         """
