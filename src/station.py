@@ -40,7 +40,6 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__resourcePool = dict()
         self.setDbHandler(dbHandler)
 
-        self.initSyncCounters()
         self.initUI()
 
         self.initSaveSound()
@@ -63,13 +62,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.syncTimer = QtCore.QTimer(self)
         self.syncTimer.timeout.connect(self.querySyncStatus)
-        self.syncTimer.start(5000)
+        self.syncTimer.start(5000) # Sync every 5 seconds
 
         self.timer.start(1000)
-
-    def initSyncCounters(self):
-        self.__lastImageCount = 0
-        self.__lastMarkerCount = 0
 
     def initLCDDisplays(self):
         self.__nowLCD = self.ui_window.nowLCDNumber
@@ -92,11 +87,21 @@ class GroundStation(QtWidgets.QMainWindow):
                 self.syncUpdateAction.setText(queryData['reason'])
             else:
                 metaDict = queryData.get('meta', {})
-                curImageCount = metaDict.get('count', 0)
+                dbImageCount = metaDict.get('count', 0)
                 updateMsg = 'No new changes'
-                self.__lastImageCount = len(self.__resourcePool)
-                if curImageCount != self.__lastImageCount:
-                    updateMsg = utils.itemComparisonInWords(curImageCount, self.__lastImageCount)
+                localImageCount = len(self.__resourcePool)
+                print('dbImageCount', dbImageCount, 'lastImageCount', localImageCount)
+                diff = dbImageCount - localImageCount
+                if diff:
+                    absDiff = abs(diff)
+                    plurality = 'image' if absDiff == 1 else 'images' 
+                    if diff > 0:
+                        updateMsg = '%d %s available for downloading'%(absDiff, plurality)
+                    else:
+                        updateMsg = '%d unsaved %s'%(absDiff, plurality)
+                    self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-xbox.png'))
+                else:
+                    self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-checkbox.png'))
 
                 self.syncUpdateAction.setText(updateMsg)
         print('querying about syncStatus')
@@ -200,6 +205,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.exitAction)
 
         self.syncToolbar = self.ui_window.syncInfoToolbar
+        self.syncToolbar.addAction(self.syncIconAction)
         self.syncToolbar.addAction(self.syncUpdateAction)
 
     def editCurrentImage(self):
@@ -275,7 +281,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.dbSyncAction.setShortcut('Ctrl+R')
 
         self.__iconB = 0
-        self.syncUpdateAction = QtWidgets.QAction("&No new updates", self)
+        self.syncUpdateAction = QtWidgets.QAction("&Updates Info", self)
+        self.syncIconAction = QtWidgets.QAction("&SyncStatus", self)
 
         # Exit
         self.exitAction = QtWidgets.QAction(QtGui.QIcon('icons/exit.png'), "&Exit", self)
@@ -334,6 +341,8 @@ class GroundStation(QtWidgets.QMainWindow):
         if currentItem:
             self.imageViewer.deleteImageFromDb(currentItem)
             nextItemOnDisplay = self.iconStrip.popIconItem(currentItem, None)
+            key = utils.getLocalName(currentItem) or currentItem
+            print('popping', self.__resourcePool.pop(key, None))
 
         self.displayThisImage(nextItemOnDisplay)
 
