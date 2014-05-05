@@ -43,9 +43,6 @@ class GroundStation(QtWidgets.QMainWindow):
     def initSaveSound(self):
         self.__saveSound = QtMultimedia.QSound('sounds/bubblePop.wav')
 
-    def initPrinter(self):
-        self.__printer = QtGui.QPrinter()
-
     def initUI(self):
         # Set up actions
         self.initActions()
@@ -78,6 +75,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.locationDataDialog.setFileMode(3) # Multiple files can be selected
         self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
 
+        self.msgQBox = QtWidgets.QMessageBox(parent=self)
     def __normalizeFileAdding(self, paths):
         # Ensuring that paths added are relative to a common source eg
         # Files from folder ./data will be present on all GCS stations
@@ -245,7 +243,9 @@ class GroundStation(QtWidgets.QMainWindow):
             self.__resourcePool[key] = valueFromResourcePool
 
         associatedTextFile = self.imageViewer.openImageInfo(fPath=path)
-        self.processAssociatedDataFiles([associatedTextFile])
+        if associatedTextFile != -1:
+            print('associatedTextFile', associatedTextFile)
+            self.processAssociatedDataFiles([associatedTextFile])
 
         self.ui_window.countDisplayLabel.setText(path)
 
@@ -286,7 +286,7 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(self.fileDialog, QtWidgets.QFileDialog):
             self.fileDialog.show()
         else:
-            qBox = QMessageBox(parent=self)
+            qBox = QtWidgets.QMessageBox(parent=self)
             qBox.setText('FileDialog was not initialized')
             qBox.show()
 
@@ -309,15 +309,18 @@ class GroundStation(QtWidgets.QMainWindow):
 
             print('for', key, 'storedMap', storedMap)
             imageInfoPath = os.path.join(REPORTS_DIR, key + '-image.csv')
+            imagesIn = markersIn = False
             with open(imageInfoPath, 'w') as f:
                 keysCurrently = [k for k in storedMap.keys() if k != 'marker_set']
                 f.write(','.join(keysCurrently))
                 f.write('\n')
                 f.write(','.join(str(storedMap[k]) for k in keysCurrently))
                 f.write('\n')
-                print('\033[92mWrote image attributes to', imageInfoPath, '\033[00m')
+                imagesIn = True
 
             markerSet = storedMap.get('marker_set', [])
+            markerInfoPath = None
+
             if markerSet:
                 markerInfoPath = os.path.join(REPORTS_DIR, key + '-markers.csv')
                 with open(markerInfoPath, 'w') as g:
@@ -328,14 +331,28 @@ class GroundStation(QtWidgets.QMainWindow):
                     for elem in markerSet:
                         g.write(','.join([str(elem[k]) for k in representativeKeys]))
                         g.write('\n')
+                    markersIn = True
                     print('\033[94mWrote marker attributes to', markerInfoPath, '\033[00m')
-        
+       
+            if (imagesIn or markersIn): 
+                msg = 'Wrote: '
+                if imagesIn:
+                    msg += '\nimage information to: %s'%(imageInfoPath)
+                if markersIn:
+                    msg += '\nmarker information to: %s'%(markerInfoPath)
+
+                print('\033[92m', msg, '\033[00m')
+                if not hasattr(self.msgQBox, 'setText'):
+                    self.msgQBox = QtWidgets.QMessageBox(parent=self)
+
+                self.msgQBox.setText(msg)
+                self.msgQBox.show()
 
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
             self.locationDataDialog.show()
         else:
-            qBox = QMessageBox(parent=self)
+            qBox = QtWidgets.QMessageBox(parent=self)
             qBox.setText('FileDialog was not initialized')
             qBox.show()
 
