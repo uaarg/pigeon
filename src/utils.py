@@ -12,6 +12,17 @@ import json
 _404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
 _PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
 
+getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
+pathExists = lambda p : p and os.path.exists(p)
+isDir = lambda p : pathExists(p) and stat.S_ISDIR(getStatDict(p).st_mode)
+isReg = lambda p : pathExists(p) and stat.S_ISREG(getStatDict(p).st_mode)
+
+def itemComparisonInWords(countA, countB):
+    diff = countA - countB
+    if diff != 0:
+        absDiff = abs(diff)
+        return '%d %s'%(absDiff, 'less' if diff < 0 else 'more')
+
 def getStatDict(path):
   if pathExists(path):
     return os.stat(path)
@@ -27,11 +38,6 @@ def getLocalName(path):
     if splitPath:
         dirLocation, localName, extension = splitPath
         return localName
-
-getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
-pathExists = lambda p : p and os.path.exists(p)
-isDir = lambda p : pathExists(p) and stat.S_ISDIR(getStatDict(p).st_mode)
-isReg = lambda p : pathExists(p) and stat.S_ISREG(getStatDict(p).st_mode)
 
 def getPathsLike(regexList, srcDir=None):
   originalPath = None

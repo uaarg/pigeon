@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'gcs.ui'
 #
-# Created: Wed Apr 30 00:41:09 2014
+# Created: Mon May  5 15:07:14 2014
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -51,10 +51,24 @@ class Ui_MainWindow(object):
         self.countDisplayLabel.setText("")
         self.countDisplayLabel.setObjectName("countDisplayLabel")
         self.imageAttributesFrame = QtWidgets.QFrame(self.centralwidget)
-        self.imageAttributesFrame.setGeometry(QtCore.QRect(1010, 20, 221, 521))
+        self.imageAttributesFrame.setGeometry(QtCore.QRect(1020, 20, 221, 521))
         self.imageAttributesFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.imageAttributesFrame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.imageAttributesFrame.setObjectName("imageAttributesFrame")
+        self.lastSyncLCDNumber = QtWidgets.QLCDNumber(self.imageAttributesFrame)
+        self.lastSyncLCDNumber.setGeometry(QtCore.QRect(60, 0, 64, 23))
+        self.lastSyncLCDNumber.setStyleSheet("font: 13pt \".Lucida Grande UI\";background-color:rgb(255,255,255);")
+        self.lastSyncLCDNumber.setObjectName("lastSyncLCDNumber")
+        self.nowLCDNumber = QtWidgets.QLCDNumber(self.imageAttributesFrame)
+        self.nowLCDNumber.setGeometry(QtCore.QRect(60, 30, 64, 23))
+        self.nowLCDNumber.setStyleSheet("font: 13pt \".Lucida Grande UI\";background-color:rgb(255,255,255);")
+        self.nowLCDNumber.setObjectName("nowLCDNumber")
+        self.label = QtWidgets.QLabel(self.imageAttributesFrame)
+        self.label.setGeometry(QtCore.QRect(0, 0, 62, 16))
+        self.label.setObjectName("label")
+        self.label_2 = QtWidgets.QLabel(self.imageAttributesFrame)
+        self.label_2.setGeometry(QtCore.QRect(0, 30, 62, 16))
+        self.label_2.setObjectName("label_2")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1247, 22))
@@ -67,6 +81,9 @@ class Ui_MainWindow(object):
         self.toolBar = QtWidgets.QToolBar(MainWindow)
         self.toolBar.setObjectName("toolBar")
         MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+        self.syncInfoToolbar = QtWidgets.QToolBar(MainWindow)
+        self.syncInfoToolbar.setObjectName("syncInfoToolbar")
+        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.syncInfoToolbar)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -74,5 +91,8 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.label.setText(_translate("MainWindow", "LastSync"))
+        self.label_2.setText(_translate("MainWindow", "Now"))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+        self.syncInfoToolbar.setWindowTitle(_translate("MainWindow", "toolBar_2"))
 

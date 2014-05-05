@@ -15,25 +15,24 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap
 
 import utils # Local module
 import Marker # Local module
-import DbLiason # Local module
 import GPSCoord # Local module for GPS coordinate calculations
 import mpUtils.JobRunner
 
 class ImageViewer(QtWidgets.QLabel):
-    # TODO: Provide configuration for the DBLiason
-    __gcsH = DbLiason.GCSHandler('http://127.0.0.1:8000/gcs')
-    __imageHandler  = __gcsH.imageHandler
-    __markerHandler = __gcsH.markerHandler
     __jobRunner     = mpUtils.JobRunner.JobRunner()
 
-    def __init__(self, parent=None, treeMap=None):
+    def __init__(self, dbHandler, parent=None):
         super(ImageViewer, self).__init__(parent)
 
         # Set up cursor
         self.cursor = QCursor(Qt.CrossCursor)
         self.setCursor(self.cursor)
 
+        self.initDbHandler(dbHandler)
         self.initResources()
+
+    def initDbHandler(self, dbHandler):
+        self.__dbHandler = dbHandler
 
     def initResources(self):
         self.__fileOnDisplay = None
@@ -92,12 +91,12 @@ class ImageViewer(QtWidgets.QLabel):
 
         if memData and memData.get('id', -1) != -1:
             mDelResponse = utils.produceAndParse(
-                self.__markerHandler.deleteConn, dict(associatedImage_id=memData['id'])
+                self.__dbHandler.markerHandler.deleteConn, dict(associatedImage_id=memData['id'])
             )
             print('mDelResponse', mDelResponse)
 
         imgDelResponse = utils.produceAndParse(
-            self.__imageHandler.deleteConn, dict(title=title)
+            self.__dbHandler.imageHandler.deleteConn, dict(title=title)
         )
 
         print('imgDelResponse', imgDelResponse, title)
@@ -115,7 +114,7 @@ class ImageViewer(QtWidgets.QLabel):
         iId, savedLastEditTime = savValue
         if iId > 0:
             mDelResponse = utils.produceAndParse(
-                self.__markerHandler.deleteConn,
+                self.__dbHandler.markerHandler.deleteConn,
                 dict(x=x, y=y, associatedImage_id=iId)
             )
 
@@ -148,12 +147,12 @@ class ImageViewer(QtWidgets.QLabel):
             isFirstEntry = False
             imageAttributeDict['id'] = memData['id'] # Checking with the old
 
-            parsedResponse = utils.produceAndParse(func=self.__imageHandler.putConn, dataIn=imageAttributeDict)
+            parsedResponse = utils.produceAndParse(func=self.__dbHandler.imageHandler.putConn, dataIn=imageAttributeDict)
 
             # Now getting attributes returned from db syncing
         else:
             imageAttributeDict['title'] = imageTitle
-            parsedResponse = utils.produceAndParse(func=self.__imageHandler.postConn, dataIn=imageAttributeDict)
+            parsedResponse = utils.produceAndParse(func=self.__dbHandler.imageHandler.postConn, dataIn=imageAttributeDict)
 
             imageAttributeDict['id'] = parsedResponse.get('id', -1)
             
@@ -290,20 +289,25 @@ class ImageViewer(QtWidgets.QLabel):
         center_gpsPosition = georeference_obj.centerOfImage(position, orientation)
         return center_gpsPosition
 
-    def getContentFromDB(self, syncForCurrentImageOnly=False):
+    def getContentFromDB(self, syncForCurrentImageOnly=False, metaSaveDict=None):
         connArgs = dict(sort='lastTimeEdit_r') # Getting the most recently edited first
         if syncForCurrentImageOnly:
             connArgs['title'] =  self.__fileOnDisplay
 
         parsedResponse = utils.produceAndParse(
-            self.__imageHandler.getConn, connArgs
+            self.__dbHandler.imageHandler.getConn, connArgs
         )
     
         data = parsedResponse.get('data', [])
+        if isinstance(metaSaveDict, dict):
+            for key in parsedResponse:
+                if key != 'data':
+                    metaSaveDict[key] = parsedResponse[key]
+
         return data
 
-    def loadContentFromDb(self, syncForCurrentImageOnly=False):
-        data = self.getContentFromDB(syncForCurrentImageOnly)
+    def loadContentFromDb(self, syncForCurrentImageOnly=False, metaSaveDict=None):
+        data = self.getContentFromDB(syncForCurrentImageOnly, metaSaveDict=metaSaveDict)
 
         if data:
             inOrderItems = [] 
@@ -342,7 +346,7 @@ class ImageViewer(QtWidgets.QLabel):
                             m = self.createMarker(
                                 utils.DynaItem(dict(
                                     x=lambda : int(mData['x']), y=lambda : int(mData['y']),
-                                    author=mData['author'], mComments=mData['comments']
+                                    author=mData['author'], mComments=mData['comments'], lat=mData['lat'], lon=mData['lon']
                                 ))
                             )
                             m.show()
@@ -399,6 +403,7 @@ class ImageViewer(QtWidgets.QLabel):
     def checkSyncOfEditTimes(self, path=None, onlyRequiresLastTimeCheck=True): 
         return self.__jobRunner.run(self.__checkSyncOfEditTimes, None, None, path, onlyRequiresLastTimeCheck)
 
+
     def __checkSyncOfEditTimes(self, *args):
         path, onlyRequiresLastTimeCheck = args
         queryDict = dict(format='short', title=path)
@@ -407,7 +412,7 @@ class ImageViewer(QtWidgets.QLabel):
             queryDict['select'] = 'lastTimeEdit'
 
         parsedResponse = utils.produceAndParse(
-          func=self.__imageHandler.getConn, dataIn=queryDict
+          func=self.__dbHandler.imageHandler.getConn, dataIn=queryDict
         )
 
         data = parsedResponse.get('data', None) if hasattr(parsedResponse, 'get') else None
@@ -456,7 +461,7 @@ class ImageViewer(QtWidgets.QLabel):
             print('No edit was recently performed for', path)
         else: # First time image is being registered
             parsedResponse = utils.produceAndParse(
-              func=self.__imageHandler.postConn,
+              func=self.__dbHandler.imageHandler.postConn,
               dataIn= dict(uri=path, title=path, author=utils.getDefaultUserName())
             )
 
@@ -483,7 +488,7 @@ class ImageViewer(QtWidgets.QLabel):
                   format='short', select='comments' # No need for foreign keys and extras
                 )
                 markerQuery = utils.produceAndParse(
-                  self.__markerHandler.getConn, markerMap
+                  self.__dbHandler.markerHandler.getConn, markerMap
                 )
                 data = markerQuery.get('data', None)
                 currentComments = ''
@@ -498,16 +503,15 @@ class ImageViewer(QtWidgets.QLabel):
                     markerMap['comments'] = currentComments
 
                     postResponse = utils.produceAndParse(
-                      self.__markerHandler.postConn, markerMap
+                      self.__dbHandler.markerHandler.postConn, markerMap
                     )
                     m.toggleSaved()
                 else:
                     for retr in data:
                         commentsFromDb = retr['comments']
-                        # print('currentComments', currentComments, commentsFromDb)
                         if currentComments != commentsFromDb: # Time for a put here
                             putResponse = utils.produceAndParse(
-                                self.__markerHandler.putConn, dict(id=retr['id'], comments=currentComments)
+                                self.__dbHandler.markerHandler.putConn, dict(id=retr['id'], comments=currentComments)
                             )
                             print('putResponse', putResponse)
 

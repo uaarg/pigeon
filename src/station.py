@@ -4,14 +4,17 @@
 import os
 import re
 import sys
+import time
 import threading
-from PyQt5 import QtWidgets, QtGui, QtMultimedia
+import inspect
+from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
 import utils # Local module
 import Tag # Local module
 import iconStrip # Local module
+import DbLiason # Local module
 import imageViewer # Local module
 import mpUtils.JobRunner # Local module
 
@@ -28,17 +31,80 @@ DEFAULT_IMAGE_FORM_DICT = dict(
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
-    def __init__(self, parent=None):
+    def __init__(self, dbHandler, parent=None):
         super(GroundStation, self).__init__(parent)
 
         self.ui_window = gcs.Ui_MainWindow()
         self.ui_window.setupUi(self)
 
         self.__resourcePool = dict()
+        self.setDbHandler(dbHandler)
 
+        self.initSyncCounters()
         self.initUI()
+
         self.initSaveSound()
-        self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
+
+        self.initLCDDisplays()
+        self.initTimers()
+
+        # Now load all content from the DB
+        self.dbSync()
+
+    def setDbHandler(self, dbHandler):
+        self.__dbHandler = dbHandler
+
+    def getDbHandler(self):
+        return self.__dbHandler
+
+    def initTimers(self):
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.showCurrentTime)
+
+        self.syncTimer = QtCore.QTimer(self)
+        self.syncTimer.timeout.connect(self.querySyncStatus)
+        self.syncTimer.start(5000)
+
+        self.timer.start(1000)
+
+    def initSyncCounters(self):
+        self.__lastImageCount = 0
+        self.__lastMarkerCount = 0
+
+    def initLCDDisplays(self):
+        self.__nowLCD = self.ui_window.nowLCDNumber
+        self.__nowLCD.setDigitCount(8)
+
+        self.__lastSyncLCD = self.ui_window.lastSyncLCDNumber
+        self.__lastSyncLCD.setDigitCount(8)
+
+        self.showCurrentTime()
+
+    def getCurrentIcon(self, t):
+        return 'icons/iconmonstr-xbox.png' if t & 1 else 'icons/iconmonstr-checkbox.png'
+
+    def querySyncStatus(self):
+        queryData = utils.produceAndParse(self.__dbHandler.imageHandler.getConn,
+            dict(select='id,lastEditTime', limit=0, sort='lastEditTime_r')
+        )
+        if isinstance(queryData, dict):
+            if hasattr(queryData, 'reason'):
+                self.syncUpdateAction.setText(queryData['reason'])
+            else:
+                metaDict = queryData.get('meta', {})
+                curImageCount = metaDict.get('count', 0)
+                updateMsg = 'No new changes'
+                self.__lastImageCount = len(self.__resourcePool)
+                if curImageCount != self.__lastImageCount:
+                    updateMsg = utils.itemComparisonInWords(curImageCount, self.__lastImageCount)
+
+                self.syncUpdateAction.setText(updateMsg)
+        print('querying about syncStatus')
+
+    def showCurrentTime(self):
+        time = QtCore.QTime.currentTime()
+        text = time.toString('hh:mm:ss')
+        self.__nowLCD.display(text)
 
     def initSaveSound(self):
         self.__saveSound = QtMultimedia.QSound('sounds/bubblePop.wav')
@@ -53,13 +119,16 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initFileDialogs()
         self.initImageViewer()
         self.initStrip()
+
         self.ui_window.countDisplayLabel.show()
 
     def initImageViewer(self):
         self.imageViewer = imageViewer.ImageViewer(
-            self.ui_window.fullSizeImageScrollArea
+            dbHandler=self.__dbHandler, parent=self.ui_window.fullSizeImageScrollArea
         )
         self.ui_window.fullSizeImageScrollArea.setWidget(self.imageViewer)
+
+        self.imgAttrFrame = self.ui_window.imageAttributesFrame
 
     def initStrip(self):
         self.iconStrip = iconStrip.IconStrip(self)
@@ -76,6 +145,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
+
     def __normalizeFileAdding(self, paths):
         # Ensuring that paths added are relative to a common source eg
         # Files from folder ./data will be present on all GCS stations
@@ -89,8 +159,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.preparePathsForDisplay(normalizedPaths)
 
-    def __preparePathsForDisplay(self, pathDictList):
+    def __preparePathsForDisplay(self, pathDictListTuple, onFinish=None):
         lastItem = None
+        pathDictList = pathDictListTuple[0] if isinstance(pathDictListTuple, tuple) else pathDictListTuple
         for index, pathDict in enumerate(pathDictList):
         
             path = pathDict.get('uri', None)
@@ -110,10 +181,11 @@ class GroundStation(QtWidgets.QMainWindow):
         if lastItem: # Sound only if there is an item to be displayed
             self.__saveSound.play()
 
-    def preparePathsForDisplay(self, dynaDictList, **kwargs):
-        return self.__jobRunner.run(
-            self.__preparePathsForDisplay, None, None, dynaDictList, **kwargs
-        )
+        if hasattr(onFinish, '__call__'):
+            onFinish()
+
+    def preparePathsForDisplay(self, dynaDictList, callback=None):
+        return self.__preparePathsForDisplay(dynaDictList, callback)
         
     def initToolBar(self):
         self.toolbar  = self.ui_window.toolBar;
@@ -126,6 +198,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.dbSyncAction)
         self.toolbar.addAction(self.printCurrentImageDataAction)
         self.toolbar.addAction(self.exitAction)
+
+        self.syncToolbar = self.ui_window.syncInfoToolbar
+        self.syncToolbar.addAction(self.syncUpdateAction)
 
     def editCurrentImage(self):
         print('Editing Current Image', self.ui_window.countDisplayLabel.text())
@@ -149,11 +224,10 @@ class GroundStation(QtWidgets.QMainWindow):
                 )
             ))
 
-        imgAttrFrame = self.ui_window.imageAttributesFrame
 
         imageTag = Tag.Tag(
-            size=utils.DynaItem(dict(x=imgAttrFrame.width(), y=imgAttrFrame.height())),
-            location=utils.DynaItem(dict(x=imgAttrFrame.x(), y=imgAttrFrame.y())),
+            size=utils.DynaItem(dict(x=self.imgAttrFrame.width(), y=self.imgAttrFrame.height())),
+            location=utils.DynaItem(dict(x=self.imgAttrFrame.x(), y=self.imgAttrFrame.y())),
             title='Location data for: ' + utils.getLocalName(self.ui_window.countDisplayLabel.text()),
             onSubmit=self.saveCurrentImageContent,
             entryList=entryList
@@ -199,6 +273,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.dbSyncAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
+
+        self.__iconB = 0
+        self.syncUpdateAction = QtWidgets.QAction("&No new updates", self)
 
         # Exit
         self.exitAction = QtWidgets.QAction(QtGui.QIcon('icons/exit.png'), "&Exit", self)
@@ -265,11 +342,38 @@ class GroundStation(QtWidgets.QMainWindow):
         
         self.imageViewer.syncCurrentItem(path=savText)
 
+    def setSyncTime(self, *args):
+        time = QtCore.QTime.currentTime()
+        text = time.toString('hh:mm:ss')
+        self.__lastSyncLCD.display(text)
+
     def dbSync(self):
-        self.preparePathsForDisplay(self.imageViewer.loadContentFromDb())
+        metaSaveDict = dict()
+        result = self.preparePathsForDisplay(
+            self.imageViewer.loadContentFromDb(metaSaveDict=metaSaveDict),
+            callback=self.setSyncTime
+        )
+        print('After syncing', result)
+
+        print('metaSaveDict', metaSaveDict)
+        if isinstance(metaSaveDict, dict):
+            # TODO: Memoize the time on the server to aid in versioning
+            timeOnServer = metaSaveDict.get('currentTime', None)
+            '''
+            if timeOnServer is not None:
+                strTime = time.ctime(timeOnServer)
+                structOfTime = time.strptime(strTime)
+                outStr = '{h}:{m}:{s}'.format(  
+                    h=structOfTime.tm_hour, m=structOfTime.tm_min, s=structOfTime.tm_sec
+                )
+                self.__lastSyncLCD.display(outStr)
+            '''
 
     def cleanUpAndExit(self):
         self.iconStrip.close()
+
+        self.timer.close()
+        self.lcd.close()
 
         self.fileDialog.close()
         self.locationDataDialog.close()
@@ -393,7 +497,8 @@ def main():
     argc = len(sys.argv)
     app = QtWidgets.QApplication(sys.argv)
 
-    gStation = GroundStation()
+    dbConnector = DbLiason.GCSHandler('http://127.0.0.1:8000/gcs')
+    gStation = GroundStation(dbConnector)
     gStation.show()
 
     sys.exit(app.exec_())
