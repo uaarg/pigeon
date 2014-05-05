@@ -56,3 +56,20 @@ ESTIMATOR:z-estimator
 
 ground altitude: set in flightplan?
 
+Running the ground station
+--------------------------
+For commandline arguments:
+        Provide the address on which to connect to the DB provided by restAssured[See docs/dependencies]
+        
+          + python station.py -p 8000 -i http://127.0.0.1
+            which is equivalent to 
+          + python station.py --port 8000 --ip http://127.0.0.1
+
+        For help with the arguments:
+            python station.py --help
+                Usage: station.py [options]
+
+                Options:
+                    -h, --help            show this help message and exit
+                    -i IP, --ip=IP        Port server is on
+                    -p PORT, --port=PORT  IP address db connects to

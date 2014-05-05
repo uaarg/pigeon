@@ -496,9 +496,15 @@ class GroundStation(QtWidgets.QMainWindow):
 def main():
     argc = len(sys.argv)
     app = QtWidgets.QApplication(sys.argv)
+    args, options = utils.cliParser()
 
-    dbConnector = DbLiason.GCSHandler('http://127.0.0.1:8000/gcs')
+    # Time to get address that the DB can be connected to via
+    dbAddress = '{ip}:{port}/gcs'.format(ip=args.ip.strip('/'), port=args.port.strip('/'))
+    print('Connecting via: \033[92m dbAddress', dbAddress, '\033[00m')
+       
+    dbConnector = DbLiason.GCSHandler(dbAddress)
     gStation = GroundStation(dbConnector)
+
     gStation.show()
 
     sys.exit(app.exec_())

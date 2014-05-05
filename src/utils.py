@@ -8,6 +8,7 @@ import sys
 import stat
 import glob
 import json
+from optparse import OptionParser
 
 _404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
 _PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
@@ -74,6 +75,13 @@ def produceAndParse(func, dataIn):
         return dict(reason = e)
     else:
         return dict()
+
+def cliParser():
+    parser = OptionParser()
+    parser.add_option('-i', '--ip', default='http://127.0.0.1', help='Port server is on', dest='ip')
+    parser.add_option('-p', '--port', default='8000', help='IP address db connects to', dest='port')
+
+    return parser.parse_args()
 
 class DynaItem:
   def __init__(self, initArgs):

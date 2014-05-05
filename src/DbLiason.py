@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
 import json
@@ -16,6 +17,7 @@ class DbConn:
     req.add_header('Content-Type', 'application/json')
     req.get_method = lambda : method.upper()
     dataOut = dict()
+    statusCode = 500
     try:
       uR = urllib.request.urlopen(req, bytes(fmtdData, encoding='utf-8'))
     except Exception as e:
@@ -23,6 +25,10 @@ class DbConn:
       dataOut['reason'] = e
     else:
       dataOut['value'] = uR.read()
+      statusCode = uR.getcode()
+    finally:
+      dataOut['status_code'] = statusCode
+
     return dataOut
 
   def get(self, data):
