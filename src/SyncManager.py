@@ -27,17 +27,21 @@ class SyncManager:
     def getMarkerSetByKey(self, key):
         return self.getImageAttrsByKey(key).get('marker_set', [])
 
-    def syncFromDB(self, title=None, metaDict=None, qId=-1):
+    def syncFromDB(self, title=None, uri=None, metaDict=None, qId=-1):
         queryDict = dict(sort='lastTimeEdit_r')
         if title:
             queryDict['title'] = title
 
+        if uri:
+            queryDict['uri'] = uri
+
         if qId and qId > 0:
             queryDict['id'] = qId
 
+
         queryResponse = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, dataIn=queryDict)
         if hasattr(queryResponse, 'reason'):  # An error here
-            pass
+            print('queryResponse', queryResponse['reason'])
         else:
             data = queryResponse.get('data', [])
             for item in data:
@@ -52,7 +56,6 @@ class SyncManager:
                 for index, m in enumerate(dbMarkerSet):
                     self.__reverseMarkerPool[(m.get('id', -1), targetID,)] = (index, localKey,)
 
-            # print('data', data)
             if hasattr(metaDict, 'get'):
                 dbMetaDict = queryResponse.get('meta', {})
                 for k, v in  dbMetaDict.items():
@@ -101,7 +104,7 @@ class SyncManager:
         associatedImageId = self.getImageAttrsByKey(associatedKey).get('id', -1)
         results = None
         if associatedImageId > 0:
-            results = []
+            resMap = []
             
             for markerDict in markerDictList:
                 getterFunc = markerDict.get('getter', lambda: {})
@@ -109,7 +112,6 @@ class SyncManager:
                 dataDict['associatedImage_id'] = associatedImageId
                 
                 saveResult = self.saveMarkerToDB(dataDict)
-                print('saveResult', saveResult)
                 if saveResult.get('id') != -1:
                     onSuccess = markerDict.get('onSuccess', lambda: {})
                     onSuccess()
@@ -117,9 +119,9 @@ class SyncManager:
                     onFailure = markerDict.get('onFailure', lambda: {})
                     onFailure()
 
-                results.append(saveResult)
+                resMap.append(saveResult)
 
-            results = dict(associatedImageId=associatedImageId, data=results)
+            results = dict(associatedImageId=associatedImageId, data=resMap)
             
         return results
 
@@ -134,9 +136,12 @@ class SyncManager:
             methodName = 'postConn'
             elemAttrDict.pop('id', None) # Let the DB decide what Id to assign to you
 
-        print('elemAttrDict', elemAttrDict, 'methodName', methodName)
         func = getattr(self.__dbHandler.imageHandler, methodName)
-        return func(elemAttrDict).get('status_code', 400)
+        parsedResponse = utils.produceAndParse(func, elemAttrDict)
+        idFromDB = parsedResponse.get('id', -1)
+        self.__resourcePool[path]['id'] = idFromDB
+            
+        return 200
 
     def getKeys(self):
         return self.__resourcePool.keys()
@@ -190,7 +195,6 @@ class SyncManager:
         return delResponse
 
     def editLocalImage(self, key, attrDict):
-        print('editLocalImage', attrDict, key)
         memDict = self.getImageAttrsByKey(key)
         for k, v in attrDict.items():
             memDict[k] = v

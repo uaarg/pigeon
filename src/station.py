@@ -69,7 +69,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.syncTimer = QtCore.QTimer(self)
         self.syncTimer.timeout.connect(self.querySyncStatus)
-        self.syncTimer.start(8000) # Sync every 8 seconds
+        self.syncTimer.start(5000) # Sync every 8 seconds
 
         self.timer.start(1000)
 
@@ -108,14 +108,13 @@ class GroundStation(QtWidgets.QMainWindow):
                         updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
                 curItemSyncStatus = self.syncManager.needsSync(path=self.ui_window.countDisplayLabel.text())
-                print('curItemSyncStatus', curItemSyncStatus)
+                # print('curItemSyncStatus', curItemSyncStatus)
                 if curItemSyncStatus == constants.IS_IN_SYNC:
                     self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-cloud-syncd.png'))
                 else:
                     self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-cloud-unsyncd.png'))
 
                 self.syncUpdateAction.setText(updateMsg)
-        # print('querying about syncStatus')
 
     def showCurrentTime(self):
         time = QtCore.QTime.currentTime()
@@ -141,7 +140,7 @@ class GroundStation(QtWidgets.QMainWindow):
     def initImageDisplayer(self):
         self.ImageDisplayer = ImageDisplayer.ImageDisplayer(
             parent=self.ui_window.fullSizeImageScrollArea,
-            onDeleteMarkerFromDb=self.deleteMarkerFromDB
+            onDeleteMarkerFromDB=self.deleteMarkerFromDB
         )
         self.ui_window.fullSizeImageScrollArea.setWidget(self.ImageDisplayer)
 
@@ -172,15 +171,14 @@ class GroundStation(QtWidgets.QMainWindow):
             if path.find(curDirPath) >= 0:
                 path = '.' + path.split(curDirPath)[1]
 
-            normalizedPaths.append(dict(uri=path))
+            normalizedPaths.append(dict(uri=path, title=path))
 
         self.preparePathsForDisplay(normalizedPaths)
 
     def __preparePathsForDisplay(self, pathDictList, onFinish=None):
         lastItem = None
+
         for index, pathDict in enumerate(pathDictList):
-            print('pathDict', pathDict)
-        
             path = pathDict.get('uri', None)
             key = utils.getLocalName(path) or path
    
@@ -203,7 +201,6 @@ class GroundStation(QtWidgets.QMainWindow):
             onFinish()
 
     def preparePathsForDisplay(self, dynaDictList, callback=None):
-        # print('dynaDictList', dynaDictList)
         return self.__preparePathsForDisplay(dynaDictList, callback)
         
     def initToolBar(self):
@@ -356,8 +353,8 @@ class GroundStation(QtWidgets.QMainWindow):
         savText = self.ui_window.countDisplayLabel.text()
         localKey = self.syncManager.mapToLocalKey(savText)
 
-        syncStatus = self.syncManager.syncImageToDB(localKey)
-        print('syncStatus', syncStatus)
+        uploadResponse = self.syncManager.syncImageToDB(localKey)
+        dbConfirmation = self.syncManager.syncFromDB(uri=savText)
  
         associatedMarkerMap = self.__keyToMarker.get(localKey, {})
         markerDictList = []
@@ -375,6 +372,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 syncFromDBStatus = self.syncManager.syncFromDB(
                     qId=associatedImageId, metaDict=None
                 )
+                print('associatedImageId', associatedImageId)
 
         self.renderImage(savText)
         
@@ -408,10 +406,10 @@ class GroundStation(QtWidgets.QMainWindow):
             geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
             self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-        self.querySyncStatus()
         self.ui_window.countDisplayLabel.setText(path)
 
         # Now let's see if this image is in sync
+        self.querySyncStatus()
 
     def dbSync(self):
         metaSaveDict = dict()
@@ -532,7 +530,10 @@ class GroundStation(QtWidgets.QMainWindow):
         for path in pathList:
             key = utils.getLocalName(path) or path
             outMap[key] = GPSCoord.getInfoDict(path)
-            outMap[key]['uri'] = self.__resourcePool.get(key, {}).get('uri', '')
+            memResource = self.__resourcePool.get(key, {})
+            outMap[key]['uri'] = memResource.get('uri', '')
+            outMap[key]['path'] = memResource.get('path', '')
+            outMap[key]['author'] = utils.getDefaultUserName()
 
         # Time to swap out the fields and replace
         for k in outMap:
@@ -563,7 +564,6 @@ class GroundStation(QtWidgets.QMainWindow):
         grandParentDir, endAxiom = os.path.split(parentDir)
 
         infoFilename = os.sep.join([grandParentDir, 'info', seqID + '.txt'])
-        print('infoFileName', infoFilename)
         return infoFilename
 
 def main():

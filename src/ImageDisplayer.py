@@ -20,7 +20,7 @@ import mpUtils.JobRunner
 class ImageDisplayer(QtWidgets.QLabel):
     __jobRunner = mpUtils.JobRunner.JobRunner()
 
-    def __init__(self, parent=None, onDeleteMarkerFromDB):
+    def __init__(self, parent=None, onDeleteMarkerFromDB=None):
         super(ImageDisplayer, self).__init__(parent)
 
         # Set up cursor
@@ -177,7 +177,7 @@ class ImageDisplayer(QtWidgets.QLabel):
     def __createMarker(self, curPos, **kwargs):
         marker = Marker.Marker(
             parent=self, x=curPos.x(), y=curPos.y(), tree=self._childMap, author=curPos.author, lat=curPos.lat, lon=curPos.lon,
-            mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDb, **kwargs
+            mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDB, **kwargs
         )
 
         return marker
