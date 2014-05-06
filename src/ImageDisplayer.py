@@ -127,16 +127,18 @@ class ImageDisplayer(QtWidgets.QLabel):
             x, y = int(mData.get('x', 0)), int(mData.get('y', 0))
             retrKey = (x, y,)
             memMarker = self._childMap.get(retrKey, None)
-            print('memMarker', memMarker)
+            comments = mData.get('comments','')
             if memMarker is None:
                 memMarker = self.createMarker(
                     utils.DynaItem(dict(
                         x=lambda: x, y=lambda: y, lat=mData.get('lat', 0), lon=mData.get('lon', 0),
-                        author=mData.get('author', 'Anonymous'), mComments=mData.get('comments','')
+                        author=mData.get('author', 'Anonymous'), mComments=comments
                     ))
                 )
                 memMarker.toggleSaved()
                 memMarker.hide()
+            else:
+                memMarker.memComments=comments
 
         for m in self._childMap.values():
             m.show()

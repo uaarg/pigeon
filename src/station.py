@@ -69,7 +69,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.syncTimer = QtCore.QTimer(self)
         self.syncTimer.timeout.connect(self.querySyncStatus)
-        self.syncTimer.start(5000) # Sync every 8 seconds
+        self.syncTimer.start(5000) # Sync every 5 seconds
 
         self.timer.start(1000)
 
@@ -81,9 +81,6 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__lastSyncLCD.setDigitCount(8)
 
         self.showCurrentTime()
-
-    def getCurrentIcon(self, t):
-        return 'icons/iconmonstr-xbox.png' if t & 1 else 'icons/iconmonstr-checkbox.png'
 
     def querySyncStatus(self):
         queryData = utils.produceAndParse(self.__dbHandler.imageHandler.getConn,
@@ -359,8 +356,9 @@ class GroundStation(QtWidgets.QMainWindow):
         associatedMarkerMap = self.__keyToMarker.get(localKey, {})
         markerDictList = []
         for m in associatedMarkerMap.values():
+            print(m, m.memComments)
             markerDictList.append(
-                dict(getter=m.induceSave, onSuccess=m.toggleSaved, onFailure=m.toggleUnsaved)
+                dict(getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved)
             )
    
         # Now the associated markers

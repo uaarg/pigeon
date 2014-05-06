@@ -123,7 +123,9 @@ class Tag(QtWidgets.QWidget):
         self.show()
 
     def submit(self):
-        self.onSubmit(self.getContent())
+        content = self.getContent()
+        print('content here', content)
+        self.onSubmit(content)
         self.close()
 
         # serialized = self.serialize()
@@ -141,7 +143,10 @@ class Tag(QtWidgets.QWidget):
         )
 
     def getContent(self):
-        return dict((k.title, k.getContent()) for k in self.entries)
+        fmtdContent = dict()
+        for k in self.entries:
+            fmtdContent[k.title] = k.getContent().get('entryText', '')
+        return fmtdContent
 
 def main():
     app = QtWidgets.QApplication(sys.argv)

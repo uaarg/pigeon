@@ -110,11 +110,12 @@ class SyncManager:
                 getterFunc = markerDict.get('getter', lambda: {})
                 dataDict = getterFunc()
                 dataDict['associatedImage_id'] = associatedImageId
+                print('dataDict', dataDict)
                 
                 saveResult = self.saveMarkerToDB(dataDict)
-                if saveResult.get('id') != -1:
+                if saveResult.get('id', -1) != -1:
                     onSuccess = markerDict.get('onSuccess', lambda: {})
-                    onSuccess()
+                    onSuccess(saveResult)
                 else:
                     onFailure = markerDict.get('onFailure', lambda: {})
                     onFailure()
@@ -146,10 +147,19 @@ class SyncManager:
     def getKeys(self):
         return self.__resourcePool.keys()
 
-    def saveMarkerToDB(self, markerDataDict, isPost=True):
-        func = self.__dbHandler.markerHandler.postConn if isPost else self.__dbHandler.markerHandler.putConn 
-        markerSaveResponse = utils.produceAndParse(func, dataIn=markerDataDict)
+    def saveMarkerToDB(self, mData, isPost=True):
+        queryDict = dict(
+            x=mData.get('x', 0), y=mData.get('y', 0), associateImage_id=mData.get('associatedImage_id', -1)
+        )
+        getQuery = utils.produceAndParse(self.__dbHandler.markerHandler.getConn, queryDict)
+        data = getQuery.get('data', [])
+        func = self.__dbHandler.markerHandler.postConn
+        if data:
+            mData['id'] = data[0].get('id', -1)
+            func = self.__dbHandler.markerHandler.putConn 
 
+        print('dataToBeSaved', mData)
+        markerSaveResponse = utils.produceAndParse(func, dataIn=mData)
         return markerSaveResponse
 
     def deleteMarkerByAttrsFromDB(self, markerAttrDict):

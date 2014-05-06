@@ -51,6 +51,11 @@ class Marker(QtWidgets.QPushButton):
         self.__wasSyncd = False
         self.initIcon('icons/mapMarkerIn.png')
 
+    def refreshAndToggleSave(self, attrDict):
+        self.memComments = attrDict.get('comments', None)
+        self.author = attrDict.get('author', None)
+        self.toggleSaved()
+
     def toggleSaved(self):
         self.__resetToNormalIcon()
         self.__wasSyncd = True
@@ -108,6 +113,9 @@ class Marker(QtWidgets.QPushButton):
     def induceSave(self):
         if self.tag:
             self.tag.submit()
+            if self.entryData:
+                self.author=self.entryData.get('Author', None)
+                self.memComments=self.entryData.get('Comments', None)
 
         return self.getReprForDBSave()
 
