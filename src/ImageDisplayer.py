@@ -50,9 +50,8 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.__jobRunner.close()
 
         for markerMap in self._childMap.values():
-            for marker in markerMap.values():
-                if marker and hasattr(marker, 'close'):
-                    marker.close()
+            if marker and hasattr(marker, 'close'):
+                marker.close()
 
         super().close()
 
