@@ -381,17 +381,16 @@ class GroundStation(QtWidgets.QMainWindow):
     def cleanUpAndExit(self):
         self.iconStrip.close()
 
-        self.timer.close()
-        self.lcd.close()
-
         self.fileDialog.close()
         self.locationDataDialog.close()
 
+        self.__nowLCD.close()
+        self.__lastSyncLCD.close()
+
         self.imageViewer.close()
 
-        print(self, 'closing')
-
         print('close', self.__jobRunner.close())
+        print(self, 'closing')
 
         self.close()
 
