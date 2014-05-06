@@ -105,6 +105,12 @@ class Marker(QtWidgets.QPushButton):
     def serialize(self):
         return self.__dict__
 
+    def induceSave(self):
+        if self.tag:
+            self.tag.submit()
+
+        return self.getReprForDBSave()
+
     def createTag(self, event):
         lPos = self.pos()
         gPos = self.mapToGlobal(lPos)
@@ -201,6 +207,12 @@ class Marker(QtWidgets.QPushButton):
                     print('Trying to activateWindow')
                     self.tag.show()
                     self.tag.activateWindow()
+
+    def getReprForDBSave(self):
+        return dict(
+            lat=self.lat, lon=self.lon, author=self.author,
+            comments=self.memComments, x=self.x, y=self.y
+        )
 
     def show(self):
         # print('\033[47mShow invoked\033[00m')
