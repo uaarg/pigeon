@@ -14,6 +14,7 @@ Emmanuel Odeke <odeke@ualberta.ca>
 import os
 import re
 import sys
+import collections
 
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
@@ -27,7 +28,7 @@ except ImportError as e:
     
 from math import *
 
-__INFO_FILE_CACHE__ = dict()
+__INFO_FILE_CACHE__ = collections.defaultdict(lambda: None)
 
 class Position:
     """
@@ -190,14 +191,14 @@ class GeoReference:
         return Position(pixel_lat, pixel_lon)
 
 def getInfoDict(info_file_loc, needsRefresh=False):
-    cachedInfoDict = (not needsRefresh) and __INFO_FILE_CACHE__.get(info_file_loc, None)
+    cachedInfoDict = (not needsRefresh) and __INFO_FILE_CACHE__[info_file_loc]
     if cachedInfoDict:
         return cachedInfoDict
     else: # Cache miss detected
         if os.path.exists(info_file_loc):
             with open(info_file_loc, 'r') as f:
                 dataIn=f.readlines()
-                outDict = dict()
+                outDict = collections.defaultdict(lambda: 0.0)
                 for line in dataIn:
                     line = line.strip('\n')
                     regexMatch = ATTR_VALUE_REGEX_COMPILE.match(line)
