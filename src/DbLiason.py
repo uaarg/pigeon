@@ -2,9 +2,18 @@
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
+import sys
 import json
 import collections
-import urllib.request, urllib
+
+pyVersion = sys.hexversion / (1<<24)
+
+if pyVersion >= 3:
+    import urllib.request as urlReqModule
+    byteFyer = dict(encoding='utf-8')
+else:
+    import urllib2 as urlReqModule
+    byteFyer = dict()
 
 class DbConn:
   def __init__(self, baseUrl):
@@ -13,13 +22,24 @@ class DbConn:
   def __urlRequest(self, method, isGet=False, **getData):
     fmtdData = json.dumps(getData)
     reqUrl = self.baseUrl if not isGet else self.baseUrl + '/?' + '&'.join(['{k}={v}'.format(k=k, v=v) for k,v in getData.items()])
-    req = urllib.request.Request(reqUrl)
+    req = urlReqModule.Request(reqUrl)
     req.add_header('Content-Type', 'application/json')
+
+    '''
+    req.add_header('enctype', 'multipart/form-data')
+
+    if fPathToUpload:
+        # with  as f:
+        dataIn = open(fPathToUpload, 'rb').read()
+        req.add_header('Contentlength', len(dataIn))
+        req.add_header('files', dataIn)
+    '''
+
     req.get_method = lambda : method.upper()
     dataOut = dict()
     statusCode = 500
     try:
-      uR = urllib.request.urlopen(req, bytes(fmtdData, encoding='utf-8'))
+      uR = urlReqModule.urlopen(req, bytes(fmtdData, **byteFyer))
     except Exception as e:
       print(e)
       dataOut['reason'] = e
@@ -66,6 +86,7 @@ class HandlerLiason(object):
 class GCSHandler(object):
   def __init__(self, baseUrl, *args, **kwargs):
     self.baseUrl = baseUrl
+    self.__blobHandler = HandlerLiason(baseUrl + '/list')
     self.__imageHandler = HandlerLiason(baseUrl + '/imageHandler')
     self.__markerHandler = HandlerLiason(baseUrl + '/markerHandler')
 
@@ -75,23 +96,34 @@ class GCSHandler(object):
   @property
   def markerHandler(self): return self.__markerHandler
 
+  @property
+  def blobHandler(self): return self.__blobHandler
+
+class UploadHandler(object):
+    def __init__(self, baseUrl, *args, **kwargs):
+        self.dataHandler = HandlerLiason(baseUrl + '/')
+    
+
 def main():
-  gcsH = GCSHandler('http://192.168.1.102:8000/gcs') 
-  imageHandler  = gcsH.imageHandler
-  markerHandler = gcsH.markerHandler
-  print(imageHandler.getConn(dict(title=1)))
-  with open(__file__, 'r') as f:
-    blob = f.read()
-    markerData = dict(
-      author=os.environ['USER'], title='Red SUV',
-      x=100.1, y=24.1, associatedImage_id=1
+    uHandler = UploadHandler('http://127.0.0.1:8000/uploader') 
+    blobHandler = uHandler.dataHandler
+
+    targetFile = __file__ # './icons/iconmonstr-checkbox.png'
+    print(
+        blobHandler.getConn(dict())
     )
-    print(markerHandler.postConn(markerData))
+
+    print(blobHandler.postConn(dict()))
+
+    '''
+    print(
+        blobHandler.getConn(dict(select='data'))
+    )
 
     print(
-      imageHandler.postConn(
-        dict(uri=__file__,author="Emmanuel Odeke", title='AirField', blob=blob)
-      )
+        blobHandler.deleteConn(dict())
     )
+    '''
+            
 if __name__ == '__main__':
   main()

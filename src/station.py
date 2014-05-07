@@ -243,7 +243,7 @@ class GroundStation(QtWidgets.QMainWindow):
         srcPath = self.ui_window.countDisplayLabel.text()
 
         key = utils.getLocalName(srcPath) or srcPath
-        stateDict = self.__resourcePool.get(key, None) or self.ImageDisplayer.getFromResourcePool(key, None)
+        stateDict = self.__resourcePool.get(key, {})
 
         entryList = []
 
@@ -279,9 +279,8 @@ class GroundStation(QtWidgets.QMainWindow):
             id=currentMap.get('id', -1), uri=currentMap.get('uri', curPath), title=curPath
         )
 
-        for key in content:
-            attrDict = content[key]
-            outDict[key] = attrDict.get('entryText', '')
+        for k, v in content.items():
+            outDict[k] = v
 
         # Getting the original ids in
         saveResponse = self.syncManager.saveImageToDB(key, outDict, needsCloudSave=True)
@@ -507,6 +506,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 imagesIn = True
 
             markerSet = storedMap.get('marker_set', [])
+            print('markerSet', markerSet)
             markerInfoPath = None
 
             if markerSet:
