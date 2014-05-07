@@ -73,3 +73,7 @@ For commandline arguments:
                     -h, --help            show this help message and exit
                     -i IP, --ip=IP        Port server is on
                     -p PORT, --port=PORT  IP address db connects to
+                    -e, --eavsdropping    Turn on eavsdropping 
+
+                * eavsdropping enables the ground station to become a mirror
+                  of snapshots of the database ie only synced data will be persistent
