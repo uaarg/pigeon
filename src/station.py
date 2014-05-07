@@ -35,7 +35,7 @@ DEFAULT_IMAGE_FORM_DICT = dict(
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
-    def __init__(self, dbHandler, parent=None):
+    def __init__(self, dbHandler, parent=None, eavsDroppingMode=False):
         super(GroundStation, self).__init__(parent)
 
         self.ui_window = gcs.Ui_MainWindow()
@@ -44,6 +44,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__resourcePool = dict()
         self.__keyToMarker = dict()
         self.syncManager = SyncManager.SyncManager(dbHandler)
+        self.inEavsDroppingMode = eavsDroppingMode
 
         self.setDbHandler(dbHandler)
 
@@ -68,8 +69,16 @@ class GroundStation(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self.showCurrentTime)
 
         self.syncTimer = QtCore.QTimer(self)
-        self.syncTimer.timeout.connect(self.querySyncStatus)
-        self.syncTimer.start(5000) # Sync every 5 seconds
+        func = self.querySyncStatus
+        timeout = 5000
+        if self.inEavsDroppingMode:
+            func = self.fullDBSync
+            timeout = 10000
+
+        print('func', func, 'timeout', timeout)
+
+        self.syncTimer.timeout.connect(func)
+        self.syncTimer.start(timeout)
 
         self.timer.start(1000)
 
@@ -81,6 +90,18 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__lastSyncLCD.setDigitCount(8)
 
         self.showCurrentTime()
+
+    def fullDBSync(self):
+        self.dbSync()
+
+        # Cycle through each one of the images
+        iconStripManifest = self.iconStrip.itemDictManifest()
+        print('iconStripManifest', iconStripManifest)
+        for path in iconStripManifest:
+            curItemSyncStatus = self.syncManager.needsSync(path=path)
+            print('path', path)
+            if curItemSyncStatus != constants.IS_IN_SYNC:
+                self.handleItemPop(path)
 
     def querySyncStatus(self):
         queryData = utils.produceAndParse(self.__dbHandler.imageHandler.getConn,
@@ -313,10 +334,12 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
-    def handleItemPop(self):
-        currentItem = self.ui_window.countDisplayLabel.text()
+    def handleItemPop(self, currentItem=None):
+        if not currentItem:
+            currentItem = self.ui_window.countDisplayLabel.text()
 
         nextItemOnDisplay = None
+        print('itemPop', currentItem)
 
         if currentItem:
             self.syncManager.deleteImageByKeyFromDB(
@@ -414,9 +437,10 @@ class GroundStation(QtWidgets.QMainWindow):
         result = self.preparePathsForDisplay(
             self.syncManager.syncFromDB(metaDict=metaSaveDict), callback=self.setSyncTime
         )
-        print('After syncing', result)
 
+        print('After syncing', result)
         print('metaSaveDict', metaSaveDict)
+
         if isinstance(metaSaveDict, dict):
             # TODO: Memoize the time on the server to aid in versioning
             timeOnServer = metaSaveDict.get('currentTime', None)
@@ -570,10 +594,11 @@ def main():
 
     # Time to get address that the DB can be connected to via
     dbAddress = '{ip}:{port}/gcs'.format(ip=args.ip.strip('/'), port=args.port.strip('/'))
-    print('Connecting via: \033[92m dbAddress', dbAddress, '\033[00m')
+    eavsDroppingMode = args.eavsDroppingMode
+    print('Connecting via: \033[92m dbAddress', dbAddress, eavsDroppingMode, '\033[00m')
        
     dbConnector = DbLiason.GCSHandler(dbAddress)
-    gStation = GroundStation(dbConnector)
+    gStation = GroundStation(dbHandler=dbConnector, eavsDroppingMode=eavsDroppingMode)
 
     gStation.show()
 

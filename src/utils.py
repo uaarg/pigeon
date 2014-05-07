@@ -80,6 +80,7 @@ def cliParser():
     parser = OptionParser()
     parser.add_option('-i', '--ip', default='http://127.0.0.1', help='Port server is on', dest='ip')
     parser.add_option('-p', '--port', default='8000', help='IP address db connects to', dest='port')
+    parser.add_option('-e', '--eavsdropping', default=False, help='Turn on eavsdropping', dest='eavsDroppingMode', action='store_true')
 
     return parser.parse_args()
 

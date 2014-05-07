@@ -17,6 +17,9 @@ class IconStrip(QtWidgets.QListWidget):
 
         self.setAcceptDrops(True)
 
+    def itemDictManifest(self):
+        return list(self.__itemDict.keys())
+
     def setOnItemClick(self, clickHandler):
         self.__onClick = clickHandler
 
@@ -43,9 +46,16 @@ class IconStrip(QtWidgets.QListWidget):
 
         return memPixMap
 
+    def showItem(self, path):
+        retrValue = self.__itemDict.get(path, None)
+        print('\033[45mShowing', path, retrValue, '\033[00m')
+        if retrValue is not None:
+            self.scrollToItem(retrValue)
+
     def popIconItem(self, path, altValue=None):
         popd = self.__itemDict.pop(path, altValue)
-        self.takeItem(self.row(self.currentItem()))
+        if popd is not altValue:
+            self.takeItem(self.row(popd))
 
         newlySelectedPath = None
         curItem = self.currentItem()
