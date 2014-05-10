@@ -196,7 +196,6 @@ class GroundStation(QtWidgets.QMainWindow):
     def __preparePathsForDisplay(self, pathDictList, onFinish=None):
         lastItem = None
 
-        print('pathDictList', pathDictList)
         for index, pathDict in enumerate(pathDictList):
             path = pathDict.get('uri', None)
             key = utils.getLocalName(path) or path

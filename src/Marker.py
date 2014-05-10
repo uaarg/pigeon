@@ -14,7 +14,7 @@ import GPSCoord # Local GPS calculation module
 class Marker(QtWidgets.QPushButton):
     def __init__(
         self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, mComments=None,
-        iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
+        iconPath='icons/iconmonstr-syncdMarker.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -34,9 +34,6 @@ class Marker(QtWidgets.QPushButton):
         self.memComments = mComments # Memoized comments
         self.onDeleteCallback = onDeleteCallback
 
-        # State variable to track if mouse in event triggered
-        self.__wasSyncd = True # By default we are in sync
-        self.__withinMarker = False
         self.__pixmapCache = dict() # Keep private to avoid resource leaks
 
         self.initUI()
@@ -44,12 +41,11 @@ class Marker(QtWidgets.QPushButton):
     def initExpandDimensions(self):
         self.origW = self.width()
         self.origH = self.height()
-        self.expandedW = self.origW * 1.5
-        self.expandedH = self.origH * 1.5
+        self.expandedW = self.origW * 1.2
+        self.expandedH = self.origH * 1.2
 
     def toggleUnsaved(self):
-        self.__wasSyncd = False
-        self.initIcon('icons/mapMarkerIn.png')
+        self.initIcon('icons/iconmonstr-unsyncdMarker.png')
 
     def refreshAndToggleSave(self, attrDict):
         self.memComments = attrDict.get('comments', None)
@@ -57,8 +53,7 @@ class Marker(QtWidgets.QPushButton):
         self.toggleSaved()
 
     def toggleSaved(self):
-        self.__resetToNormalIcon()
-        self.__wasSyncd = True
+        self.initIcon('icons/iconmonstr-syncdMarker.png')
         self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):

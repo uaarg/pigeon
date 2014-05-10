@@ -54,7 +54,7 @@ class SyncManager:
             print('queryResponse', queryResponse['reason'])
         else:
             data = queryResponse.get('data', [])
-            print('data', data)
+            # print('data', data)
             for item in data:
                 keySelector = item.get('title', None) or item.get('uri', None)
                 localKey = self.mapToLocalKey(keySelector)
@@ -128,10 +128,12 @@ class SyncManager:
                 # print('dataDict', dataDict)
                 
                 saveResult = self.saveMarkerToDB(dataDict)
-                if saveResult.get('id', -1) != -1:
+                print('saveResult', dataDict, saveResult) 
+                if (saveResult.get('data', {}).get('id', -1) != -1) or (saveResult.get('id', -1) != -1):
                     onSuccess = markerDict.get('onSuccess', lambda: {})
                     onSuccess(saveResult)
                 else:
+                    print('failure', saveResult)
                     onFailure = markerDict.get('onFailure', lambda: {})
                     onFailure()
 
@@ -179,8 +181,10 @@ class SyncManager:
         if data:
             mData['id'] = data[0].get('id', -1)
             func = self.__dbHandler.markerHandler.putConn 
+        else:
+            mData.pop('id', -1) # Safety net
 
-        print('dataToBeSaved', mData)
+        print('queryDict', queryDict, 'dataToBeSaved', mData)
         markerSaveResponse = utils.produceAndParse(func, dataIn=mData)
         return markerSaveResponse
 
