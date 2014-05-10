@@ -2,7 +2,6 @@
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import time
-import inspect
 import threading
 import multiprocessing
 
@@ -66,7 +65,7 @@ class JobRunner(object):
     def __run(self, func, callback, *args, **kwargs):
         functor = self.retryable(func)
         results = functor(*args, **kwargs)
-        if callback and inspect.isfunction(callback):
+        if callback and hasattr(callback, '__call__'):
             return callback(results)
         else:
             return results
