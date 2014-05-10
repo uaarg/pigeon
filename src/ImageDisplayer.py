@@ -68,8 +68,10 @@ class ImageDisplayer(QtWidgets.QLabel):
         northing = float(infoDict["utm_north"])
         easting = float(infoDict["utm_east"])
         zone = float(infoDict["utm_zone"])
-        altitude = float(infoDict["z"])
+        altitude = float(infoDict["alt"])
+        # print('infoDict', infoDict)
         dd_coord = GPSCoord.utm_to_DD(easting, northing, zone) # lat, lon
+        print('\033[94mdd_coord', dd_coord, altitude, '\033[00m')
         self.plane_position = GPSCoord.Position(dd_coord[0], dd_coord[1], altitude)
 
         # Get orientation
@@ -162,8 +164,8 @@ class ImageDisplayer(QtWidgets.QLabel):
             # Georeference the marker location
             # pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
             # (lat, lon) = pointGPSPos.latLon()
-            centerGPSPos = self.centerGeoReference(self.georeference, self.plane_position, self.plane_orientation)
-            (lat, lon) = centerGPSPos.latLon()
+            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            (lat, lon) = pointGPSPos.latLon()
             print(lat, lon)
 
             m = self.__createMarker(utils.DynaItem(

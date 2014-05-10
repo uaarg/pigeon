@@ -140,6 +140,7 @@ class GeoReference:
         pixel_lon, pixel_lat, back_azimuth = geod.fwd(location.lon, location.lat, degrees(forward_azimuth), distance)
 
         # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
+        print('pixel_lat', pixel_lat, 'pixel_lon', pixel_lon)
 
         return Position(pixel_lat, pixel_lon)
 
@@ -191,10 +192,8 @@ class GeoReference:
         return Position(pixel_lat, pixel_lon)
 
 def getInfoDict(info_file_loc, needsRefresh=False):
-    cachedInfoDict = (not needsRefresh) and __INFO_FILE_CACHE__[info_file_loc]
-    if cachedInfoDict:
-        return cachedInfoDict
-    else: # Cache miss detected
+    cachedInfoDict = __INFO_FILE_CACHE__.get(info_file_loc, None)
+    if needsRefresh or cachedInfoDict is None: 
         if os.path.exists(info_file_loc):
             with open(info_file_loc, 'r') as f:
                 dataIn=f.readlines()
@@ -209,9 +208,8 @@ def getInfoDict(info_file_loc, needsRefresh=False):
                 
                 __INFO_FILE_CACHE__[info_file_loc] = outDict
                 return outDict
-        else:
-            print('\033[91mNon-existant file', info_file_loc, '\033[00m')
 
+    return cachedInfoDict or collections.defaultdict(lambda: 0.0)
 
 
 def getInfoField(info_file_loc, field_name):
