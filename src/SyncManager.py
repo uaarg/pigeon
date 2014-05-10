@@ -143,7 +143,11 @@ class SyncManager:
             
         return results
 
-    def syncImageToDB(self, path):
+    def syncImageToDB(self, path, callback=None):
+        return self.__jobRunner.run(self.__syncImageToDB, None, callback, path)
+
+    def __syncImageToDB(self, pathArgs):
+        path = pathArgs[0]
         elemData = self.getImageAttrsByKey(path)
         elemAttrDict = dict((k, v) for k, v in elemData.items() if k != 'marker_set')
 
@@ -208,7 +212,11 @@ class SyncManager:
     def keyInResourcePool(self, key):
         return key in self.__resourcePool
 
-    def deleteImageByKeyFromDB(self, localKey, isGlobalDelete=False):
+    def deleteImageByKeyFromDB(self, localKey, isGlobalDelete=False, callback=None):
+        return self.__jobRunner.run(self.__deleteImageByKeyFromDB, None, callback, (localKey, isGlobalDelete,))
+
+    def __deleteImageByKeyFromDB(self, *args):
+        localKey, isGlobalDelete = args[0]
         memData = self.__resourcePool.get(localKey, {})
 
         # Clear out all the markers first
