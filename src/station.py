@@ -352,9 +352,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.renderImage(nextItemOnDisplay)
 
     def deleteMarkerFromDB(self, x, y):
-        curPathAttrs = self.syncManager.getImageByKey(self.ui_window.countDisplayLabel.text())
+        key = utils.getLocalName(self.ui_window.countDisplayLabel.text())
         return self.syncManager.deleteMarkerByAttrsFromDB(
-            dict(associatedImage_id=curPathAttrs.get('id', -1), x=x, y=y)
+            dict(associatedImage_id=self.syncManager.getImageId(key), x=x, y=y)
         )
 
     def eraseMarkersByKey(self, key):

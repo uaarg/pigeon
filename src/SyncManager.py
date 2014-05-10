@@ -27,7 +27,7 @@ class SyncManager:
         return self.__resourcePool.get(key, {})
 
     def getImageId(self, key):
-        return self.getImageAttrsByKey().get('id', -1)
+        return self.getImageAttrsByKey(key).get('id', -1)
 
     def getMarkerSetByKey(self, key):
         return self.getImageAttrsByKey(key).get('marker_set', [])
@@ -193,10 +193,12 @@ class SyncManager:
         return markerSaveResponse
 
     def deleteMarkerByAttrsFromDB(self, markerAttrDict):
+        imageId = markerAttrDict.get("associatedImage_id", -1)
         markerDelResponse = utils.produceAndParse(
             self.__dbHandler.markerHandler.deleteConn, dataIn=markerAttrDict
         )
 
+        print('markerDelResponse', markerDelResponse)
         deletedIDs = markerDelResponse.get('data', [])
         for mId in deletedIDs:
             popKey = (mId, imageId,)
