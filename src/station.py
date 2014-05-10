@@ -196,6 +196,7 @@ class GroundStation(QtWidgets.QMainWindow):
     def __preparePathsForDisplay(self, pathDictList, onFinish=None):
         lastItem = None
 
+        print('pathDictList', pathDictList)
         for index, pathDict in enumerate(pathDictList):
             path = pathDict.get('uri', None)
             key = utils.getLocalName(path) or path
@@ -218,9 +219,9 @@ class GroundStation(QtWidgets.QMainWindow):
         if hasattr(onFinish, '__call__'):
             onFinish()
 
-    def preparePathsForDisplay(self, dynaDictList, callback=None):
+    def preparePathsForDisplay(self, dynaDictList, onFinish=None):
         if dynaDictList:
-            return self.__preparePathsForDisplay(dynaDictList, callback)
+            return self.__preparePathsForDisplay(dynaDictList, onFinish=onFinish)
         
     def initToolBar(self):
         self.toolbar  = self.ui_window.toolBar;
@@ -419,6 +420,7 @@ class GroundStation(QtWidgets.QMainWindow):
         if valueFromResourcePool: 
             key = utils.getLocalName(path) or path
             self.__resourcePool[key] = valueFromResourcePool
+            
 
         associatedTextFile = self.getInfoFileNameFromImagePath(path)
         if associatedTextFile != -1:
@@ -433,10 +435,11 @@ class GroundStation(QtWidgets.QMainWindow):
         self.querySyncStatus()
 
     def dbSync(self):
+        # It is neccessary to have the syncer run on the main UI thread
+        # hence callback argument is None
         metaSaveDict = dict()
-
         result = self.preparePathsForDisplay(
-            self.syncManager.syncFromDB(metaDict=metaSaveDict), callback=self.setSyncTime
+            self.syncManager.syncFromDB(callback=None, metaDict=metaSaveDict), onFinish=self.setSyncTime
         )
 
         print('After syncing', result)

@@ -4,12 +4,17 @@
 import utils
 import DbLiason
 import constants
+import mpUtils.JobRunner
 
 class SyncManager:
     def __init__(self, dbHandler):
         self.__dbHandler = dbHandler
 
         self.initResourcePool()
+        self.initMProcessingUtils()
+
+    def initMProcessingUtils(self):
+        self.__jobRunner = mpUtils.JobRunner.JobRunner()
 
     def initResourcePool(self):
         self.__resourcePool = dict()
@@ -27,8 +32,14 @@ class SyncManager:
     def getMarkerSetByKey(self, key):
         return self.getImageAttrsByKey(key).get('marker_set', [])
 
-    def syncFromDB(self, title=None, uri=None, metaDict=None, qId=-1):
+    def syncFromDB(self, callback=None, title=None, uri=None, metaDict=None, qId=-1):
+        return self.__jobRunner.run(self.__syncFromDB, None, callback, (title, uri, metaDict, qId,))
+
+    def __syncFromDB(self, *args, **kwargs):
+        title, uri, metaDict, qId = args[0]
+        # print('title', title, 'uri', uri, 'metaDict', metaDict, 'qId', qId)
         queryDict = dict(sort='lastTimeEdit_r')
+
         if title:
             queryDict['title'] = title
 
@@ -38,12 +49,12 @@ class SyncManager:
         if qId and qId > 0:
             queryDict['id'] = qId
 
-
         queryResponse = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, dataIn=queryDict)
         if hasattr(queryResponse, 'reason'):  # An error here
             print('queryResponse', queryResponse['reason'])
         else:
             data = queryResponse.get('data', [])
+            print('data', data)
             for item in data:
                 keySelector = item.get('title', None) or item.get('uri', None)
                 localKey = self.mapToLocalKey(keySelector)
@@ -61,7 +72,11 @@ class SyncManager:
                 for k, v in  dbMetaDict.items():
                     metaDict[k] = v
 
+            # print('data', data)
             return data
+
+    def __needsSync(self, path=None):
+        pass
  
     def needsSync(self, path=None): 
         queryDict = dict(format='short', uri=path, select='lastTimeEdit')
@@ -110,7 +125,7 @@ class SyncManager:
                 getterFunc = markerDict.get('getter', lambda: {})
                 dataDict = getterFunc()
                 dataDict['associatedImage_id'] = associatedImageId
-                print('dataDict', dataDict)
+                # print('dataDict', dataDict)
                 
                 saveResult = self.saveMarkerToDB(dataDict)
                 if saveResult.get('id', -1) != -1:
@@ -140,7 +155,14 @@ class SyncManager:
         func = getattr(self.__dbHandler.imageHandler, methodName)
         parsedResponse = utils.produceAndParse(func, elemAttrDict)
         idFromDB = parsedResponse.get('id', -1)
-        self.__resourcePool[path]['id'] = idFromDB
+       
+        pathDict = self.__resourcePool.get(path, None) 
+        if pathDict is None:
+            pathDict = dict()
+
+        pathDict['id'] = idFromDB
+        print('idFromDB', path, parsedResponse)
+        self.__resourcePool[path] = pathDict
             
         return 200
 
