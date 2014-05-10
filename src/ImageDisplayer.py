@@ -27,8 +27,16 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.cursor = QCursor(Qt.CrossCursor)
         self.setCursor(self.cursor)
 
+        self.__allowClicks = False
+
         self.deleteMarkerFromDB = onDeleteMarkerFromDB
         self.initResources()
+
+    def allowClicks(self):
+        self.__allowClicks = True
+
+    def disableClicks(self):
+        self.__allowClicks = False
 
     def initResources(self):
         self.__fileOnDisplay = None
@@ -107,7 +115,12 @@ class ImageDisplayer(QtWidgets.QLabel):
             for v in self._childMap.values():
                 v.hide()
 
-        filename = path if path else utils._PLACE_HOLDER_PATH
+        filename = utils._PLACE_HOLDER_PATH
+        self.__allowClicks = False
+
+        if path:
+            self.__allowClicks = True
+            filename = path
 
         image = None
         if pixMap is None:
@@ -145,10 +158,13 @@ class ImageDisplayer(QtWidgets.QLabel):
             m.show()
         
     def mousePressEvent(self, e):
+        if not self.__allowClicks:
+            e.ignore()
+
         # Event handler for mouse clicks on image area.
 
         # Left click - target location marking (temporary)
-        if e.button() == 1:
+        elif e.button() == 1:
             curPos = self.mapFromGlobal(self.cursor.pos())
             pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
             (lat, lon) = pointGPSPos.latLon()
@@ -159,7 +175,7 @@ class ImageDisplayer(QtWidgets.QLabel):
 
 
         # Right click - target marker creation
-        if e.button() == 2:
+        elif e.button() == 2:
             curPos = self.mapFromGlobal(self.cursor.pos())
             # Georeference the marker location
             # pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())

@@ -219,7 +219,8 @@ class GroundStation(QtWidgets.QMainWindow):
             onFinish()
 
     def preparePathsForDisplay(self, dynaDictList, callback=None):
-        return self.__preparePathsForDisplay(dynaDictList, callback)
+        if dynaDictList:
+            return self.__preparePathsForDisplay(dynaDictList, callback)
         
     def initToolBar(self):
         self.toolbar  = self.ui_window.toolBar;
@@ -433,6 +434,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def dbSync(self):
         metaSaveDict = dict()
+
         result = self.preparePathsForDisplay(
             self.syncManager.syncFromDB(metaDict=metaSaveDict), callback=self.setSyncTime
         )
