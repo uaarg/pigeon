@@ -96,10 +96,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         # Cycle through each one of the images
         iconStripManifest = self.iconStrip.itemDictManifest()
-        print('iconStripManifest', iconStripManifest)
         for path in iconStripManifest:
             curItemSyncStatus = self.syncManager.needsSync(path=path)
-            print('path', path)
             if curItemSyncStatus != constants.IS_IN_SYNC:
                 self.handleItemPop(path)
 
@@ -126,7 +124,6 @@ class GroundStation(QtWidgets.QMainWindow):
                         updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
                 curItemSyncStatus = self.syncManager.needsSync(path=self.ui_window.countDisplayLabel.text())
-                # print('curItemSyncStatus', curItemSyncStatus)
                 if curItemSyncStatus == constants.IS_IN_SYNC:
                     self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-cloud-syncd.png'))
                 else:
@@ -413,14 +410,9 @@ class GroundStation(QtWidgets.QMainWindow):
             self.__keyToMarker[localKey] = outDict
 
         memPixMap = self.iconStrip.getPixMap(path)
-        valueFromResourcePool = self.ImageDisplayer.renderImage(
+        self.ImageDisplayer.renderImage(
             path, markerSet=markerSet, currentMap=outDict, pixMap=memPixMap
         )
-       
-        if valueFromResourcePool: 
-            key = utils.getLocalName(path) or path
-            self.__resourcePool[key] = valueFromResourcePool
-            
 
         associatedTextFile = self.getInfoFileNameFromImagePath(path)
         if associatedTextFile != -1:
