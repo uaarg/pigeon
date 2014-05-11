@@ -12,8 +12,9 @@ from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
-import utils # Local module
 import Tag # Local module
+import utils # Local module
+import kmlUtil # Local module
 import GPSCoord # Local module
 import DbLiason # Local module
 import iconStrip # Local module
@@ -494,18 +495,23 @@ class GroundStation(QtWidgets.QMainWindow):
             print('for', key, 'storedMap', storedMap)
             imageInfoPath = os.path.join(REPORTS_DIR, key + '-image.csv')
             imagesIn = markersIn = False
+            exclusiveOfMarkerSetKeys = [k for k in storedMap.keys() if k != 'marker_set']
             with open(imageInfoPath, 'w') as f:
-                keysCurrently = [k for k in storedMap.keys() if k != 'marker_set']
-                f.write(','.join(keysCurrently))
+                f.write(','.join(exclusiveOfMarkerSetKeys))
                 f.write('\n')
-                f.write(','.join(str(storedMap[k]) for k in keysCurrently))
+                f.write(','.join(str(storedMap[k]) for k in exclusiveOfMarkerSetKeys))
                 f.write('\n')
+                
                 imagesIn = True
-
+                
             markerSet = storedMap.get('marker_set', [])
-            print('markerSet', markerSet)
-            markerInfoPath = None
+            kmlPath = os.path.join(REPORTS_DIR, key + '.kml')
+            with open(kmlPath, 'w') as h:
+                fmtdTree = dict((k, storedMap[k]) for k in exclusiveOfMarkerSetKeys)
+                fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
+                h.write(kmlUtil.kmlDoc(fmtdTree)) and print('\033[95mWrote KML info to', kmlPath)
 
+            markerInfoPath =  None
             if markerSet:
                 markerInfoPath = os.path.join(REPORTS_DIR, key + '-markers.csv')
                 with open(markerInfoPath, 'w') as g:
@@ -518,13 +524,14 @@ class GroundStation(QtWidgets.QMainWindow):
                         g.write('\n')
                     markersIn = True
                     print('\033[94mWrote marker attributes to', markerInfoPath, '\033[00m')
-       
+                    
             if (imagesIn or markersIn): 
                 msg = 'Wrote: '
                 if imagesIn:
-                    msg += '\nimage information to: %s'%(imageInfoPath)
+                    msg += '\nCSV image information to: %s'%(imageInfoPath)
                 if markersIn:
-                    msg += '\nmarker information to: %s'%(markerInfoPath)
+                    msg += '\nCSV marker information to: %s'%(markerInfoPath)
+                    msg += '\nKML marker information to: %s'%(kmlPath)
 
                 print('\033[92m', msg, '\033[00m')
                 if not hasattr(self.msgQBox, 'setText'):

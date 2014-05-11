@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+	<Document>
+		<dateCreated>1399871292</dateCreated>
+		<id>7</id>
+		<viewangle_horiz>21.733333</viewangle_horiz>
+		<utm_zone>0.0</utm_zone>
+		<speed>0.000000</speed>
+		<theta>0.123729</theta>
+		<path></path>
+		<psi>1.039734</psi>
+		<uri>/Users/emmanuelodeke/Desktop/pigeon/src/data/processed/87.jpg</uri>
+		<utm_north>5376476.000000</utm_north>
+		<course>0.000000</course>
+		<lastTimeEdit>1399871292</lastTimeEdit>
+		<image_width>1294</image_width>
+		<viewangle_vert>16.833333</viewangle_vert>
+		<pixel_per_meter>0.000518</pixel_per_meter>
+		<title></title>
+		<metaData></metaData>
+		<utm_east>304793.562500</utm_east>
+		<marker_set>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>84.75120372</lon>
+					<y>644</y>
+					<x>717</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>37</id>
+					<lat>81.58027041</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-127.41188838</lon>
+					<y>375</y>
+					<x>220</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>38</id>
+					<lat>1.08062192</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-85.37107669</lon>
+					<y>43</y>
+					<x>92</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>39</id>
+					<lat>-65.97249122</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-79.89767379</lon>
+					<y>643</y>
+					<x>190</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>40</id>
+					<lat>27.93352277</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>25.44667556</lon>
+					<y>774</y>
+					<x>852</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>41</id>
+					<lat>48.23340776</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>6.33922144</lon>
+					<y>899</y>
+					<x>816</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>42</id>
+					<lat>21.71299525</lat>
+					<comments>Vicinity of nest</comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-139.64420557</lon>
+					<y>393</y>
+					<x>331</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>43</id>
+					<lat>13.34011419</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-1.59169897</lon>
+					<y>658</y>
+					<x>655</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>44</id>
+					<lat>86.98587939</lat>
+					<comments>Beaver nest</comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-154.45166218</lon>
+					<y>92</y>
+					<x>402</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>45</id>
+					<lat>-51.86535651</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-141.31089238</lon>
+					<y>186</y>
+					<x>279</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>46</id>
+					<lat>-34.53705465</lat>
+					<comments>Sleek Shrub</comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-108.5751102</lon>
+					<y>367</y>
+					<x>57</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>47</id>
+					<lat>-14.7610689</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-106.87391917</lon>
+					<y>43</y>
+					<x>184</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>48</id>
+					<lat>-65.92273691</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-72.14497331</lon>
+					<y>648</y>
+					<x>57</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>49</id>
+					<lat>10.01363763</lat>
+					<comments>Matching Twigs</comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-106.81137847</lon>
+					<y>477</y>
+					<x>138</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>50</id>
+					<lat>9.36145374</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>157.39144059</lon>
+					<y>479</y>
+					<x>728</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>51</id>
+					<lat>46.72282417</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+				<Marker>
+					<dateCreated>1399871292</dateCreated>
+					<lon>-160.61840297</lon>
+					<y>234</y>
+					<x>435</x>
+					<associatedImage_id>7</associatedImage_id>
+					<lastTimeEdit>1399871292</lastTimeEdit>
+					<iconPath></iconPath>
+					<id>52</id>
+					<lat>-17.39466413</lat>
+					<comments></comments>
+					<author>emmanuelodeke</author>
+
+				</Marker>
+
+		</marker_set>
+		<ppm_difference>11.184174</ppm_difference>
+		<alt>1997923.000000</alt>
+		<image_height>964</image_height>
+		<phi>-0.351508</phi>
+		<time>-544019531</time>
+		<author>emmanuelodeke</author>
+
+	</Document>
+</kml>
