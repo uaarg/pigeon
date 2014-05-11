@@ -146,8 +146,7 @@ class SyncManager:
     def syncImageToDB(self, path, callback=None):
         return self.__jobRunner.run(self.__syncImageToDB, None, callback, path)
 
-    def __syncImageToDB(self, pathArgs):
-        path = pathArgs[0]
+    def __syncImageToDB(self, path):
         elemData = self.getImageAttrsByKey(path)
         elemAttrDict = dict((k, v) for k, v in elemData.items() if k != 'marker_set')
 
@@ -158,6 +157,7 @@ class SyncManager:
             methodName = 'postConn'
             elemAttrDict.pop('id', None) # Let the DB decide what Id to assign to you
 
+        print('elemAttrDict', elemAttrDict)
         func = getattr(self.__dbHandler.imageHandler, methodName)
         parsedResponse = utils.produceAndParse(func, elemAttrDict)
         idFromDB = parsedResponse.get('id', -1)
@@ -188,7 +188,7 @@ class SyncManager:
         else:
             mData.pop('id', -1) # Safety net
 
-        print('queryDict', queryDict, 'dataToBeSaved', mData)
+        # print('queryDict', queryDict, 'dataToBeSaved', mData)
         markerSaveResponse = utils.produceAndParse(func, dataIn=mData)
         return markerSaveResponse
 

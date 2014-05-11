@@ -244,7 +244,7 @@ class GroundStation(QtWidgets.QMainWindow):
         srcPath = self.ui_window.countDisplayLabel.text()
 
         key = utils.getLocalName(srcPath) or srcPath
-        stateDict = self.__resourcePool.get(key, {})
+        stateDict = self.syncManager.getImageAttrsByKey(key)
 
         entryList = []
 
@@ -374,6 +374,7 @@ class GroundStation(QtWidgets.QMainWindow):
         localKey = self.syncManager.mapToLocalKey(savText)
 
         uploadResponse = self.syncManager.syncImageToDB(localKey)
+        print('uploadResponse', uploadResponse)
         dbConfirmation = self.syncManager.syncFromDB(uri=savText)
  
         associatedMarkerMap = self.__keyToMarker.get(localKey, {})
