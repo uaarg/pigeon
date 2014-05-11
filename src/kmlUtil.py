@@ -18,7 +18,6 @@ def textifyTree(content, indentLevel=1):
         return str(content), NEEDS_JOIN_STATE
     else:
         outText = ''
-        indentLevel += 1
         if isListOrTuple(content):
             contentLen = len(content)
             for index, elem in enumerate(content):
@@ -28,6 +27,7 @@ def textifyTree(content, indentLevel=1):
                     outText += SEPARATOR
 
         elif isinstance(content, dict):
+            indentLevel += 1
             tabsByLevel = '\t' * indentLevel
             for k, v in content.items():
                 startTag, endTag = getStartEndTags(k.__str__())
