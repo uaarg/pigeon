@@ -18,13 +18,18 @@ def textifyTree(content, indentLevel=1):
         return str(content), NEEDS_JOIN_STATE
     else:
         outText = ''
+        lastState = NEEDS_JOIN_STATE
         if isListOrTuple(content):
             contentLen = len(content)
+            tabsByLevel ='\t' * indentLevel 
             for index, elem in enumerate(content):
                 text, state = textifyTree(elem, indentLevel)
                 outText += text
                 if index < contentLen-1 and state == NEEDS_JOIN_STATE:
                     outText += SEPARATOR
+                lastState = state
+            if lastState == NEEDS_JOIN_STATE:
+                outText = tabsByLevel + '\t' + outText
 
         elif isinstance(content, dict):
             indentLevel += 1
