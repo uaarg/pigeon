@@ -47,15 +47,13 @@ class JobRunner(object):
             results = func(*args, **kwargs)
             if results and hasattr(results, 'get'):
                 data = results.get('data', None)
-                if data:
+                if results.get('needsRetry', False):
                     # print('Successful response from ', func, data)
-                    return data
-                elif results.get('needsRetry', False):
                     print('\033[33mRetrying after', timeout, ' secs\033[00m')
                     time.sleep(timeout)
                     return __functor(*args, **kwargs)
                 else:
-                    print(results)
+                    return data
             else:
                 msg = "Couldn't retry as 'get' method undefined for data"
                 return dict(results=results, msg=msg)
