@@ -5,9 +5,6 @@ import os
 import re
 import sys
 import time
-import inspect
-import threading
-import collections
 from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
@@ -44,6 +41,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.__resourcePool = dict()
         self.__keyToMarker = dict()
+        self.__iconMemMap = dict()
         self.syncManager = SyncManager.SyncManager(dbHandler)
         self.inEavsDroppingMode = eavsDroppingMode
 
@@ -102,13 +100,27 @@ class GroundStation(QtWidgets.QMainWindow):
             if curItemSyncStatus != constants.IS_IN_SYNC:
                 self.handleItemPop(path)
 
+    def getIcon(self, key):
+        memIcon = self.__iconMemMap.get(key, None)
+        if memIcon is None:
+            memIcon = QtGui.QIcon(key)
+            self.__iconMemMap[key] = memIcon
+        return memIcon
+
     def querySyncStatus(self):
         queryData = utils.produceAndParse(self.__dbHandler.imageHandler.getConn,
             dict(select='id,lastEditTime', limit=0, sort='lastEditTime_r')
         )
         if isinstance(queryData, dict):
-            if hasattr(queryData, 'reason'):
-                self.syncUpdateAction.setText(queryData['reason'])
+            statusCode = queryData.get('status_code', 400)
+            if statusCode != 200 or hasattr(queryData, 'reason'):
+                self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-bad.png'))
+                self.connectionStatusAction.setText('&Not connected')
+
+                self.syncUpdateAction.setText('Failed to connect')
+
+                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+                self.syncIconAction.setText('&Current item not in sync\nHit Ctrl+R for sync')
             else:
                 metaDict = queryData.get('meta', {})
                 dbImageCount = metaDict.get('count', 0)
@@ -126,11 +138,15 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 curItemSyncStatus = self.syncManager.needsSync(path=self.ui_window.countDisplayLabel.text())
                 if curItemSyncStatus == constants.IS_IN_SYNC:
-                    self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-cloud-syncd.png'))
+                    self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
+                    self.syncIconAction.setText('&Current item in sync')
                 else:
-                    self.syncIconAction.setIcon(QtGui.QIcon('icons/iconmonstr-cloud-unsyncd.png'))
+                    self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+                    self.syncIconAction.setText('&Current item not in sync')
 
                 self.syncUpdateAction.setText(updateMsg)
+                self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-good.png'))
+                self.connectionStatusAction.setText('&Connected')
 
     def showCurrentTime(self):
         time = QtCore.QTime.currentTime()
@@ -212,6 +228,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if lastItem: # Sound only if there is an item to be displayed
             self.__saveSound.play()
+        else:
+            self.querySyncStatus()
 
         if hasattr(onFinish, '__call__'):
             onFinish()
@@ -235,6 +253,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncToolbar = self.ui_window.syncInfoToolbar
         self.syncToolbar.addAction(self.syncIconAction)
         self.syncToolbar.addAction(self.syncUpdateAction)
+        self.syncToolbar.addAction(self.connectionStatusAction)
 
     def editCurrentImage(self):
         print('Editing Current Image', self.ui_window.countDisplayLabel.text())
@@ -283,52 +302,54 @@ class GroundStation(QtWidgets.QMainWindow):
 
         # Getting the original ids in
         saveResponse = self.syncManager.saveImageToDB(key, outDict, needsCloudSave=True)
-        print('saveResponse', saveResponse)
+        # print('saveResponse', saveResponse)
 
     def initActions(self):
-        self.popCurrentImageAction = QtWidgets.QAction(QtGui.QIcon('icons/recyclebin_close.png'),
+        self.popCurrentImageAction = QtWidgets.QAction(self.getIcon('icons/recyclebin_close.png'),
             "&Remove currentImage", self
         )
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
         self.syncCurrentItemAction = QtWidgets.QAction(
-            QtGui.QIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self
+            self.getIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self
         )
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        self.dbSyncAction = QtWidgets.QAction(QtGui.QIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
+        self.dbSyncAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
+
+        self.connectionStatusAction = QtWidgets.QAction("&Connection Status", self)
 
         self.syncUpdateAction = QtWidgets.QAction("&Updates Info", self)
         self.syncIconAction = QtWidgets.QAction("&SyncStatus", self)
 
         # Exit
-        self.exitAction = QtWidgets.QAction(QtGui.QIcon('icons/exit.png'), "&Exit", self)
+        self.exitAction = QtWidgets.QAction(self.getIcon('icons/exit.png'), "&Exit", self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
         self.findImagesAction = QtWidgets.QAction(
-            QtGui.QIcon('icons/iconmonstr-folder.png'), "&Add Images", self
+            self.getIcon('icons/iconmonstr-folder.png'), "&Add Images", self
         )
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
         self.editCurrentImageAction = QtWidgets.QAction(
-            QtGui.QIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self
+            self.getIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self
         )
         self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
         self.addLocationDataAction = QtWidgets.QAction(
-            QtGui.QIcon('icons/iconmonstr-note.png'), "&Add Telemetry Info", self
+            self.getIcon('icons/iconmonstr-note.png'), "&Add Telemetry Info", self
         )
         self.addLocationDataAction.triggered.connect(self.addLocationData)
 
         self.printCurrentImageDataAction = QtWidgets.QAction(
-            QtGui.QIcon('icons/iconmonstr-printer.png'), "&Print Current Image Info", self
+            self.getIcon('icons/iconmonstr-printer.png'), "&Print Current Image Info", self
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 

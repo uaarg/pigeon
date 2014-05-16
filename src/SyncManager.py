@@ -128,7 +128,7 @@ class SyncManager:
                 # print('dataDict', dataDict)
                 
                 saveResult = self.saveMarkerToDB(dataDict)
-                print('saveResult', dataDict, saveResult) 
+                print('saveResult', saveResult) 
                 if (saveResult.get('data', {}).get('id', -1) != -1) or (saveResult.get('id', -1) != -1):
                     onSuccess = markerDict.get('onSuccess', lambda: {})
                     onSuccess(saveResult)
@@ -157,7 +157,7 @@ class SyncManager:
             methodName = 'postConn'
             elemAttrDict.pop('id', None) # Let the DB decide what Id to assign to you
 
-        print('elemAttrDict', elemAttrDict)
+        # print('elemAttrDict', elemAttrDict)
         func = getattr(self.__dbHandler.imageHandler, methodName)
         parsedResponse = utils.produceAndParse(func, elemAttrDict)
         idFromDB = parsedResponse.get('id', -1)
