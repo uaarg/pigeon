@@ -31,7 +31,7 @@ class DirWatch:
         return self.__purgeableAction
 
     def setOnRetainableDetected(self, onRetain):
-        self.__retainableAction = onRetainable
+        self.__retainableAction = onRetain
 
     def getRetainableDetected(self):
         return self.__retainableAction
@@ -71,14 +71,13 @@ class DirWatch:
     def __handleByBucket(self, eventHandler, elemBucket, generalAction):
         for elem in elemBucket:
             try:
-                print(generalAction(elem))
+                generalAction(elem)
             except Exception as e:
                 print(e)
 
     def __handleRun(self, associatedEvent, *args):
         threshTime = args[0] if args else 0
         maxDepth = args[1] if len(args) > 1 else -1
-        print('Args', args)
         while not associatedEvent.is_set():
             freshTh, purgeTh = self.getPaths(threshTime, maxDepth=maxDepth) 
             print('\033[92mSleeping for ', self.__sleepTimeout, '\033[00m')
@@ -112,8 +111,8 @@ class DirWatch:
         for th in self.__eventMemoizer:
             self.kill(th)
 
-    def bootStrap(self, timeout):
-        runner = self.runByEventTrigger(self.__handleRun, timeout)
+    def bootStrap(self, thresholdTime):
+        runner = self.runByEventTrigger(self.__handleRun, thresholdTime)
         if isCallableAttr(runner, 'start'):
             print('Starting', runner)
             runner.start()

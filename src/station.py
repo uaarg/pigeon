@@ -18,6 +18,7 @@ import iconStrip # Local module
 import constants # Local module
 import SyncManager # Local module
 import ImageDisplayer # Local module
+import DirWatchManager # Local module
 import mpUtils.JobRunner # Local module
 
 
@@ -41,6 +42,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.__resourcePool = dict()
         self.__keyToMarker = dict()
+        self.__dirWatcher = DirWatchManager.DirWatchManager(
+            onFreshPaths=lambda p: self.pictureDropped([p]), onStalePaths=lambda a: a
+        )
         self.__iconMemMap = dict()
         self.syncManager = SyncManager.SyncManager(dbHandler)
         self.inEavsDroppingMode = eavsDroppingMode
@@ -185,7 +189,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def createFileDialog(self, caption, connectFunc, fileMode, baseDir=None, nameFilter=None):
         __fDialog = QtWidgets.QFileDialog(caption=caption)
-        __fDialog.setFileMode(3) # Multiple files can be selected
+        __fDialog.setFileMode(fileMode) # Multiple files can be selected
         __fDialog.filesSelected.connect(connectFunc)
         if os.path.exists(baseDir):
             __fDialog.setDirectory(baseDir)
@@ -197,16 +201,17 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def initFileDialogs(self):
         self.fileDialog = self.createFileDialog(
-            'Add captured Images', self.pictureDropped, 3, './data/processed',
+            'Add captured Images', self.pictureDropped, QtWidgets.QFileDialog.ExistingFiles, './data/processed',
             'All image files (*.png *.jpg *.jpeg *.gif)'   
         )
 
         self.dirWatchFileDialog = self.createFileDialog(    
-            'Select directories to watch', self.watchDirs, 3, './data/processed'
+            'Select directories to watch', self.watchDirs, QtWidgets.QFileDialog.Directory, '../'
         )
+        self.dirWatchFileDialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly)
 
         self.locationDataDialog = self.createFileDialog(
-            'Add telemetry files', self.processAssociatedDataFiles, 3, './data/info', 'All text files (*.txt)'
+            'Add telemetry files', self.processAssociatedDataFiles, QtWidgets.QFileDialog.ExistingFiles, './data/info', 'All text files (*.txt)'
         )
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
@@ -494,6 +499,7 @@ class GroundStation(QtWidgets.QMainWindow):
             '''
 
     def cleanUpAndExit(self):
+        self.__dirWatcher.close()
         self.iconStrip.close()
 
         self.fileDialog.close()
@@ -518,6 +524,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def watchDirs(self, selectedDirPaths):
         print('Selected directories', selectedDirPaths)
+        for dPath in selectedDirPaths:
+            dWatcher = self.__dirWatcher.watchDir(dPath)
+            runner = dWatcher.bootStrap(time.time())
 
     def findImages(self):
         if isinstance(self.fileDialog, QtWidgets.QFileDialog):

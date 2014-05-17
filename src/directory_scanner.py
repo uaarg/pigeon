@@ -8,13 +8,19 @@ def directory_scanner(DIR_PATH):
     
     wm = pyinotify.WatchManager() # new WatchManager
     notifier = pyinotify.Notifier(wm) # make a notifier associated with the WatchManager
-    event_mask = pyinotify.IN_CREATE # Choose which events to watch for
+    event_mask = pyinotify.IN_CREATE|pyinotify.IN_DELETE # Choose which events to watch for
     
     # Define the event handler class
     class EventHandler(pyinotify.ProcessEvent):
         # Note that for handling EVENT_TYPE, process_EVENT_TYPE must be called
         def process_IN_CREATE(self, event):
             print ("Creating:", event.pathname)
+
+        def process_IN_DELETE(self, event):
+            print ("Delete:", event.pathname)
+
+        def process_default(self, event):
+            print('Default handler', event)
 
     # Create main event handler
     handler = EventHandler()
