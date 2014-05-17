@@ -3,6 +3,7 @@
 
 import os
 import time
+import math
 import threading
 
 isCallable = lambda obj: hasattr(obj, '__call__')
@@ -36,7 +37,9 @@ class DirWatch:
                     freshPaths.append(joinedPath)
                 else:
                     purgeable.append(joinedPath)
-            if maxDepth >= 0:
+
+            if hasattr(maxDepth, '__divmod__') and maxDepth >= 0:
+                maxDepth = math.floor(maxDepth)
                 if maxDepth == 0: break
                 else: maxDepth -= 1
 
