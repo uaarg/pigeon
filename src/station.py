@@ -183,14 +183,27 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
         self.iconStrip.setOnItemClick(self.renderImage)
 
-    def initFileDialogs(self):
-        self.fileDialog = QtWidgets.QFileDialog(caption='Add captured Images')
-        self.fileDialog.setFileMode(3) # Multiple files can be selected
-        self.fileDialog.filesSelected.connect(self.pictureDropped)
+    def createFileDialog(self, caption, connectFunc, fileMode, baseDir=None):
+        __fDialog = QtWidgets.QFileDialog(caption=caption)
+        __fDialog.setFileMode(3) # Multiple files can be selected
+        __fDialog.filesSelected.connect(connectFunc)
+        if os.path.exists(baseDir):
+            __fDialog.setDirectory(baseDir)
 
-        self.locationDataDialog = QtWidgets.QFileDialog(caption='Add telemetry files')
-        self.locationDataDialog.setFileMode(3) # Multiple files can be selected
-        self.locationDataDialog.filesSelected.connect(self.processAssociatedDataFiles)
+        return __fDialog
+
+    def initFileDialogs(self):
+        self.fileDialog = self.createFileDialog(
+            'Add captured Images', self.pictureDropped, 3, './data/processed'   
+        )
+
+        self.dirWatchFileDialog = self.createFileDialog(    
+            'Select directories to watch', self.watchDirs, 3, './data'
+        )
+
+        self.locationDataDialog = self.createFileDialog(
+            'Add telemetry files', self.processAssociatedDataFiles, 3, './data/info'
+        )
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
 
@@ -245,6 +258,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.addLocationDataAction)
         self.toolbar.addAction(self.popCurrentImageAction)
         self.toolbar.addAction(self.findImagesAction)
+        self.toolbar.addAction(self.dirWatchAction)
         self.toolbar.addAction(self.syncCurrentItemAction)
         self.toolbar.addAction(self.dbSyncAction)
         self.toolbar.addAction(self.printCurrentImageDataAction)
@@ -320,6 +334,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.dbSyncAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
+
+        self.dirWatchAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-eye.png'), "&Select directories to watch", self)
+        self.dirWatchAction.triggered.connect(self.dirWatchTrigger)
 
         self.connectionStatusAction = QtWidgets.QAction("&Connection Status", self)
 
@@ -487,6 +504,17 @@ class GroundStation(QtWidgets.QMainWindow):
         print(self, 'closing')
 
         self.close()
+
+    def dirWatchTrigger(self):
+        if isinstance(self.dirWatchFileDialog, QtWidgets.QFileDialog):
+            self.dirWatchFileDialog.show()
+        else:
+            qBox = QtWidgets.QMessageBox(parent=self)
+            qBox.setText('DirWatch FileDialog was not initialized')
+            qBox.show()
+
+    def watchDirs(self, selectedDirPaths):
+        print('Selected directories', selectedDirPaths)
 
     def findImages(self):
         if isinstance(self.fileDialog, QtWidgets.QFileDialog):
