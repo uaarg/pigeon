@@ -183,26 +183,30 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window.thumbnailScrollArea.setWidget(self.iconStrip)
         self.iconStrip.setOnItemClick(self.renderImage)
 
-    def createFileDialog(self, caption, connectFunc, fileMode, baseDir=None):
+    def createFileDialog(self, caption, connectFunc, fileMode, baseDir=None, nameFilter=None):
         __fDialog = QtWidgets.QFileDialog(caption=caption)
         __fDialog.setFileMode(3) # Multiple files can be selected
         __fDialog.filesSelected.connect(connectFunc)
         if os.path.exists(baseDir):
             __fDialog.setDirectory(baseDir)
 
+        if nameFilter and isinstance(nameFilter, str):
+            __fDialog.setNameFilter(nameFilter)
+
         return __fDialog
 
     def initFileDialogs(self):
         self.fileDialog = self.createFileDialog(
-            'Add captured Images', self.pictureDropped, 3, './data/processed'   
+            'Add captured Images', self.pictureDropped, 3, './data/processed',
+            'All image files (*.png *.jpg *.jpeg *.gif)'   
         )
 
         self.dirWatchFileDialog = self.createFileDialog(    
-            'Select directories to watch', self.watchDirs, 3, './data'
+            'Select directories to watch', self.watchDirs, 3, './data/processed'
         )
 
         self.locationDataDialog = self.createFileDialog(
-            'Add telemetry files', self.processAssociatedDataFiles, 3, './data/info'
+            'Add telemetry files', self.processAssociatedDataFiles, 3, './data/info', 'All text files (*.txt)'
         )
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
@@ -509,9 +513,8 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(self.dirWatchFileDialog, QtWidgets.QFileDialog):
             self.dirWatchFileDialog.show()
         else:
-            qBox = QtWidgets.QMessageBox(parent=self)
-            qBox.setText('DirWatch FileDialog was not initialized')
-            qBox.show()
+            self.msgQBox.setText('DirWatch FileDialog was not initialized')
+            self.msgQBox.show()
 
     def watchDirs(self, selectedDirPaths):
         print('Selected directories', selectedDirPaths)
@@ -520,9 +523,8 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(self.fileDialog, QtWidgets.QFileDialog):
             self.fileDialog.show()
         else:
-            qBox = QtWidgets.QMessageBox(parent=self)
-            qBox.setText('FileDialog was not initialized')
-            qBox.show()
+            self.msgQBox.setText('FileDialog was not initialized')
+            self.msgQBox.show()
 
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
@@ -593,9 +595,8 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
             self.locationDataDialog.show()
         else:
-            qBox = QtWidgets.QMessageBox(parent=self)
-            qBox.setText('FileDialog was not initialized')
-            qBox.show()
+            self.msgQBox.setText('LocationData fileDialog was not initialized')
+            self.msgQBox.show()
 
     def processAssociatedDataFiles(self, pathList, **kwargs):
         return self.__jobRunner.run(self.__processAssociatedDataFiles, None, None, pathList, **kwargs)
