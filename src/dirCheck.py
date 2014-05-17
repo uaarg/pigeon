@@ -8,6 +8,7 @@ import threading
 
 isCallable = lambda obj: hasattr(obj, '__call__')
 isCallableAttr = lambda obj, attr: hasattr(obj, attr) and isCallable(getattr(obj, attr))
+
 pathExists = lambda qPath: qPath and os.path.exists(qPath)
 accessTimeChecker = lambda path: os.path.getatime(path)
 creationTimeChecker = lambda path: os.path.getctime(path)
@@ -20,12 +21,20 @@ class DirWatch:
         self.__pathToWatch = dirPath
         self.__sleepTimeout = sleepTimeout or 10
         self.__eventMemoizer = dict()
-
+        self.__purgeableAction = lambda p: 'Purgeable: %s'%(p)
+        self.__retainableAction = lambda p: 'Fresh: %s'%(p)
+        
     def setOnPurgeableDetected(self, onPurge):
         self.__purgeableAction = onPurge
 
+    def getPurgeableDetected(self):
+        return self.__purgeableAction
+
     def setOnRetainableDetected(self, onRetain):
         self.__retainableAction = onRetainable
+
+    def getRetainableDetected(self):
+        return self.__retainableAction
 
     def getPaths(self, lastSaveTime=0, statTimeAccessor=accessTimeChecker, maxDepth=-1):
         freshPaths = []
@@ -46,11 +55,15 @@ class DirWatch:
         freshTh = purgeTh = None
         
         if purgeable:
-            purgeTh = self.runByEventTrigger(self.__handleByBucket, purgeable, lambda p: 'Purgeable: %s'%(p),)
+            purgeTh = self.runByEventTrigger(
+                self.__handleByBucket, purgeable, self.__purgeableAction,
+            )
             purgeTh.start()
 
         if freshPaths:
-            freshTh = self.runByEventTrigger(self.__handleByBucket, freshPaths, lambda p: 'Fresh: %s'%(p),)
+            freshTh = self.runByEventTrigger(
+                self.__handleByBucket, freshPaths, self.__retainableAction,
+            )
             freshTh.start()
 
         return freshTh, purgeTh
