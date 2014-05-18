@@ -4,7 +4,6 @@
 
 import os
 import sys
-from io import StringIO
 
 try:
     import requests
@@ -22,7 +21,7 @@ class FileOnCloudHandler:
 
     def __pushUpFileByStream(self, isPut, stream, **attrs):
         method = requests.put if  isPut else requests.post
-        return method(self.__upUrl, data=attrs, files={'blob': stream})
+        return method(self.__upUrl, params=attrs, files={'blob': stream})
 
     def __pushUpFileByPath(self, methodToggle, fPath, **attrs):
         response = None
@@ -44,13 +43,34 @@ class FileOnCloudHandler:
     def updateFileByPath(self, fPath, **attrs):
         return self.__pushUpFileByPath(True, fPath, **attrs)
 
-    def downloadFileToStream(self, fPath):
-        dataIn = requests.get(self.__mediaUrl + fPath)
-        if dataIn:
-            return StringIO(dataIn.text)
+
+    def __pathForMediaDownload(self, fPath):
+        return self.__mediaUrl + fPath
+
+    def downloadFileToStream(self, fPath, readChunkSize=512):
+        formedUrl = self.__pathForMediaDownload(fPath)
+        dataIn = requests.get(formedUrl, stream=True)
+        if dataIn.status_code == 200:
+            return dataIn.iter_content(chunk_size=readChunkSize)
+
+    def downloadFileToDisk(self, pathOnCloudName, altName=None, chunkSize=1024):
+        chunkIterator = self.downloadFileToStream(pathOnCloudName, chunkSize)
+        writtenBytes = 0
+        if hasattr(chunkIterator, '__next__'):
+            localName = altName or os.path.basename(pathOnCloudName)
+            with open(localName, 'wb') as f:
+                for chunk in chunkIterator:
+                    if chunk:
+                        writtenBytes += f.write(chunk)
+                        f.flush()
+
+        return writtenBytes
 
     def deleteFileOnCloud(self, **attrsDict):
         return requests.delete(self.__upUrl, **attrsDict)
+
+    def getManifest(self, queryDict={}):
+        return requests.get(self.__upUrl, params=queryDict)
 
 def main():
     srcPath = '/Users/emmanuelodeke/pigeon/src/data/processed/2.jpg'
@@ -58,9 +78,12 @@ def main():
     uResponse =fH.uploadFileByPath(srcPath, author=getDefaultUserName(), title=srcPath)
     print(uResponse)
     print(uResponse.text)
-    
-    print(fH.downloadFileToStream(srcPath))
-    print(fH.deleteFileOnCloud())
+  
+    shortPath = os.path.basename(srcPath) 
+    print(fH.downloadFileToDisk('documents/' + shortPath))
+
+    print(fH.getManifest(dict(select='id')).text)
+    # print(fH.deleteFileOnCloud().text)
 
 if __name__ == '__main__':
     main()
