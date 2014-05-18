@@ -2,6 +2,8 @@
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
+import time
+
 import dirCheck # Local module
 
 class DirWatchManager:
@@ -16,6 +18,9 @@ class DirWatchManager:
             if memWatcher is None:
                 memWatcher = dirCheck.DirWatch(path, sleepTimeout)
                 self.__pathToChecker[path] = memWatcher
+                runner = memWatcher.bootStrap(time.time())
+            else:
+                print('\033[47mAlready watching', path, '\033[00mwill just set latest eventHandlers')
                
             memWatcher.setOnRetainableDetected(self.__onFreshPaths)
             memWatcher.setOnPurgeableDetected(self.__onStalePaths)
