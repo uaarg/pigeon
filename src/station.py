@@ -4,7 +4,6 @@
 import os
 import re
 import sys
-import time
 from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
@@ -444,8 +443,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.renderImage(savText)
         
     def setSyncTime(self, *args):
-        time = QtCore.QTime.currentTime()
-        text = time.toString('hh:mm:ss')
+        curTime = QtCore.QTime.currentTime()
+        text = curTime.toString('hh:mm:ss')
         self.__lastSyncLCD.display(text)
 
     def renderImage(self, path):
@@ -526,7 +525,6 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Selected directories', selectedDirPaths)
         for dPath in selectedDirPaths:
             dWatcher = self.__dirWatcher.watchDir(dPath)
-            runner = dWatcher.bootStrap(time.time())
 
     def findImages(self):
         if isinstance(self.fileDialog, QtWidgets.QFileDialog):
