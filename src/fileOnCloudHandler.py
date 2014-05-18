@@ -21,7 +21,7 @@ class FileOnCloudHandler:
 
     def __pushUpFileByStream(self, isPut, stream, **attrs):
         method = requests.put if  isPut else requests.post
-        return method(self.__upUrl, params=attrs, files={'blob': stream})
+        return method(self.__upUrl, data=attrs, files={'blob': stream})
 
     def __pushUpFileByPath(self, methodToggle, fPath, **attrs):
         response = None
@@ -83,7 +83,7 @@ def main():
     print(fH.downloadFileToDisk('documents/' + shortPath))
 
     print(fH.getManifest(dict(select='id')).text)
-    # print(fH.deleteFileOnCloud().text)
+    print(fH.deleteFileOnCloud().text)
 
 if __name__ == '__main__':
     main()
