@@ -14,7 +14,7 @@ import GPSCoord # Local GPS calculation module
 class Marker(QtWidgets.QPushButton):
     def __init__(
         self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, mComments=None,
-        iconPath='icons/iconmonstr-syncdMarker.png', tree=None,onDeleteCallback=None, author=None
+        iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -45,7 +45,7 @@ class Marker(QtWidgets.QPushButton):
         self.expandedH = self.origH * 1.2
 
     def toggleUnsaved(self):
-        self.initIcon('icons/iconmonstr-unsyncdMarker.png')
+        self.initIcon('icons/mapMarkerIn.png')
 
     def refreshAndToggleSave(self, attrDict):
         self.memComments = attrDict.get('comments', None)
@@ -53,7 +53,7 @@ class Marker(QtWidgets.QPushButton):
         self.toggleSaved()
 
     def toggleSaved(self):
-        self.initIcon('icons/iconmonstr-syncdMarker.png')
+        self.initIcon('icons/mapMarkerOut.png')
         self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):
