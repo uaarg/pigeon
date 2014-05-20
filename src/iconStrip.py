@@ -24,13 +24,15 @@ class IconStrip(QtWidgets.QListWidget):
         self.__onClick = clickHandler
 
     def addIconItem(self, path, onClick=None):
-        icon = QtGui.QIcon(self.addPixMap(path))
-        item = QtWidgets.QListWidgetItem('', self)
-        item.setIcon(icon)
-        item.setStatusTip(path)
+        pixMap = self.addPixMap(path)
+        if pixMap:
+            icon = QtGui.QIcon(pixMap)
+            item = QtWidgets.QListWidgetItem('', self)
+            item.setIcon(icon)
+            item.setStatusTip(path)
 
-        self.__itemDict[path] = item 
-        return self.currentRow()
+            self.__itemDict[path] = item 
+            return self.currentRow()
 
     def editStatusTipByKey(self, path, newStatusTip):
         memItem = self.__itemDict.get(path, None)

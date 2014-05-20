@@ -235,8 +235,7 @@ class GroundStation(QtWidgets.QMainWindow):
             path = pathDict.get('uri', None)
             key = utils.getLocalName(path) or path
    
-            if key not in self.__resourcePool:
-                self.iconStrip.addIconItem(path, self.renderImage)
+            if key not in self.__resourcePool and self.iconStrip.addIconItem(path, self.renderImage):
                 self.__resourcePool[key] = True
 
             self.renderImage(path)
