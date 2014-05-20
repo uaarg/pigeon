@@ -2,6 +2,7 @@
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import os
+import random
 
 import utils
 import DbLiason
@@ -29,11 +30,11 @@ class SyncManager:
 
     def __downloadFile(self, resourceKey):
         elemAttrDict = self.getImageAttrsByKey(resourceKey)
-        print('elemAttrDict', elemAttrDict)
+        print('elemAttrDict', elemAttrDict, 'key', resourceKey)
 
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
         basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
-        print('basename', basename)
+        print('basename', basename, 'pathSelector', pathSelector)
 
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
         writtenBytes = self.__uploadHandler.downloadFileToDisk(
@@ -46,7 +47,6 @@ class SyncManager:
             return localizedDataPath
 
     def mapToLocalKey(self, path):
-        print('mapping', path)
         return utils.getLocalName(path) or path
 
     def getImageAttrsByKey(self, key):
@@ -82,7 +82,7 @@ class SyncManager:
             data = queryResponse.get('data', [])
             # print('data', data)
             for item in data:
-                keySelector = item.get('title', None) or item.get('uri', None)
+                keySelector = item.get('uri', '') or item.get('title', '')
                 localKey = self.mapToLocalKey(keySelector)
 
                 self.__resourcePool[localKey] = item
@@ -180,36 +180,38 @@ class SyncManager:
         basename = os.path.basename(pathSelector)
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
 
-        queryDict = dict(title=localizedDataPath)
+        queryDict = dict(uri=localizedDataPath)
         print('queryDict', queryDict)
         dQuery = self.__uploadHandler.jsonParseResponse(self.__uploadHandler.getManifest(queryDict))
         print('dQuery', dQuery)
 
         statusCode = dQuery['status_code']
         if statusCode == 200:
-            if utils.pathExists(pathSelector):
-                needsUpload = True
-                data = dQuery.get('data', None)
-
-                if data:
-                    # Now time for a size inquiry
-                    print('data', data)
+            needsUpload = True
+            data = dQuery.get('data', None)
+            if data:
+                # Now time for a size inquiry
+                print('data', data)
+                if utils.pathExists(pathSelector):
                     statDict = os.stat(pathSelector)
-                    queriedSize = data.get('size', -1)
+                    randSample = random.sample(data, 1)[0]
+                    queriedSize = randSample.get('size', -1)
                     if int(statDict.st_size) == int(queriedSize):
                         # Simple litmus test. In the future will add checksum checks
                         needsUpload = False
 
-                if needsUpload:
-                    queryDict['author'] = utils.getDefaultUserName()
-                    print('\033[92mOn Upload', self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict), '\033[00m')
+            if needsUpload:
+                queryDict['author'] = utils.getDefaultUserName()
+                print('\033[92mOn Upload', self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict), '\033[00m')
 
-        print('\033[91mpathSelector', pathSelector, localizedDataPath, '\033[00m')
 
         if not utils.pathExists(localizedDataPath):
-            localizedDataPath, self.downloadFile(path)
+            dlPath = self.downloadFile(path)
+            if dlPath:
+                localizedDataPath = dlPath
 
         elemAttrDict['uri'] = localizedDataPath
+        print('\033[91mpathSelector', pathSelector, localizedDataPath, elemAttrDict, '\033[00m')
 
         memId = int(elemData.get('id', -1))
         methodName = 'putConn'
@@ -225,7 +227,7 @@ class SyncManager:
        
         pathDict = self.__resourcePool.get(path, None) 
         if pathDict is None:
-            pathDict = dict()
+            pathDict = dict(uri=localizedDataPath)
 
         pathDict['id'] = idFromDB
         print('idFromDB', path, parsedResponse)

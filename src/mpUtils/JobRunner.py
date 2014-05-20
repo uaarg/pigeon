@@ -22,6 +22,7 @@ class JobRunner(object):
                 try:
                     results['data'] = func(*args, **kwargs)
                 except Exception as ex:
+                    print('Exception', ex)
                     results['error'] = ex
                 finally:
                     # Release the lock
