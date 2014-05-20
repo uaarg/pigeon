@@ -644,7 +644,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         seqIDExtSplit = axiom.split('.')
 
-        if not seqIDExtSplit:
+        if not (seqIDExtSplit and len(seqIDExtSplit) == 2):
             print('Erraneous format, expecting pathId and extension eg from 12.jpg')
             return -1
 
