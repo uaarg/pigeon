@@ -187,20 +187,27 @@ class SyncManager:
 
         statusCode = dQuery['status_code']
         if statusCode == 200:
-            data = dQuery.get('data', None)
-            if data:
-                # Now time for a checkSum inquiry
-                print('data', data)
-            else:
-                if utils.pathExists(pathSelector):
+            if utils.pathExists(pathSelector):
+                needsUpload = True
+                data = dQuery.get('data', None)
+
+                if data:
+                    # Now time for a size inquiry
+                    print('data', data)
+                    statDict = os.stat(pathSelector)
+                    queriedSize = data.get('size', -1)
+                    if int(statDict.st_size) == int(queriedSize):
+                        # Simple litmus test. In the future will add checksum checks
+                        needsUpload = False
+
+                if needsUpload:
                     queryDict['author'] = utils.getDefaultUserName()
                     print('\033[92mOn Upload', self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict), '\033[00m')
 
         print('\033[91mpathSelector', pathSelector, localizedDataPath, '\033[00m')
 
         if not utils.pathExists(localizedDataPath):
-            print(self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath))
-            elemAttrDict['title'] = localizedDataPath
+            localizedDataPath, self.downloadFile(path)
 
         elemAttrDict['uri'] = localizedDataPath
 

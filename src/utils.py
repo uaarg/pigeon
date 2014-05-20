@@ -11,7 +11,7 @@ import json
 from optparse import OptionParser
 
 _404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
-_PLACE_HOLDER_PATH = os.path.abspath('.') + os.sep + _404_IMAGE_PATH
+_PLACE_HOLDER_PATH = os.sep.join(('.', _404_IMAGE_PATH,))
 
 getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 pathExists = lambda p : p and os.path.exists(p)

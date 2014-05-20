@@ -111,24 +111,23 @@ class ImageDisplayer(QtWidgets.QLabel):
         center_gpsPosition = georeference_obj.centerOfImage(position, orientation)
         return center_gpsPosition
 
-    def renderImage(self, path, markerSet, currentMap, pixMap=None):
+    def renderImage(self, path, markerSet, currentMap, pixMap=None, altPixMap=None):
         if self._childMap is not None:
             for v in self._childMap.values():
                 v.hide()
 
-        filename = utils._PLACE_HOLDER_PATH
         self.__allowClicks = False
 
-        if path:
-            filename = path
-
         if not hasattr(pixMap, 'isNull'):
-            self.imgPixMap = QPixmap(filename)
+            self.imgPixMap = QPixmap(path)
         else:
             self.imgPixMap = pixMap
-        
+       
+        if self.imgPixMap.isNull(): 
+            self.imgPixMap = altPixMap
+
         if self.imgPixMap.isNull():
-            QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
+            QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(path))
             return
         else:
             self.__allowClicks = True

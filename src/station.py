@@ -393,6 +393,7 @@ class GroundStation(QtWidgets.QMainWindow):
             nextItemOnDisplay = self.iconStrip.popIconItem(currentItem, None)
             key = utils.getLocalName(currentItem) or currentItem
             print('popping', self.__resourcePool.pop(key, None))
+            print('nextItemOnDisplay', nextItemOnDisplay)
 
         self.renderImage(nextItemOnDisplay)
 
@@ -468,7 +469,8 @@ class GroundStation(QtWidgets.QMainWindow):
         memPixMap = self.iconStrip.addPixMap(path)
         print('memPixMap', memPixMap.isNull())
         self.ImageDisplayer.renderImage(
-            path, markerSet=markerSet, currentMap=outDict, pixMap=memPixMap
+            path, markerSet=markerSet, currentMap=outDict, pixMap=memPixMap,
+            altPixMap=self.iconStrip.addPixMap(utils._PLACE_HOLDER_PATH)
         )
 
         associatedTextFile = self.getInfoFileNameFromImagePath(path)
