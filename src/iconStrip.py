@@ -32,6 +32,11 @@ class IconStrip(QtWidgets.QListWidget):
         self.__itemDict[path] = item 
         return self.currentRow()
 
+    def editStatusTipByKey(self, path, newStatusTip):
+        memItem = self.__itemDict.get(path, None)
+        if hasattr(memItem, 'setStatusTip') and hasattr(memItem.setStatusTip, '__call__'):
+            memItem.setStatusTip(newStatusTip)
+
     def mousePressEvent(self, event):
         curItem = self.currentItem()
         if curItem:

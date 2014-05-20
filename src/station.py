@@ -239,6 +239,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 self.iconStrip.addIconItem(path, self.renderImage)
                 self.__resourcePool[key] = True
 
+            self.renderImage(path)
             self.__resourcePool[key] = pathDict
 
             if lastItem is None:
@@ -419,6 +420,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         localizedPath = self.syncManager.syncImageToDB(localKey)
         if localizedPath:
+            self.iconStrip.editStatusTipByKey(pathOnDisplay, localizedPath)
             pathOnDisplay = localizedPath
 
         dbConfirmation = self.syncManager.syncFromDB(uri=pathOnDisplay)
@@ -426,7 +428,6 @@ class GroundStation(QtWidgets.QMainWindow):
         associatedMarkerMap = self.__keyToMarker.get(localKey, {})
         markerDictList = []
         for m in associatedMarkerMap.values():
-            print(m, m.memComments)
             markerDictList.append(
                 dict(getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved)
             )
@@ -460,9 +461,9 @@ class GroundStation(QtWidgets.QMainWindow):
         
         if not utils.pathExists(path): 
             localizedPath = self.syncManager.downloadFile(localKey)
-            print('New localized path', localizedPath)
-            path = localizedPath
-            # print('existance', utils.pathExists(path))
+            if localizedPath: # Path successfully written to
+                print('New localized path', localizedPath)
+                path = localizedPath
 
         memPixMap = self.iconStrip.addPixMap(path)
         print('memPixMap', memPixMap.isNull())

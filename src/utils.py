@@ -36,9 +36,10 @@ def massagePath(path):
 
 def getLocalName(path):
     splitPath = massagePath(path)
-    if splitPath:
+    if isinstance(splitPath, list) and len(splitPath) == 3:
         dirLocation, localName, extension = splitPath
         return localName
+    
 
 def getPathsLike(regexList, srcDir=None):
   originalPath = None

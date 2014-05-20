@@ -36,14 +36,17 @@ class SyncManager:
         print('basename', basename)
 
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
-        dlRequest = self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath)
-        print('dlRequest', dlRequest)
-        elemAttrDict['uri'] = localizedDataPath
-        elemAttrDict['title'] = localizedDataPath
+        writtenBytes = self.__uploadHandler.downloadFileToDisk(
+            'documents/' + basename, localizedDataPath
+        )
+        if writtenBytes:
+            elemAttrDict['uri'] = localizedDataPath
+            elemAttrDict['title'] = localizedDataPath
 
-        return localizedDataPath
+            return localizedDataPath
 
     def mapToLocalKey(self, path):
+        print('mapping', path)
         return utils.getLocalName(path) or path
 
     def getImageAttrsByKey(self, key):
