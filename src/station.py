@@ -414,12 +414,14 @@ class GroundStation(QtWidgets.QMainWindow):
                 mk.erase(mk.x, mk.y, needsFlush=False)
 
     def syncCurrentItem(self):
-        savText = self.ui_window.countDisplayLabel.text()
-        localKey = self.syncManager.mapToLocalKey(savText)
+        pathOnDisplay = self.ui_window.countDisplayLabel.text()
+        localKey = self.syncManager.mapToLocalKey(pathOnDisplay)
 
-        uploadResponse = self.syncManager.syncImageToDB(localKey)
-        print('uploadResponse', uploadResponse)
-        dbConfirmation = self.syncManager.syncFromDB(uri=savText)
+        localizedPath = self.syncManager.syncImageToDB(localKey)
+        if localizedPath:
+            pathOnDisplay = localizedPath
+
+        dbConfirmation = self.syncManager.syncFromDB(uri=pathOnDisplay)
  
         associatedMarkerMap = self.__keyToMarker.get(localKey, {})
         markerDictList = []
@@ -440,7 +442,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 )
                 print('associatedImageId', associatedImageId)
 
-        self.renderImage(savText)
+        self.renderImage(pathOnDisplay)
         
     def setSyncTime(self, *args):
         curTime = QtCore.QTime.currentTime()
@@ -457,11 +459,13 @@ class GroundStation(QtWidgets.QMainWindow):
             self.__keyToMarker[localKey] = outDict
         
         if not utils.pathExists(path): 
-            localizedPath = self.syncManager.downloadFile(path)
+            localizedPath = self.syncManager.downloadFile(localKey)
             print('New localized path', localizedPath)
             path = localizedPath
+            # print('existance', utils.pathExists(path))
 
-        memPixMap = self.iconStrip.getPixMap(path)
+        memPixMap = self.iconStrip.addPixMap(path)
+        print('memPixMap', memPixMap.isNull())
         self.ImageDisplayer.renderImage(
             path, markerSet=markerSet, currentMap=outDict, pixMap=memPixMap
         )

@@ -25,16 +25,19 @@ class SyncManager:
         self.__uploadHandler = FileOnCloudHandler(os.path.dirname(self.__dbHandler.baseUrl))
 
     def downloadFile(self, resourceKey, callback=None):
-        return self.__jobRunner.run(self.__downloadFile, None, callback, resourceKey)
+        self.__jobRunner.run(self.__downloadFile, None, callback, resourceKey)
 
     def __downloadFile(self, resourceKey):
         elemAttrDict = self.getImageAttrsByKey(resourceKey)
+        print('elemAttrDict', elemAttrDict)
+
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
-        basename = os.path.basename(pathSelector)
+        basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
+        print('basename', basename)
 
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
         dlRequest = self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath)
-        print('localizedDataPath', localizedDataPath)
+        print('dlRequest', dlRequest)
         elemAttrDict['uri'] = localizedDataPath
         elemAttrDict['title'] = localizedDataPath
 
@@ -218,7 +221,7 @@ class SyncManager:
         print('idFromDB', path, parsedResponse)
         self.__resourcePool[path] = pathDict
             
-        return 200
+        return localizedDataPath
 
     def getKeys(self):
         return self.__resourcePool.keys()
