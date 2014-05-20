@@ -120,7 +120,6 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.__allowClicks = False
 
         if path:
-            self.__allowClicks = True
             filename = path
 
         if not hasattr(pixMap, 'isNull'):
@@ -131,6 +130,8 @@ class ImageDisplayer(QtWidgets.QLabel):
         if self.imgPixMap.isNull():
             QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(filename))
             return
+        else:
+            self.__allowClicks = True
 
         self._childMap = currentMap    
         self.setPixmap(self.imgPixMap)
@@ -158,6 +159,8 @@ class ImageDisplayer(QtWidgets.QLabel):
 
         for m in self._childMap.values():
             m.show()
+
+        return True
         
     def mousePressEvent(self, e):
         if not self.__allowClicks:

@@ -32,7 +32,7 @@ class IconStrip(QtWidgets.QListWidget):
             item.setStatusTip(path)
 
             self.__itemDict[path] = item 
-            return self.currentRow()
+            return self.currentRow() or 1
 
     def editStatusTipByKey(self, path, newStatusTip):
         memItem = self.__itemDict.get(path, None)
