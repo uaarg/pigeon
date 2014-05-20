@@ -455,6 +455,11 @@ class GroundStation(QtWidgets.QMainWindow):
         if outDict is None:
             outDict = dict()
             self.__keyToMarker[localKey] = outDict
+        
+        if not utils.pathExists(path): 
+            localizedPath = self.syncManager.downloadFile(path)
+            print('New localized path', localizedPath)
+            path = localizedPath
 
         memPixMap = self.iconStrip.getPixMap(path)
         self.ImageDisplayer.renderImage(

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
+import os
+
 import utils
 import DbLiason
 import constants
 import mpUtils.JobRunner
+from fileOnCloudHandler import FileOnCloudHandler # ('http://127.0.0.1:8000', 'sha1')
 
 class SyncManager:
     def __init__(self, dbHandler):
@@ -19,6 +22,23 @@ class SyncManager:
     def initResourcePool(self):
         self.__resourcePool = dict()
         self.__reverseMarkerPool = dict()
+        self.__uploadHandler = FileOnCloudHandler(os.path.dirname(self.__dbHandler.baseUrl))
+
+    def downloadFile(self, resourceKey, callback=None):
+        return self.__jobRunner.run(self.__downloadFile, None, callback, resourceKey)
+
+    def __downloadFile(self, resourceKey):
+        elemAttrDict = self.getImageAttrsByKey(resourceKey)
+        pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
+        basename = os.path.basename(pathSelector)
+
+        localizedDataPath = os.path.join(('.', 'data', 'processed', basename,))
+        dlRequest = self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath)
+        print('localizedDataPath', localizedDataPath)
+        elemAttrDict['uri'] = localizedDataPath
+        elemAttrDict['title'] = localizedDataPath
+
+        return localizedDataPath
 
     def mapToLocalKey(self, path):
         return utils.getLocalName(path) or path
@@ -149,6 +169,34 @@ class SyncManager:
     def __syncImageToDB(self, path):
         elemData = self.getImageAttrsByKey(path)
         elemAttrDict = dict((k, v) for k, v in elemData.items() if k != 'marker_set')
+        pathSelector = elemData.get('uri', '') or elemData.get('title', '')
+
+        basename = os.path.basename(pathSelector)
+        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+
+        queryDict = dict(title=localizedDataPath)
+        print('queryDict', queryDict)
+        dQuery = self.__uploadHandler.jsonParseResponse(self.__uploadHandler.getManifest(queryDict))
+        print('dQuery', dQuery)
+
+        statusCode = dQuery['status_code']
+        if statusCode == 200:
+            data = dQuery.get('data', None)
+            if data:
+                # Now time for a checkSum inquiry
+                print('data', data)
+            else:
+                if utils.pathExists(pathSelector):
+                    queryDict['author'] = utils.getDefaultUserName()
+                    print('\033[92mOn Upload', self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict), '\033[00m')
+
+        print('\033[91mpathSelector', pathSelector, localizedDataPath, '\033[00m')
+
+        if not utils.pathExists(localizedDataPath):
+            print(self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath))
+            elemAttrDict['title'] = localizedDataPath
+
+        elemAttrDict['uri'] = localizedDataPath
 
         memId = int(elemData.get('id', -1))
         methodName = 'putConn'
@@ -238,7 +286,27 @@ class SyncManager:
                 popdItem = self.__resourcePool.pop(localKey, None)
                 print('popd', popdItem)
 
+            # pathSelector = memData.get('uri', '') or memData.get('title', '')
+            # localizedPath = os.sep.join(('.', 'data', 'processed', os.path.basename(pathSelector),))
+            # physicalDelStatus = self.handlePhysicalPathDelete(localizedPath)
+        
         return delResponse
+
+    def handlePhysicalPathDelete(self, path):
+        delStatus = False
+        if utils.pathExists(path):
+            func = os.unlink
+            if os.path.isdir(path):
+                func = os.rmdir
+            try:
+                print('Deleting', path)
+                func(path)
+            except Exception as e:
+                print('e', e)
+            else:
+                delStatus = True
+            
+        return delStatus
 
     def editLocalImage(self, key, attrDict):
         memDict = self.getImageAttrsByKey(key)

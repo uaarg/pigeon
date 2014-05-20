@@ -4,6 +4,8 @@
 
 import os
 import sys
+import json
+import hashlib
 
 try:
     import requests
@@ -14,21 +16,41 @@ except ImportError:
 getDefaultUserName = lambda: os.environ.get('USER', 'Anonymous')
 
 class FileOnCloudHandler:
-    def __init__(self, url):
+    def __init__(self, url, checkSumAlgoName='md5'):
         self.__baseUrl = url.strip('/')
         self.__upUrl = self.__baseUrl + '/uploader'
         self.__mediaUrl = self.__baseUrl + '/media/'
 
+        self.__checkSumAlgoName = checkSumAlgoName
+
+    def initCheckSumAlgoName(self, algoName):
+        self.__checkSumAlgoName = algoName
+
+    def getCheckSumAlgoName(self):
+        return self.__checkSumAlgoName
+
     def __pushUpFileByStream(self, isPut, stream, **attrs):
+        if self.__checkSumAlgoName and hasattr(hashlib, self.__checkSumAlgoName):
+            try:
+                origPos = stream.tell()
+                checkSum = getattr(hashlib, self.__checkSumAlgoName)(stream.read()).hexdigest()
+                stream.seek(origPos) # Get back to originalPosition
+            except Exception as e:
+                print(e)
+            else:
+                attrs['checkSum'] = checkSum
+                attrs['checkSumAlgoName'] = self.__checkSumAlgoName
+ 
         method = requests.put if  isPut else requests.post
         return method(self.__upUrl, data=attrs, files={'blob': stream})
 
     def __pushUpFileByPath(self, methodToggle, fPath, **attrs):
         response = None
         if fPath and os.path.exists(fPath):
+            checkSumInfo = None
             with open(fPath, 'rb') as f:
                 response = self.__pushUpFileByStream(methodToggle, f, **attrs)
-
+       
             return response
 
     def uploadFileByStream(self, stream, **attrs):
@@ -72,18 +94,29 @@ class FileOnCloudHandler:
     def getManifest(self, queryDict={}):
         return requests.get(self.__upUrl, params=queryDict)
 
+    def jsonParseResponse(self, reqResponse):
+        jsonParsed = dict()
+        try:
+            jsonParsed['data'] = json.loads(reqResponse.text).get('data', [])
+        except Exception as e:
+            print('Exception', e)
+            jsonParsed['reason'] = str(e)
+        finally:
+            jsonParsed['status_code'] = reqResponse.status_code
+            return jsonParsed
+
 def main():
     srcPath = '/Users/emmanuelodeke/pigeon/src/data/processed/2.jpg'
-    fH = FileOnCloudHandler('http://127.0.0.1:8000')
+    fH = FileOnCloudHandler('http://127.0.0.1:8000', 'sha1')
     uResponse =fH.uploadFileByPath(srcPath, author=getDefaultUserName(), title=srcPath)
-    print(uResponse)
+    # print(uResponse)
     print(uResponse.text)
   
     shortPath = os.path.basename(srcPath) 
     print(fH.downloadFileToDisk('documents/' + shortPath))
 
     print(fH.getManifest(dict(select='id')).text)
-    print(fH.deleteFileOnCloud().text)
+    # print(fH.deleteFileOnCloud().text)
 
 if __name__ == '__main__':
     main()
