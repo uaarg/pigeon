@@ -32,7 +32,7 @@ class SyncManager:
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
         basename = os.path.basename(pathSelector)
 
-        localizedDataPath = os.path.join(('.', 'data', 'processed', basename,))
+        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
         dlRequest = self.__uploadHandler.downloadFileToDisk('documents/' + basename, localizedDataPath)
         print('localizedDataPath', localizedDataPath)
         elemAttrDict['uri'] = localizedDataPath
