@@ -90,7 +90,7 @@
      </property>
     </widget>
    </widget>
-   <widget class="QLabel" name="countDisplayLabel">
+   <widget class="QLabel" name="pathDisplayLabel">
     <property name="geometry">
      <rect>
       <x>30</x>

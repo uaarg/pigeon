@@ -126,9 +126,10 @@ class ImageDisplayer(QtWidgets.QLabel):
         if self.imgPixMap.isNull(): 
             self.imgPixMap = altPixMap
 
-        if self.imgPixMap.isNull():
+        if (not hasattr(self.imgPixMap, 'isNull')) or self.imgPixMap.isNull():
             QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(path))
-            return
+            return False
+
         else:
             self.__allowClicks = True
 

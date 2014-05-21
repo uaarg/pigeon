@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import random
 from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
@@ -15,20 +16,18 @@ import GPSCoord # Local module
 import DbLiason # Local module
 import iconStrip # Local module
 import constants # Local module
-import SyncManager # Local module
 import ImageDisplayer # Local module
 import DirWatchManager # Local module
+from fileOnCloudHandler import FileOnCloudHandler
 import mpUtils.JobRunner # Local module
 
-
-curDirPath = os.path.abspath('.')
 REPORTS_DIR = './reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
-DEFAULT_IMAGE_FORM_DICT = dict(
-    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0, time=0,
-    utm_north=0, speed=0, image_width=1294.0, image_height=964.0, viewangle_horiz=21.733333,
-    viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0, course=0
+defaultImageFormDict = dict(
+    time=0, utm_north=0, speed=0, image_width=1294.0, image_height=964.0, course=0,
+    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0,
+    viewangle_horiz=21.733333, viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0
 )
 
 class GroundStation(QtWidgets.QMainWindow):
@@ -45,15 +44,13 @@ class GroundStation(QtWidgets.QMainWindow):
             onFreshPaths=lambda p: self.pictureDropped([p]), onStalePaths=lambda a: a
         )
         self.__iconMemMap = dict()
-        self.syncManager = SyncManager.SyncManager(dbHandler)
-        self.inEavsDroppingMode = eavsDroppingMode
+        self.initStrip()
 
+        self.inEavsDroppingMode = eavsDroppingMode
         self.setDbHandler(dbHandler)
 
         self.initUI()
-
         self.initSaveSound()
-
         self.initLCDDisplays()
         self.initTimers()
 
@@ -62,6 +59,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def setDbHandler(self, dbHandler):
         self.__dbHandler = dbHandler
+
+        self.__uploadHandler = FileOnCloudHandler(os.path.dirname(self.__dbHandler.baseUrl))
 
     def getDbHandler(self):
         return self.__dbHandler
@@ -94,62 +93,101 @@ class GroundStation(QtWidgets.QMainWindow):
         self.showCurrentTime()
 
     def fullDBSync(self):
-        self.dbSync()
-
-        # Cycle through each one of the images
-        iconStripManifest = self.iconStrip.itemDictManifest()
-        for path in iconStripManifest:
-            curItemSyncStatus = self.syncManager.needsSync(path=path)
-            if curItemSyncStatus != constants.IS_IN_SYNC:
-                self.handleItemPop(path)
+        print('FullDBSync')
 
     def getIcon(self, key):
         memIcon = self.__iconMemMap.get(key, None)
         if memIcon is None:
-            memIcon = QtGui.QIcon(key)
+            memIcon = QtGui.QIcon(self.iconStrip.addPixMap(key))
             self.__iconMemMap[key] = memIcon
         return memIcon
 
     def querySyncStatus(self):
-        queryData = utils.produceAndParse(self.__dbHandler.imageHandler.getConn,
-            dict(select='id,lastEditTime', limit=0, sort='lastEditTime_r')
-        )
-        if isinstance(queryData, dict):
-            statusCode = queryData.get('status_code', 400)
-            if statusCode != 200 or hasattr(queryData, 'reason'):
-                self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-bad.png'))
-                self.connectionStatusAction.setText('&Not connected')
+        syncStatus, dbImageCount = self.findSyncStatus(self.ui_window.pathDisplayLabel.text())
+        if syncStatus == constants.NO_CONNECTION:
+            self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-bad.png'))
+            self.connectionStatusAction.setText('&Not connected')
 
-                self.syncUpdateAction.setText('Failed to connect')
+            self.syncUpdateAction.setText('Failed to connect')
 
-                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
-                self.syncIconAction.setText('&Current item not in sync\nHit Ctrl+R for sync')
-            else:
-                metaDict = queryData.get('meta', {})
-                dbImageCount = metaDict.get('count', 0)
-                updateMsg = 'No new changes'
-                localImageCount = len(self.__resourcePool)
-                # print('dbImageCount', dbImageCount, 'lastImageCount', localImageCount)
-                diff = dbImageCount - localImageCount
-                if diff:
-                    absDiff = abs(diff)
-                    plurality = 'image' if absDiff == 1 else 'images' 
-                    if diff > 0:
-                        updateMsg = '%d %s available for downloading'%(absDiff, plurality)
-                    else:
-                        updateMsg = '%d unsaved %s'%(absDiff, plurality)
-
-                curItemSyncStatus = self.syncManager.needsSync(path=self.ui_window.countDisplayLabel.text())
-                if curItemSyncStatus == constants.IS_IN_SYNC:
-                    self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
-                    self.syncIconAction.setText('&Current item in sync')
+            self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+            self.syncIconAction.setText('&Current item not in sync\nHit Ctrl+R for sync')
+        elif dbImageCount < 0:
+            print('Failed to get imageCount', dbImageCount, syncStatus)
+        else:
+            updateMsg = 'No new changes'
+            localImageCount = len(self.__resourcePool)
+            diff = dbImageCount - localImageCount
+            if diff:
+                absDiff = abs(diff)
+                plurality = 'image' if absDiff == 1 else 'images' 
+                if diff > 0:
+                    updateMsg = '%d %s available for downloading'%(absDiff, plurality)
                 else:
-                    self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
-                    self.syncIconAction.setText('&Current item not in sync')
+                    updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
-                self.syncUpdateAction.setText(updateMsg)
-                self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-good.png'))
-                self.connectionStatusAction.setText('&Connected')
+            self.syncUpdateAction.setText(updateMsg)
+            if syncStatus == constants.IS_IN_SYNC:
+                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
+                self.syncIconAction.setText('&Current item in sync')
+            else:
+                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+                self.syncIconAction.setText('&Current item not in sync')
+
+            self.connectionStatusAction.setIcon(
+                self.getIcon('icons/iconmonstr-connection-good.png')
+            )
+            self.connectionStatusAction.setText('&Connected')
+
+    def findSyncStatus(self, path=None): 
+        queryDict = dict(format='short', uri=path, select='lastTimeEdit')
+
+        parsedResponse = utils.produceAndParse(
+          func=self.__dbHandler.imageHandler.getConn, dataIn=queryDict
+        )
+
+        data = None
+        status_code = 400
+        countOnCloud = -1
+
+        if hasattr(parsedResponse, 'get'):
+            status_code = parsedResponse.get('status_code', 400)
+            data = parsedResponse.get('data', None)
+            meta = parsedResponse.get('meta', None)
+            if hasattr(meta, 'keys'): 
+                countOnCloud = meta.get('count', -1)
+
+        if status_code != 200:
+            return constants.NO_CONNECTION, countOnCloud
+
+        elif data:
+            memAttrMap = self.getImageAttrsByKey(path)
+
+            memId = int(memAttrMap.get('id', -1))
+            memlastTimeEdit = float(memAttrMap.get('lastTimeEdit', -1))
+
+            itemInfo = data[0]
+            idOnCloud = int(itemInfo.get('id', -1))
+            imageOnCloudlastTimeEdit = float(itemInfo['lastTimeEdit'])
+
+            if idOnCloud < 1:
+                print('\033[48mThis data is not present on cloud, path:', path, '\033[00m')
+                return constants.IS_FIRST_TIME_SAVE, countOnCloud
+
+            elif imageOnCloudlastTimeEdit > memlastTimeEdit:
+                print('\033[47mDetected a need for saving here since')
+                print('your last memoized local editTime was', memlastTimeEdit)
+                print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
+                return constants.IS_OUT_OF_SYNC, countOnCloud
+            else:
+                print('\033[42mAll good! No need for an extra save for',\
+                     path, '\033[00m'
+                )
+                return constants.IS_IN_SYNC, countOnCloud
+        else:
+            print("\033[41mNo data back from querying about lastTimeEdit\033[00m")
+            #TODO: Handle this special case
+            return constants.NO_DATA_BACK, countOnCloud
 
     def showCurrentTime(self):
         time = QtCore.QTime.currentTime()
@@ -168,9 +206,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.initFileDialogs()
         self.initImageDisplayer()
-        self.initStrip()
 
-        self.ui_window.countDisplayLabel.show()
+        self.ui_window.pathDisplayLabel.show()
 
     def initImageDisplayer(self):
         self.ImageDisplayer = ImageDisplayer.ImageDisplayer(
@@ -200,17 +237,19 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def initFileDialogs(self):
         self.fileDialog = self.createFileDialog(
-            'Add captured Images', self.pictureDropped, QtWidgets.QFileDialog.ExistingFiles, './data/processed',
-            'All image files (*.png *.jpg *.jpeg *.gif)'   
+            'Add captured Images', self.pictureDropped, QtWidgets.QFileDialog.ExistingFiles,
+            './data/processed', 'All image files (*.png *.jpg *.jpeg *.gif)'
         )
 
         self.dirWatchFileDialog = self.createFileDialog(    
-            'Select directories to watch', self.watchDirs, QtWidgets.QFileDialog.Directory, '../'
+            'Select directories to watch', self.watchDirs,
+            QtWidgets.QFileDialog.Directory, '../'
         )
         self.dirWatchFileDialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly)
 
         self.locationDataDialog = self.createFileDialog(
-            'Add telemetry files', self.processAssociatedDataFiles, QtWidgets.QFileDialog.ExistingFiles, './data/info', 'All text files (*.txt)'
+            'Add telemetry files', self.processAssociatedDataFiles,
+            QtWidgets.QFileDialog.ExistingFiles, './data/info', 'All text files (*.txt)'
         )
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
@@ -221,9 +260,6 @@ class GroundStation(QtWidgets.QMainWindow):
         # so only the relative path not absolute path should be added
         normalizedPaths = []
         for path in paths:
-            if path.find(curDirPath) >= 0:
-                path = '.' + path.split(curDirPath)[1]
-
             normalizedPaths.append(dict(uri=path, title=path))
 
         self.preparePathsForDisplay(normalizedPaths)
@@ -233,17 +269,15 @@ class GroundStation(QtWidgets.QMainWindow):
 
         for index, pathDict in enumerate(pathDictList):
             path = pathDict.get('uri', None)
-            key = utils.getLocalName(path) or path
 
-            self.renderImage(path)
-   
-            if key not in self.__resourcePool and self.iconStrip.addIconItem(path, self.renderImage):
-                self.__resourcePool[key] = True
+            if path not in self.__resourcePool:
+                self.iconStrip.addIconItem(path, self.renderImage)
+                self.__resourcePool[path] = True
 
-            self.__resourcePool[key] = pathDict
+            self.__resourcePool[path] = pathDict
 
-            if lastItem is None:
-                lastItem = path
+            lastItem = path
+            print('path', path)
 
         # Display the last added item
         self.renderImage(lastItem)
@@ -278,20 +312,28 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncToolbar.addAction(self.syncUpdateAction)
         self.syncToolbar.addAction(self.connectionStatusAction)
 
+    def getImageAttrsByKey(self, key):
+        print('key', key)
+        memDict = self.__resourcePool.get(key, None)
+        if memDict is None:
+            memDict = dict(title=key)
+            self.__resourcePool[key] = memDict
+
+        return memDict
+
     def editCurrentImage(self):
-        print('Editing Current Image', self.ui_window.countDisplayLabel.text())
+        print('Editing Current Image', self.ui_window.pathDisplayLabel.text())
 
-        srcPath = self.ui_window.countDisplayLabel.text()
+        srcPath = self.ui_window.pathDisplayLabel.text()
 
-        key = utils.getLocalName(srcPath) or srcPath
-        stateDict = self.syncManager.getImageAttrsByKey(key)
+        stateDict = self.getImageAttrsByKey(srcPath)
 
         entryList = []
 
-        for index, entry in enumerate(DEFAULT_IMAGE_FORM_DICT.keys()):
+        for index, entry in enumerate(defaultImageFormDict.keys()):
             textExtracted = stateDict.get(entry, None)
             if textExtracted is None:
-                textExtracted = DEFAULT_IMAGE_FORM_DICT[entry]
+                textExtracted = defaultImageFormDict[entry]
 
             entryList.append(
                 utils.DynaItem(dict(
@@ -304,210 +346,234 @@ class GroundStation(QtWidgets.QMainWindow):
         imageTag = Tag.Tag(
             size=utils.DynaItem(dict(x=self.imgAttrFrame.width(), y=self.imgAttrFrame.height())),
             location=utils.DynaItem(dict(x=self.imgAttrFrame.x(), y=self.imgAttrFrame.y())),
-            title='Location data for: ' + utils.getLocalName(self.ui_window.countDisplayLabel.text()),
+            title='Location data for: ' + utils.getLocalName(self.ui_window.pathDisplayLabel.text()),
             onSubmit=self.saveCurrentImageContent,
             entryList=entryList
         )
         imageTag.show()
 
     def saveCurrentImageContent(self, content):
-       
-        curPath = self.ui_window.countDisplayLabel.text()
-        key = utils.getLocalName(curPath) or curPath
+        print('Saving currentImage content', content)
+        curPath = self.ui_window.pathDisplayLabel.text()
         
-        currentMap = self.__resourcePool.get(key, {})
-        outDict = dict(
-            id=currentMap.get('id', -1), uri=currentMap.get('uri', curPath), title=curPath
-        )
+        currentMap = self.__resourcePool.get(curPath, {})
 
-        for k, v in content.items():
-            outDict[k] = v
+        if isinstance(content, dict):
+            for k, v in content.items():
+                currentMap[k] = v
+
+        currentMap.setdefault('uri', curPath)
+        currentMap.setdefault('title', curPath)
 
         # Getting the original ids in
-        saveResponse = self.syncManager.saveImageToDB(key, outDict, needsCloudSave=True)
-        # print('saveResponse', saveResponse)
+        saveResponse = self.saveImageToDB(key, currentMap)
+
+    def saveImageToDB(self, key, attrDict):
+        print('Saving image to DB', key, attrDict)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(self.getIcon('icons/recyclebin_close.png'),
-            "&Remove currentImage", self
+            '&Remove currentImage', self
         )
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
         self.syncCurrentItemAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-upload.png'),"&Save to Cloud", self
+            self.getIcon('icons/iconmonstr-upload.png'),'&Save to Cloud', self
         )
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        self.dbSyncAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-save.png'), "&Sync from Cloud", self)
+        self.dbSyncAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-save.png'), '&Sync from Cloud', self)
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
 
-        self.dirWatchAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-eye.png'), "&Select directories to watch", self)
+        self.dirWatchAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-eye.png'), '&Select directories to watch', self)
         self.dirWatchAction.triggered.connect(self.dirWatchTrigger)
 
-        self.connectionStatusAction = QtWidgets.QAction("&Connection Status", self)
+        self.connectionStatusAction = QtWidgets.QAction('&Connection Status', self)
 
-        self.syncUpdateAction = QtWidgets.QAction("&Updates Info", self)
-        self.syncIconAction = QtWidgets.QAction("&SyncStatus", self)
+        self.syncUpdateAction = QtWidgets.QAction('&Updates Info', self)
+        self.syncIconAction = QtWidgets.QAction('&SyncStatus', self)
 
         # Exit
-        self.exitAction = QtWidgets.QAction(self.getIcon('icons/exit.png'), "&Exit", self)
+        self.exitAction = QtWidgets.QAction(self.getIcon('icons/exit.png'), '&Exit', self)
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
         self.findImagesAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-folder.png'), "&Add Images", self
+            self.getIcon('icons/iconmonstr-folder.png'), '&Add Images', self
         )
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
         self.editCurrentImageAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-picture-edit.png'), "&Edit Current Image", self
+            self.getIcon('icons/iconmonstr-picture-edit.png'), '&Edit Current Image', self
         )
         self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
         self.addLocationDataAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-note.png'), "&Add Telemetry Info", self
+            self.getIcon('icons/iconmonstr-note.png'), '&Add Telemetry Info', self
         )
         self.addLocationDataAction.triggered.connect(self.addLocationData)
 
         self.printCurrentImageDataAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-printer.png'), "&Print Current Image Info", self
+            self.getIcon('icons/iconmonstr-printer.png'), '&Print Current Image Info', self
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
     def handleItemPop(self, currentItem=None):
-        if not currentItem:
-            currentItem = self.ui_window.countDisplayLabel.text()
+        pathOnDisplay = self.ui_window.pathDisplayLabel.text()
+        popd = self.__resourcePool.pop(pathOnDisplay, None)
+        mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
+        nextPath = self.iconStrip.popIconItem(currentItem)
 
-        nextItemOnDisplay = None
-        print('itemPop', currentItem)
-
-        if currentItem:
-            self.syncManager.deleteImageByKeyFromDB(
-                self.syncManager.mapToLocalKey(currentItem), isGlobalDelete=True
-            )
-            nextItemOnDisplay = self.iconStrip.popIconItem(currentItem, None)
-            key = utils.getLocalName(currentItem) or currentItem
-            print('popping', self.__resourcePool.pop(key, None))
-            print('nextItemOnDisplay', nextItemOnDisplay)
-
-        self.renderImage(nextItemOnDisplay)
+        self.renderImage(nextPath)
 
     def deleteMarkerFromDB(self, x, y):
-        key = utils.getLocalName(self.ui_window.countDisplayLabel.text())
-        return self.syncManager.deleteMarkerByAttrsFromDB(
-            dict(associatedImage_id=self.syncManager.getImageId(key), x=x, y=y)
+        print('deleting ', x, y, 'from DB')
+
+    def handleSync(self, path):
+        elemData = self.getImageAttrsByKey(path)
+        elemAttrDict = dict((k, v) for k, v in elemData.items() if k != 'marker_set')
+        pathSelector = elemData.get('uri', '') or elemData.get('title', '')
+
+        basename = os.path.basename(pathSelector)
+        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+
+        queryDict = dict(uri=localizedDataPath)
+        print('queryDict', queryDict)
+        dQuery = self.__uploadHandler.jsonParseResponse(
+            self.__uploadHandler.getManifest(queryDict)
         )
+        print('dQuery', dQuery)
 
-    def eraseMarkersByKey(self, key):
-        # We need to create a copy of keys of a dict
-        # that we shall be popping from to avoid data
-        # contention issues
-        childMap = self.__keyToMarker.get(key, {})
-        markerCopy = list(childMap.keys())[:] 
-        for mKey in markerCopy:
-            mk = childMap[mKey]
-            if mk:
-                print(mk.memComments)
-                mk.erase(mk.x, mk.y, needsFlush=False)
+        statusCode = dQuery['status_code']
+        if statusCode == 200:
+            needsUpload = True
+            data = dQuery.get('data', None)
+            if data:
+                # Now time for a size inquiry
+                print('data', data)
+                if utils.pathExists(pathSelector):
+                    statDict = os.stat(pathSelector)
+                    randSample = random.sample(data, 1)[0]
+                    queriedSize = randSample.get('size', -1)
+                    if int(statDict.st_size) == int(queriedSize):
+                        # Simple litmus test. In the future will add checksum checks
+                        needsUpload = False
 
+            if needsUpload:
+                queryDict['author'] = utils.getDefaultUserName()
+                print('\033[92mOn Upload',
+                    self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict),
+                '\033[00m')
+
+
+        if not utils.pathExists(localizedDataPath):
+            dlPath = self.downloadFile(pathSelector)
+            if dlPath:
+                localizedDataPath = dlPath
+
+        if pathSelector != localizedDataPath:
+            self.__jobRunner.run(   
+                self.__swapOutResourcePaths, None, None, pathSelector, localizedPath
+            )
+
+        elemAttrDict['uri'] = localizedDataPath
+        print('\033[91mpathSelector', pathSelector, localizedDataPath, elemAttrDict, '\033[00m')
+
+        memId = int(elemData.get('id', -1))
+        methodName = 'putConn'
+
+        if memId <= 0:
+            methodName = 'postConn'
+            elemAttrDict.pop('id', None) # Let the DB decide what Id to assign to you
+
+        # print('elemAttrDict', elemAttrDict)
+        func = getattr(self.__dbHandler.imageHandler, methodName)
+        parsedResponse = utils.produceAndParse(func, elemAttrDict)
+        idFromDB = parsedResponse.get('id', -1)
+       
+        pathDict = self.__resourcePool.get(path, None) 
+        if pathDict is None:
+            pathDict = dict(uri=localizedDataPath)
+
+        pathDict['id'] = idFromDB
+        print('idFromDB', path, parsedResponse)
+        self.__resourcePool[path] = pathDict
+            
+        return localizedDataPath
+
+    def __swapOutResourcesPaths(self, *args):
+        oldPath, newPath = args
+        popd = self.__resourcePool.pop(oldPath, None)
+        if popd is not None:
+            self.__resourcePool[newPath] = popd
+        mPop = self.__keyToMarker.pop(oldPath, None)
+        if mPop is not None: 
+            self.__keyToMarker[newPath] = mPop 
+
+    def bulkSaveMarkers(self, associatedKey, markerDictList):
+        print('associatedKey', associatedKey, markerDictList)
+    
     def syncCurrentItem(self):
-        pathOnDisplay = self.ui_window.countDisplayLabel.text()
-        localKey = self.syncManager.mapToLocalKey(pathOnDisplay)
+        pathOnDisplay = self.ui_window.pathDisplayLabel.text()
+        print('Syncing current item', pathOnDisplay)
 
-        localizedPath = self.syncManager.syncImageToDB(localKey)
+        localizedPath = self.handleSync(pathOnDisplay)
         if localizedPath:
             self.iconStrip.editStatusTipByKey(pathOnDisplay, localizedPath)
+
+            # Swap out this path
+            self.__jobRunner.run(
+                self.__swapOutResourcesPaths, None, None, pathOnDisplay, localizedPath
+            )
             pathOnDisplay = localizedPath
 
-        dbConfirmation = self.syncManager.syncFromDB(uri=pathOnDisplay)
- 
-        associatedMarkerMap = self.__keyToMarker.get(localKey, {})
+        dbConfirmation = self.syncFromDB(uri=pathOnDisplay)
+        associatedMarkerMap = self.__keyToMarker.get(localizedPath, {})
+
         markerDictList = []
         for m in associatedMarkerMap.values():
-            markerDictList.append(
-                dict(getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved)
-            )
-   
+            markerDictList.append(dict(
+                getter=m.induceSave, onSuccess=m.refreshAndToggleSave,
+                onFailure=m.toggleUnsaved
+            ))
+            
         # Now the associated markers
-        bulkSaveResults = self.syncManager.bulkSaveMarkers(localKey, markerDictList)
+        bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
 
         if bulkSaveResults:
             associatedImageId = int(bulkSaveResults.get('associatedImageId', -1))
-            if associatedImageId > 0:
-                syncFromDBStatus = self.syncManager.syncFromDB(
-                    qId=associatedImageId, metaDict=None
-                )
-                print('associatedImageId', associatedImageId)
+            print('associatedImageId', associatedImageId)
 
-        self.renderImage(pathOnDisplay)
-        
+    def syncFromDB(self, **attrs):
+        print('attrs', attrs)
+
     def setSyncTime(self, *args):
         curTime = QtCore.QTime.currentTime()
         text = curTime.toString('hh:mm:ss')
         self.__lastSyncLCD.display(text)
 
     def renderImage(self, path):
-        localKey = self.syncManager.mapToLocalKey(path)
-        markerSet = self.syncManager.getMarkerSetByKey(localKey)
-
-        outDict = self.__keyToMarker.get(localKey, None)
-        if outDict is None:
-            outDict = dict()
-            self.__keyToMarker[localKey] = outDict
-        
-        if not utils.pathExists(path): 
-            localizedPath = self.syncManager.downloadFile(localKey)
-            if localizedPath: # Path successfully written to
-                print('New localized path', localizedPath)
-                path = localizedPath
-
         memPixMap = self.iconStrip.addPixMap(path)
-        print('memPixMap', memPixMap.isNull())
-        self.ImageDisplayer.renderImage(
-            path, markerSet=markerSet, currentMap=outDict, pixMap=memPixMap,
-            altPixMap=self.iconStrip.addPixMap(utils._PLACE_HOLDER_PATH)
-        )
+        markerSet = self.__resourcePool.get(path, {}).get('marker_set', [])
+        markerMap = self.__keyToMarker.setdefault(path, {})
+        if self.ImageDisplayer.renderImage(path, markerSet, markerMap, memPixMap):
+            self.ui_window.pathDisplayLabel.setText(path)
+            associatedTextFile = self.getInfoFileNameFromImagePath(path)
+            if associatedTextFile != -1:
+                print('associatedTextFile', associatedTextFile)
+                # ,iself.processAssociatedDataFiles([associatedTextFile])
+                geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
+                self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-        associatedTextFile = self.getInfoFileNameFromImagePath(path)
-        if associatedTextFile != -1:
-            print('associatedTextFile', associatedTextFile)
-            self.processAssociatedDataFiles([associatedTextFile])
-            geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
-            self.ImageDisplayer.extractSetGeoData(geoDataDict)
-
-        self.ui_window.countDisplayLabel.setText(path)
-
-        # Now let's see if this image is in sync
-        self.querySyncStatus()
+        print('RenderImage', path)
 
     def dbSync(self):
-        # It is neccessary to have the syncer run on the main UI thread
-        # hence callback argument is None
-        metaSaveDict = dict()
-        result = self.preparePathsForDisplay(
-            self.syncManager.syncFromDB(callback=None, metaDict=metaSaveDict), onFinish=self.setSyncTime
-        )
-
-        print('After syncing', result)
-        print('metaSaveDict', metaSaveDict)
-
-        if isinstance(metaSaveDict, dict):
-            # TODO: Memoize the time on the server to aid in versioning
-            timeOnServer = metaSaveDict.get('currentTime', None)
-            '''
-            if timeOnServer is not None:
-                strTime = time.ctime(timeOnServer)
-                structOfTime = time.strptime(strTime)
-                outStr = '{h}:{m}:{s}'.format(  
-                    h=structOfTime.tm_hour, m=structOfTime.tm_min, s=structOfTime.tm_sec
-                )
-                self.__lastSyncLCD.display(outStr)
-            '''
+        print('DBSync')
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
@@ -550,7 +616,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def printCurrentImageData(self):
         print('printCurrentImageData')
-        srcPath = self.ui_window.countDisplayLabel.text()
+        srcPath = self.ui_window.pathDisplayLabel.text()
         key = utils.getLocalName(srcPath) or srcPath
         
         storedMap = self.__resourcePool.get(key, None)
@@ -618,32 +684,38 @@ class GroundStation(QtWidgets.QMainWindow):
             self.msgQBox.show()
 
     def processAssociatedDataFiles(self, pathList, **kwargs):
-        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, None, pathList, **kwargs)
+        return self.__jobRunner.run(
+            self.__processAssociatedDataFiles, None, print, pathList, **kwargs
+        )
 
     def __processAssociatedDataFiles(self, pathList, **kwargs):
+        print('args', kwargs, 'pathList', pathList)
         outMap = dict()
         for path in pathList:
             key = utils.getLocalName(path) or path
             outMap[key] = GPSCoord.getInfoDict(path)
             memResource = self.__resourcePool.get(key, {})
-            outMap[key]['uri'] = memResource.get('uri', '')
-            outMap[key]['path'] = memResource.get('path', '')
             outMap[key]['author'] = utils.getDefaultUserName()
 
         # Time to swap out the fields and replace
         for k in outMap:
-            self.syncManager.editLocalImage(k, outMap[k])
+            self.editLocalContent(k, outMap[k])
 
         return outMap
+
+    def editLocalContent(self, key, outMap):
+        memMap = self.__resourcePool.get(key, dict())
+        for k, v in outMap.items():
+            memMap[k] = v
+
+        return memMap
 
     def getInfoFileNameFromImagePath(self, fPath):
         if not fPath:
             return -1
 
         splitPath = os.path.split(fPath)
-
         parentDir, axiom = os.path.split(fPath)
-
         seqIDExtSplit = axiom.split('.')
 
         if not (seqIDExtSplit and len(seqIDExtSplit) == 2):
@@ -652,7 +724,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         seqID, ext = seqIDExtSplit
         if ext != 'jpg':
-            print("Could not find an info file associated with the image" + fPath)
+            print('Could not find an info file associated with the image', fPath)
             return -1
 
         # Scheme assumed is that directories [info, data] have the same parent
