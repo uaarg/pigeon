@@ -17,8 +17,14 @@ class IconStrip(QtWidgets.QListWidget):
 
         self.setAcceptDrops(True)
 
+    def rawKeys(self):
+        return self.__itemDict.keys()
+
     def itemDictManifest(self):
-        return list(self.__itemDict.keys())
+        return list(self.rawKeys())
+
+    def isMemoized(self, path):
+        return path in self.__itemDict
 
     def setOnItemClick(self, clickHandler):
         self.__onClick = clickHandler

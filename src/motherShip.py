@@ -11,6 +11,7 @@ import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
 import Tag # Local module
 import utils # Local module
+import Marker # Local module
 import kmlUtil # Local module
 import GPSCoord # Local module
 import DbLiason # Local module
@@ -31,6 +32,7 @@ defaultImageFormDict = dict(
 )
 
 isCallable = lambda obj: hasattr(obj, '__call__')
+localizeToProcessedPath = lambda basename: os.sep.join(('.', 'data', 'processed', basename,))
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -57,7 +59,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initTimers()
 
         # Now load all content from the DB
-        self.dbSync()
+        self.fullDBSync()
 
     def setDbHandler(self, dbHandler):
         self.__dbHandler = dbHandler
@@ -78,8 +80,6 @@ class GroundStation(QtWidgets.QMainWindow):
             func = self.fullDBSync
             timeout = 10000
 
-        print('func', func, 'timeout', timeout)
-
         self.syncTimer.timeout.connect(func)
         self.syncTimer.start(timeout)
 
@@ -96,6 +96,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def fullDBSync(self):
         print('FullDBSync')
+        return self.dbSync()
 
     def getIcon(self, key):
         memIcon = self.__iconMemMap.get(key, None)
@@ -118,7 +119,7 @@ class GroundStation(QtWidgets.QMainWindow):
             print('Failed to get imageCount', dbImageCount, syncStatus)
         else:
             updateMsg = 'No new changes'
-            localImageCount = len(self.__resourcePool)
+            localImageCount = len(self.iconStrip.rawKeys())
             diff = dbImageCount - localImageCount
             if diff:
                 absDiff = abs(diff)
@@ -272,14 +273,12 @@ class GroundStation(QtWidgets.QMainWindow):
         for index, pathDict in enumerate(pathDictList):
             path = pathDict.get('uri', None)
 
-            if path not in self.__resourcePool:
+            if not self.iconStrip.isMemoized(path):
                 self.iconStrip.addIconItem(path, self.renderImage)
-                self.__resourcePool[path] = True
 
             self.__resourcePool[path] = pathDict
 
             lastItem = path
-            print('path', path)
 
         # Display the last added item
         self.renderImage(lastItem)
@@ -293,8 +292,7 @@ class GroundStation(QtWidgets.QMainWindow):
             onFinish()
 
     def preparePathsForDisplay(self, dynaDictList, onFinish=None):
-        if dynaDictList:
-            return self.__preparePathsForDisplay(dynaDictList, onFinish=onFinish)
+        return self.__preparePathsForDisplay(dynaDictList or [], onFinish=onFinish)
         
     def initToolBar(self):
         self.toolbar  = self.ui_window.toolBar;
@@ -315,10 +313,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncToolbar.addAction(self.connectionStatusAction)
 
     def getImageAttrsByKey(self, key):
-        print('key', key)
         memDict = self.__resourcePool.get(key, None)
         if memDict is None:
-            memDict = dict(title=key)
+            memDict = dict(uri=key, title=key)
             self.__resourcePool[key] = memDict
 
         return memDict
@@ -368,7 +365,8 @@ class GroundStation(QtWidgets.QMainWindow):
         currentMap.setdefault('title', curPath)
 
         # Getting the original ids in
-        saveResponse = self.saveImageToDB(key, currentMap)
+        self.editLocalContent(curPath, content, None)
+        return self.handleSync(curPath)
 
     def saveImageToDB(self, key, attrDict):
         print('Saving image to DB', key, attrDict)
@@ -425,31 +423,51 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
-    def handleItemPop(self, currentItem=None):
-        pathOnDisplay = self.ui_window.pathDisplayLabel.text()
+    def handleItemPop(self, currentItem=None, callback=print):
+        pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
-        mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
-        nextPath = self.iconStrip.popIconItem(currentItem)
+            
+        dQuery = utils.produceAndParse(
+            self.__dbHandler.imageHandler.getConn, dict(uri=pathOnDisplay, select='uri,id')
+        )
+        if isinstance(dQuery, dict) and dQuery.get('data', None):
+            data = dQuery['data']
+            for dDict in data:
+                print(self.__dbHandler.markerHandler.deleteConn(dict(associatedImage_id=dDict.get('id', -1))))
+                print(self.__dbHandler.imageHandler.deleteConn(dict(id=dDict.get('id', -1))))
+                self.handleItemPop(dDict.get('uri', ''))
 
-        self.renderImage(nextPath)
+        mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
+        self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
+
+        nextPath = self.iconStrip.popIconItem(pathOnDisplay)
+        return self.renderImage(nextPath)
+
+    def closeMarkers(self, *args, **kwargs):
+        markerMap = args[0]
+        if isinstance(markerMap, dict):
+            markerList = list(markerMap.values())
+            for marker in markerList:
+                if hasattr(marker, 'close') and hasattr(marker.close, '__call__'):
+                    marker.close()
+            
 
     def deleteMarkerFromDB(self, x, y):
         print('deleting ', x, y, 'from DB')
 
     def handleSync(self, path):
         elemData = self.getImageAttrsByKey(path)
-        elemAttrDict = dict((k, v) for k, v in elemData.items() if k != 'marker_set')
+        isDirty = lambda k: k == 'marker_set' or k == 'id'
+        elemAttrDict = dict((k, v) for k, v in elemData.items() if not isDirty(k))
         pathSelector = elemData.get('uri', '') or elemData.get('title', '')
 
         basename = os.path.basename(pathSelector)
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
 
         queryDict = dict(uri=localizedDataPath)
-        print('queryDict', queryDict)
         dQuery = self.__uploadHandler.jsonParseResponse(
             self.__uploadHandler.getManifest(queryDict)
         )
-        print('dQuery', dQuery)
 
         statusCode = dQuery['status_code']
         if statusCode == 200:
@@ -457,7 +475,6 @@ class GroundStation(QtWidgets.QMainWindow):
             data = dQuery.get('data', None)
             if data:
                 # Now time for a size inquiry
-                print('data', data)
                 if utils.pathExists(pathSelector):
                     statDict = os.stat(pathSelector)
                     randSample = random.sample(data, 1)[0]
@@ -468,48 +485,77 @@ class GroundStation(QtWidgets.QMainWindow):
 
             if needsUpload:
                 queryDict['author'] = utils.getDefaultUserName()
-                print('\033[92mOn Upload',
-                    self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict),
-                '\033[00m')
-
+                uploadResponse = self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict)
+                if uploadResponse.status_code == 200:
+                    print('\033[92mSuccessfully uploaded: %s\033[00m'%(pathSelector))
+                else:
+                    print('\033[91mFailed to uploaded: %s\033[00m'%(pathSelector))
+                print('responseText', uploadResponse.text)
 
         if not utils.pathExists(localizedDataPath):
             dlPath = self.downloadFile(pathSelector)
             if dlPath:
                 localizedDataPath = dlPath
 
-        if pathSelector != localizedDataPath:
-            self.__jobRunner.run(   
-                self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
-            )
+        self.__jobRunner.run(   
+            self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
+        )
 
         elemAttrDict['uri'] = localizedDataPath
-        print('\033[91mpathSelector', pathSelector, localizedDataPath, elemAttrDict, '\033[00m')
+        existanceQuery = utils.produceAndParse(
+            self.__dbHandler.imageHandler.getConn, dict(uri=localizedDataPath)
+        )
 
-        memId = int(elemData.get('id', -1))
-        methodName = 'putConn'
+        memId = -1
+        methodName = 'postConn'
+        if isinstance(existanceQuery, dict) and existanceQuery.get('status_code', 400) == 200:
+            if existanceQuery.get('data', None):
+                data = existanceQuery['data']
+                for item in data:
+                    self.editLocalContent(item.get('uri', ''), item, None)
 
-        if memId <= 0:
-            methodName = 'postConn'
-            elemAttrDict.pop('id', None) # Let the DB decide what Id to assign to you
+                sample = random.sample(data, 1)[0]
+                elemAttrDict['id'] = int(sample.get('id', -1))
+                methodName = 'putConn'
 
-        # print('elemAttrDict', elemAttrDict)
         func = getattr(self.__dbHandler.imageHandler, methodName)
+
         parsedResponse = utils.produceAndParse(func, elemAttrDict)
         statusCode = parsedResponse.get('status_code', 400)
-        if statusCode == 200 and parsedResponse.get('data', None):
-            sample = parsedResponse['data']
-            print('sample', sample)
-            idFromDB = sample.get('id', -1)
-       
+        if statusCode == 200:
             pathDict = self.getImageAttrsByKey(localizedDataPath)
             if pathDict is None:
                 pathDict = dict(uri=localizedDataPath)
+          
+            if parsedResponse.get('id', None): 
+                idFromDB = parsedResponse['id']
+            elif parsedResponse.get('data', None):
+                idFromDB = parsedResponse['data'].get('id', -1)
 
             pathDict['id'] = idFromDB
-            print('idFromDB', idFromDB, parsedResponse)
             self.__resourcePool[localizedDataPath] = pathDict
             
+            return localizedDataPath
+
+    def downloadFile(self, resourceKey, callback=None):
+        self.__jobRunner.run(self.__downloadFile, None, callback, resourceKey)
+
+    def __downloadFile(self, resourceKey):
+        elemAttrDict = self.getImageAttrsByKey(resourceKey)
+        print('Downloading by key', resourceKey, elemAttrDict)
+
+        pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
+        basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
+        print('basename', basename, 'pathSelector', pathSelector)
+
+        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+        writtenBytes = self.__uploadHandler.downloadFileToDisk(
+            'documents/' + basename, localizedDataPath
+        )
+        if writtenBytes:
+            elemAttrDict['uri'] = localizedDataPath
+            elemAttrDict['title'] = localizedDataPath
+
             return localizedDataPath
 
     def __swapOutResourcePaths(self, *args):
@@ -529,8 +575,7 @@ class GroundStation(QtWidgets.QMainWindow):
     def __bulkSaveMarkers(self, *args):
         associatedKey, markerDictList = args[0]
         memImageAttr = self.getImageAttrsByKey(associatedKey)
-
-        if not (isinstance(memImageAttr, dict) and memImageAttr.get('id', -1) >= 1):
+        if not (isinstance(memImageAttr, dict) and int(memImageAttr.get('id', -1)) >= 1):
             return False
         else:
             memId = memImageAttr['id']
@@ -541,13 +586,13 @@ class GroundStation(QtWidgets.QMainWindow):
                 funcAttrToInvoke = 'onFailure'
 
                 if isCallable(saveDictGetter):
-                    prepMemDict['x'] = mDict.get('x', -1)
-                    prepMemDict['y'] = mDict.get('y', -1)
-
-                    idQuery = utils.produceAndParse(self.__dbHandler.markerHandler.getConn, prepMemDict)
-
                     saveDict = saveDictGetter()
                     saveDict['associatedImage_id'] = memId
+
+                    prepMemDict['x'] = saveDict.get('x', -1)
+                    prepMemDict['y'] = saveDict.get('y', -1)
+
+                    idQuery = utils.produceAndParse(self.__dbHandler.markerHandler.getConn, prepMemDict)
 
                     connAttrForSave = self.__dbHandler.markerHandler.postConn
                     if isinstance(idQuery, dict) and idQuery.get('data', None):
@@ -560,8 +605,6 @@ class GroundStation(QtWidgets.QMainWindow):
                     if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
                         funcAttrToInvoke = 'onSuccess'
 
-                    print('funcAttrToInvoke', funcAttrToInvoke, connAttrForSave)
-
                 if isCallable(mDict.get(funcAttrToInvoke, None)):
                     mDict[funcAttrToInvoke](saveDict)
     
@@ -573,11 +616,12 @@ class GroundStation(QtWidgets.QMainWindow):
         if localizedPath:
             self.iconStrip.editStatusTipByKey(pathOnDisplay, localizedPath)
 
-            # Swap out this path
-            self.__jobRunner.run(
-                self.__swapOutResourcePaths, None, None, pathOnDisplay, localizedPath
-            )
-            pathOnDisplay = localizedPath
+            if pathOnDisplay != localizedPath:
+                # Swap out this path
+                self.__jobRunner.run(
+                    self.__swapOutResourcePaths, None, None, pathOnDisplay, localizedPath
+                )
+                pathOnDisplay = localizedPath
 
         dbConfirmation = self.syncFromDB(uri=pathOnDisplay)
         associatedMarkerMap = self.__keyToMarker.get(localizedPath, {})
@@ -607,6 +651,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__lastSyncLCD.display(text)
 
     def renderImage(self, path):
+        if not path:
+            path = utils._PLACE_HOLDER_PATH
+
         memPixMap = self.iconStrip.addPixMap(path)
         markerSet = self.__resourcePool.get(path, {}).get('marker_set', [])
         markerMap = self.__keyToMarker.setdefault(path, {})
@@ -615,29 +662,38 @@ class GroundStation(QtWidgets.QMainWindow):
             self.ui_window.pathDisplayLabel.setText(path)
             associatedTextFile = self.getInfoFileNameFromImagePath(path)
             if associatedTextFile != -1:
-                print('associatedTextFile', associatedTextFile)
-                # ,iself.processAssociatedDataFiles([associatedTextFile])
+                self.processAssociatedDataFiles([associatedTextFile])
                 geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
                 self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-        # print('RenderImage', path)
-
     def dbSync(self):
-        print('DBSync')
+        print('DBSync in progress')
         imgQuery = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, dict())
         if isinstance(imgQuery, dict) and imgQuery.get('data', None):
             data = imgQuery['data']
             for imgDict in data:
                 markerSet = imgDict.get('marker_set', [])
+                pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
+                memDict = self.__keyToMarker.get(pathSelector, None)
+                if hasattr(memDict, 'keys'):
+                    cpValues = list(memDict.values())
+                    for m in cpValues:
+                        m.close()
+
                 for mDict in markerSet:
-                    cDict = dict(
-                        x=int(mDict.get('x', 0)), y=int(mDict.get('y', 0)), parent=self.ImageDisplayer,
-                        lat=mDict.get('lat', 0), lon=mDict.get('lon', 0), mComments=mDict.get('comments', ''),
+                    memMarker = Marker.Marker(
                         author=mDict.get('author', utils.getDefaultUserName()),
-                        childMap=self.__keyToMarker.setdefault(pathSelector, dict()),
-                        onDeleteMarkerFromDB=self.deleteMarkerFromDB
+                        tree=self.__keyToMarker.setdefault(pathSelector, dict()),
+                        mComments=mDict.get('comments', ''), parent=self.ImageDisplayer,
+                        lat=mDict.get('lat', 0), onDeleteCallback=self.deleteMarkerFromDB,
+                        x=int(mDict.get('x', 0)), y=int(mDict.get('y', 0)), lon=mDict.get('lon', 0)
                     )
-                    memMarker = Marker.Marker(utils.DynaItem(cDict))
+                    memMarker.hide()
+            
+                self.__resourcePool[pathSelector] = imgDict
+
+        self.__normalizeFileAdding(self.__resourcePool.keys())
+            
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
@@ -747,23 +803,20 @@ class GroundStation(QtWidgets.QMainWindow):
             self.msgQBox.setText('LocationData fileDialog was not initialized')
             self.msgQBox.show()
 
-    def processAssociatedDataFiles(self, pathList, **kwargs):
-        return self.__jobRunner.run(
-            self.__processAssociatedDataFiles, None, print, pathList, **kwargs
-        )
+    def processAssociatedDataFiles(self, pathList):
+        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, print, pathList)
 
-    def __processAssociatedDataFiles(self, pathList, **kwargs):
-        print('args', kwargs, 'pathList', pathList)
+    def __processAssociatedDataFiles(self, pathList, *args, **kwargs):
+        pathList = pathList[0]
         outMap = dict()
         for path in pathList:
-            key = utils.getLocalName(path) or path
+            key = localizeToProcessedPath('%s.jpg'%(utils.getLocalName(path) or path))
             outMap[key] = GPSCoord.getInfoDict(path)
-            memResource = self.__resourcePool.get(key, {})
             outMap[key]['author'] = utils.getDefaultUserName()
 
         # Time to swap out the fields and replace
-        for k in outMap:
-            self.editLocalContent(k, outMap[k])
+        for k, v in outMap.items():
+            self.editLocalContent(k, v)
 
         return outMap
 
@@ -771,12 +824,10 @@ class GroundStation(QtWidgets.QMainWindow):
         return self.__jobRunner.run(self.__editLocalContent, None, callback, key, outMap)
 
     def __editLocalContent(self, key, outMap):
-        print('editing local content', key, outMap)
-        memMap = self.__resourcePool.get(key, dict())
+        memMap = self.__resourcePool.setdefault(key, dict(uri=key, title=key))
         for k, v in outMap.items():
             memMap[k] = v
 
-        self.__resourcePool[key] = memMap
         return memMap
 
     def getInfoFileNameFromImagePath(self, fPath):

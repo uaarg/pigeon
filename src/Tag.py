@@ -124,7 +124,6 @@ class Tag(QtWidgets.QWidget):
 
     def submit(self):
         content = self.getContent()
-        print('content here', content)
         self.onSubmit(content)
         self.close()
 
