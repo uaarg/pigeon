@@ -46,7 +46,9 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.image_height = 964
         self.viewangle_horiz = 21.733333
         self.viewangle_vert = 16.833333
-        self.camera = GPSCoord.CameraSpecs(self.image_width, self.image_height, self.viewangle_horiz, self.viewangle_vert) # Need to implement read from configuration file
+        self.camera = GPSCoord.CameraSpecs(
+            self.image_width, self.image_height, self.viewangle_horiz, self.viewangle_vert
+        ) # Need to implement read from configuration file
         self.image_center_x = self.image_width/2
         self.image_center_y = self.image_height/2
 

@@ -44,7 +44,7 @@ class Marker(QtWidgets.QPushButton):
         self.expandedW = self.origW * 1.2
         self.expandedH = self.origH * 1.2
 
-    def toggleUnsaved(self):
+    def toggleUnsaved(self, *args, **kwargs):
         self.initIcon('icons/mapMarkerIn.png')
 
     def refreshAndToggleSave(self, attrDict):
@@ -52,7 +52,7 @@ class Marker(QtWidgets.QPushButton):
         self.author = attrDict.get('author', None)
         self.toggleSaved()
 
-    def toggleSaved(self):
+    def toggleSaved(self, *args, **kwargs):
         self.initIcon('icons/mapMarkerOut.png')
         self.initIcon(self.iconPath)
 

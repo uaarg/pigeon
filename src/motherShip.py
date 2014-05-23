@@ -30,6 +30,8 @@ defaultImageFormDict = dict(
     viewangle_horiz=21.733333, viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0
 )
 
+isCallable = lambda obj: hasattr(obj, '__call__')
+
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
     def __init__(self, dbHandler, parent=None, eavsDroppingMode=False):
@@ -175,9 +177,9 @@ class GroundStation(QtWidgets.QMainWindow):
                 return constants.IS_FIRST_TIME_SAVE, countOnCloud
 
             elif imageOnCloudlastTimeEdit > memlastTimeEdit:
-                print('\033[47mDetected a need for saving here since')
-                print('your last memoized local editTime was', memlastTimeEdit)
-                print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
+                # print('\033[47mDetected a need for saving here since')
+                # print('your last memoized local editTime was', memlastTimeEdit)
+                # print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
                 return constants.IS_OUT_OF_SYNC, countOnCloud
             else:
                 print('\033[42mAll good! No need for an extra save for',\
@@ -356,7 +358,7 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Saving currentImage content', content)
         curPath = self.ui_window.pathDisplayLabel.text()
         
-        currentMap = self.__resourcePool.get(curPath, {})
+        currentMap = self.getImageAttrsByKey(curPath)
 
         if isinstance(content, dict):
             for k, v in content.items():
@@ -478,7 +480,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if pathSelector != localizedDataPath:
             self.__jobRunner.run(   
-                self.__swapOutResourcePaths, None, None, pathSelector, localizedPath
+                self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
             )
 
         elemAttrDict['uri'] = localizedDataPath
@@ -494,29 +496,74 @@ class GroundStation(QtWidgets.QMainWindow):
         # print('elemAttrDict', elemAttrDict)
         func = getattr(self.__dbHandler.imageHandler, methodName)
         parsedResponse = utils.produceAndParse(func, elemAttrDict)
-        idFromDB = parsedResponse.get('id', -1)
+        statusCode = parsedResponse.get('status_code', 400)
+        if statusCode == 200 and parsedResponse.get('data', None):
+            sample = parsedResponse['data']
+            print('sample', sample)
+            idFromDB = sample.get('id', -1)
        
-        pathDict = self.__resourcePool.get(path, None) 
-        if pathDict is None:
-            pathDict = dict(uri=localizedDataPath)
+            pathDict = self.getImageAttrsByKey(localizedDataPath)
+            if pathDict is None:
+                pathDict = dict(uri=localizedDataPath)
 
-        pathDict['id'] = idFromDB
-        print('idFromDB', path, parsedResponse)
-        self.__resourcePool[path] = pathDict
+            pathDict['id'] = idFromDB
+            print('idFromDB', idFromDB, parsedResponse)
+            self.__resourcePool[localizedDataPath] = pathDict
             
-        return localizedDataPath
+            return localizedDataPath
 
-    def __swapOutResourcesPaths(self, *args):
+    def __swapOutResourcePaths(self, *args):
         oldPath, newPath = args
+        print('Swapping out', oldPath, newPath)
         popd = self.__resourcePool.pop(oldPath, None)
         if popd is not None:
+            popd['uri'] = popd['title'] = newPath
             self.__resourcePool[newPath] = popd
         mPop = self.__keyToMarker.pop(oldPath, None)
         if mPop is not None: 
             self.__keyToMarker[newPath] = mPop 
 
     def bulkSaveMarkers(self, associatedKey, markerDictList):
-        print('associatedKey', associatedKey, markerDictList)
+        return self.__jobRunner.run(self.__bulkSaveMarkers, None, print, associatedKey, markerDictList)
+
+    def __bulkSaveMarkers(self, *args):
+        associatedKey, markerDictList = args[0]
+        memImageAttr = self.getImageAttrsByKey(associatedKey)
+
+        if not (isinstance(memImageAttr, dict) and memImageAttr.get('id', -1) >= 1):
+            return False
+        else:
+            memId = memImageAttr['id']
+            prepMemDict = dict(associatedImage_id=memId, select='id')
+            for mDict in markerDictList: 
+                saveDictGetter = mDict.get('getter', None) 
+                failedSave = True
+                funcAttrToInvoke = 'onFailure'
+
+                if isCallable(saveDictGetter):
+                    prepMemDict['x'] = mDict.get('x', -1)
+                    prepMemDict['y'] = mDict.get('y', -1)
+
+                    idQuery = utils.produceAndParse(self.__dbHandler.markerHandler.getConn, prepMemDict)
+
+                    saveDict = saveDictGetter()
+                    saveDict['associatedImage_id'] = memId
+
+                    connAttrForSave = self.__dbHandler.markerHandler.postConn
+                    if isinstance(idQuery, dict) and idQuery.get('data', None):
+                        sample = idQuery['data'][0]
+                        sampleId = sample.get('id', -1)
+                        connAttrForSave = self.__dbHandler.markerHandler.putConn
+                        saveDict['id'] = sampleId
+
+                    saveResponse = utils.produceAndParse(connAttrForSave, saveDict)
+                    if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
+                        funcAttrToInvoke = 'onSuccess'
+
+                    print('funcAttrToInvoke', funcAttrToInvoke, connAttrForSave)
+
+                if isCallable(mDict.get(funcAttrToInvoke, None)):
+                    mDict[funcAttrToInvoke](saveDict)
     
     def syncCurrentItem(self):
         pathOnDisplay = self.ui_window.pathDisplayLabel.text()
@@ -528,7 +575,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
             # Swap out this path
             self.__jobRunner.run(
-                self.__swapOutResourcesPaths, None, None, pathOnDisplay, localizedPath
+                self.__swapOutResourcePaths, None, None, pathOnDisplay, localizedPath
             )
             pathOnDisplay = localizedPath
 
@@ -538,19 +585,21 @@ class GroundStation(QtWidgets.QMainWindow):
         markerDictList = []
         for m in associatedMarkerMap.values():
             markerDictList.append(dict(
-                getter=m.induceSave, onSuccess=m.refreshAndToggleSave,
-                onFailure=m.toggleUnsaved
+                getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved
             ))
             
         # Now the associated markers
         bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
 
-        if bulkSaveResults:
-            associatedImageId = int(bulkSaveResults.get('associatedImageId', -1))
-            print('associatedImageId', associatedImageId)
+        self.ui_window.pathDisplayLabel.setText(pathOnDisplay)
 
     def syncFromDB(self, **attrs):
-        print('attrs', attrs)
+        query = self.__dbHandler.imageHandler.getConn(attrs)
+        if isinstance(query, dict) and query.get('data', None):
+            data = query['data']
+            for imgDict in data:
+                pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
+                self.editLocalContent(pathSelector, imgDict, print)
 
     def setSyncTime(self, *args):
         curTime = QtCore.QTime.currentTime()
@@ -561,6 +610,7 @@ class GroundStation(QtWidgets.QMainWindow):
         memPixMap = self.iconStrip.addPixMap(path)
         markerSet = self.__resourcePool.get(path, {}).get('marker_set', [])
         markerMap = self.__keyToMarker.setdefault(path, {})
+
         if self.ImageDisplayer.renderImage(path, markerSet, markerMap, memPixMap):
             self.ui_window.pathDisplayLabel.setText(path)
             associatedTextFile = self.getInfoFileNameFromImagePath(path)
@@ -570,10 +620,24 @@ class GroundStation(QtWidgets.QMainWindow):
                 geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
                 self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-        print('RenderImage', path)
+        # print('RenderImage', path)
 
     def dbSync(self):
         print('DBSync')
+        imgQuery = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, dict())
+        if isinstance(imgQuery, dict) and imgQuery.get('data', None):
+            data = imgQuery['data']
+            for imgDict in data:
+                markerSet = imgDict.get('marker_set', [])
+                for mDict in markerSet:
+                    cDict = dict(
+                        x=int(mDict.get('x', 0)), y=int(mDict.get('y', 0)), parent=self.ImageDisplayer,
+                        lat=mDict.get('lat', 0), lon=mDict.get('lon', 0), mComments=mDict.get('comments', ''),
+                        author=mDict.get('author', utils.getDefaultUserName()),
+                        childMap=self.__keyToMarker.setdefault(pathSelector, dict()),
+                        onDeleteMarkerFromDB=self.deleteMarkerFromDB
+                    )
+                    memMarker = Marker.Marker(utils.DynaItem(cDict))
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
@@ -703,11 +767,16 @@ class GroundStation(QtWidgets.QMainWindow):
 
         return outMap
 
-    def editLocalContent(self, key, outMap):
+    def editLocalContent(self, key, outMap, callback=None):
+        return self.__jobRunner.run(self.__editLocalContent, None, callback, key, outMap)
+
+    def __editLocalContent(self, key, outMap):
+        print('editing local content', key, outMap)
         memMap = self.__resourcePool.get(key, dict())
         for k, v in outMap.items():
             memMap[k] = v
 
+        self.__resourcePool[key] = memMap
         return memMap
 
     def getInfoFileNameFromImagePath(self, fPath):
