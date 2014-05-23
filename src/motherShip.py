@@ -96,7 +96,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def fullDBSync(self):
         print('FullDBSync')
-        return self.dbSync()
+        self.dbSync()
+        self.__normalizeFileAdding(self.__resourcePool.keys())
 
     def getIcon(self, key):
         memIcon = self.__iconMemMap.get(key, None)
@@ -130,6 +131,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
             self.syncUpdateAction.setText(updateMsg)
+            print('syncStatus', syncStatus)
             if syncStatus == constants.IS_IN_SYNC:
                 self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
                 self.syncIconAction.setText('&Current item in sync')
@@ -178,9 +180,9 @@ class GroundStation(QtWidgets.QMainWindow):
                 return constants.IS_FIRST_TIME_SAVE, countOnCloud
 
             elif imageOnCloudlastTimeEdit > memlastTimeEdit:
-                # print('\033[47mDetected a need for saving here since')
-                # print('your last memoized local editTime was', memlastTimeEdit)
-                # print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
+                print('\033[47mDetected a need for saving here since')
+                print('your last memoized local editTime was', memlastTimeEdit)
+                print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
                 return constants.IS_OUT_OF_SYNC, countOnCloud
             else:
                 print('\033[42mAll good! No need for an extra save for',\
@@ -276,8 +278,6 @@ class GroundStation(QtWidgets.QMainWindow):
             if not self.iconStrip.isMemoized(path):
                 self.iconStrip.addIconItem(path, self.renderImage)
 
-            self.__resourcePool[path] = pathDict
-
             lastItem = path
 
         # Display the last added item
@@ -288,8 +288,7 @@ class GroundStation(QtWidgets.QMainWindow):
         else:
             self.querySyncStatus()
 
-        if hasattr(onFinish, '__call__'):
-            onFinish()
+        isCallable(onFinish) and onFinish()
 
     def preparePathsForDisplay(self, dynaDictList, onFinish=None):
         return self.__preparePathsForDisplay(dynaDictList or [], onFinish=onFinish)
@@ -384,7 +383,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
-        self.dbSyncAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-save.png'), '&Sync from Cloud', self)
+        self.dbSyncAction = QtWidgets.QAction(
+            self.getIcon('icons/iconmonstr-save.png'), '&Sync from Cloud', self
+        )
         self.dbSyncAction.triggered.connect(self.dbSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
 
@@ -448,12 +449,21 @@ class GroundStation(QtWidgets.QMainWindow):
         if isinstance(markerMap, dict):
             markerList = list(markerMap.values())
             for marker in markerList:
-                if hasattr(marker, 'close') and hasattr(marker.close, '__call__'):
+                if hasattr(marker, 'close') and isCallable(marker.close):
                     marker.close()
             
-
     def deleteMarkerFromDB(self, x, y):
-        print('deleting ', x, y, 'from DB')
+        pathOnDisplay = self.ui_window.pathDisplayLabel.text()
+        print('deleting ', x, y, 'of', pathOnDisplay, 'from DB')
+
+        memMarker = self.__keyToMarker.get(pathOnDisplay)
+        if memMarker and hasattr(memMarker, 'close') and isCallable(memMarker):
+            memMarker.close()
+
+        queryDict = self.getImageAttrsByKey(pathOnDisplay)
+        return self.__dbHandler.markerHandler.deleteConn(
+            associatedImage_id=queryDict.get('id', -1), x=x, y=y
+        )
 
     def handleSync(self, path):
         elemData = self.getImageAttrsByKey(path)
@@ -634,12 +644,13 @@ class GroundStation(QtWidgets.QMainWindow):
             
         # Now the associated markers
         bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
+        self.dbSync(uri=pathOnDisplay)
 
-        self.ui_window.pathDisplayLabel.setText(pathOnDisplay)
+        self.renderImage(pathOnDisplay)
 
     def syncFromDB(self, **attrs):
-        query = self.__dbHandler.imageHandler.getConn(attrs)
-        if isinstance(query, dict) and query.get('data', None):
+        query = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, attrs)
+        if isinstance(query, dict) and query.get('status_code', 400) == 200 and query.get('data', None):
             data = query['data']
             for imgDict in data:
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
@@ -666,9 +677,9 @@ class GroundStation(QtWidgets.QMainWindow):
                 geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
                 self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-    def dbSync(self):
+    def dbSync(self, **queryDict):
         print('DBSync in progress')
-        imgQuery = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, dict())
+        imgQuery = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, queryDict)
         if isinstance(imgQuery, dict) and imgQuery.get('data', None):
             data = imgQuery['data']
             for imgDict in data:
@@ -692,8 +703,6 @@ class GroundStation(QtWidgets.QMainWindow):
             
                 self.__resourcePool[pathSelector] = imgDict
 
-        self.__normalizeFileAdding(self.__resourcePool.keys())
-            
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
@@ -748,7 +757,6 @@ class GroundStation(QtWidgets.QMainWindow):
                     print('\033[91m', e, '\033[00m')
                     return
 
-            print('for', key, 'storedMap', storedMap)
             imageInfoPath = os.path.join(REPORTS_DIR, key + '-image.csv')
             imagesIn = markersIn = False
             exclusiveOfMarkerSetKeys = [k for k in storedMap.keys() if k != 'marker_set']
