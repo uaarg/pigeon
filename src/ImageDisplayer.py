@@ -114,7 +114,7 @@ class ImageDisplayer(QtWidgets.QLabel):
         return center_gpsPosition
 
     def renderImage(self, path, markerSet, currentMap, pixMap=None, altPixMap=None):
-        if self._childMap is not None:
+        if hasattr(self._childMap, 'values'):
             for v in self._childMap.values():
                 v.hide()
 
@@ -135,6 +135,7 @@ class ImageDisplayer(QtWidgets.QLabel):
         else:
             self.__allowClicks = True
 
+        print('cMap is currentMap', self._childMap is currentMap)
         self._childMap = currentMap    
         self.setPixmap(self.imgPixMap)
 
@@ -147,17 +148,15 @@ class ImageDisplayer(QtWidgets.QLabel):
 
             memMarker = self._childMap.get(retrKey, None)
             if memMarker is None:
-                memMarker = self.createMarker(
-                    utils.DynaItem(dict(
-                        x=lambda: x, y=lambda: y, lat=mData.get('lat', 0), lon=mData.get('lon', 0),
-                        mComments=comments, author=author
-                    ))
+
+                memMarker = Marker.Marker(
+                    parent=self, x=x, y=y, lat=mData.get('lat', 0), comments=comments, lon=mData.get('lon', 0), iconPath=mData.get('iconPath', 'icons/mapMarkerOut.png'),
+                    tree=self._childMap, author=author, onDeleteCallback=self.deleteMarkerFromDB
                 )
                 memMarker.toggleSaved()
-                memMarker.hide()
             else:
                 memMarker.author = author
-                memMarker.memComments = comments
+                memMarker.mecomments = comments
 
         for m in self._childMap.values():
             m.show()
@@ -184,29 +183,18 @@ class ImageDisplayer(QtWidgets.QLabel):
         # Right click - target marker creation
         elif e.button() == 2:
             curPos = self.mapFromGlobal(self.cursor.pos())
-            # Georeference the marker location
-            # pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
-            # (lat, lon) = pointGPSPos.latLon()
-            pointGPSPos = self.pointGeoReference(self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y())
+            pointGPSPos = self.pointGeoReference(
+                self.georeference, self.plane_position, self.plane_orientation, curPos.x(), curPos.y()
+            )
             (lat, lon) = pointGPSPos.latLon()
             print(lat, lon)
 
-            m = self.__createMarker(utils.DynaItem(
-                dict(x=curPos.x, y=curPos.y, lat=lat, lon=lon, mComments='', author=utils.getDefaultUserName())
-            ))
+            m = Marker.Marker(
+                parent=self, x=curPos.x(), y=curPos.y(), lat=lat,comments='', tree=self._childMap, 
+                author=utils.getDefaultUserName(), onDeleteCallback=self.deleteMarkerFromDB, lon=lon
+            )
             m.show()
             m.toggleUnsaved()
-
-    def createMarker(self, curPos, **kwargs): 
-        return self.__createMarker(curPos, **kwargs)
-
-    def __createMarker(self, curPos, **kwargs):
-        marker = Marker.Marker(
-            parent=self, x=curPos.x(), y=curPos.y(), tree=self._childMap, author=curPos.author, lat=curPos.lat, lon=curPos.lon,
-            mComments=curPos.mComments, onDeleteCallback=self.deleteMarkerFromDB, **kwargs
-        )
-
-        return marker
 
 def main():
     import sys

@@ -80,6 +80,29 @@ def produceAndParse(func, dataIn):
     else:
         return dbCheck
 
+def getInfoFileNameFromImagePath(fPath):
+        if not fPath:
+            return -1
+
+        splitPath = os.path.split(fPath)
+        parentDir, axiom = os.path.split(fPath)
+        seqIDExtSplit = axiom.split('.')
+
+        if not (seqIDExtSplit and len(seqIDExtSplit) == 2):
+            print('Erraneous format, expecting pathId and extension eg from 12.jpg')
+            return -1
+
+        seqID, ext = seqIDExtSplit
+        if ext != 'jpg':
+            print('Could not find an info file associated with the image', fPath)
+            return -1
+
+        # Scheme assumed is that directories [info, data] have the same parent
+        grandParentDir, endAxiom = os.path.split(parentDir)
+
+        infoFilename = os.sep.join([grandParentDir, 'info', seqID + '.txt'])
+        return infoFilename
+
 def cliParser():
     parser = OptionParser()
     parser.add_option('-i', '--ip', default='http://127.0.0.1', help='Port server is on', dest='ip')

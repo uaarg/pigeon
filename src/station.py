@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import shutil
 import random
 from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
@@ -94,9 +95,17 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.showCurrentTime()
 
-    def fullDBSync(self):
+    def fullDBSync(self, popUnSavedChanges=True):
         print('FullDBSync')
+        if popUnSavedChanges:
+            keyManifest = list(self.__resourcePool.keys())
+            for p in keyManifest:
+                syncStatus, dbImageCount = self.findSyncStatus(p)
+                if syncStatus != constants.IS_IN_SYNC:
+                    self.handleItemPop(p, isGlobalPop=False, callback=print)
+
         self.dbSync()
+
         self.__normalizeFileAdding(self.__resourcePool.keys())
 
     def getIcon(self, key):
@@ -131,7 +140,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
             self.syncUpdateAction.setText(updateMsg)
-            print('syncStatus', syncStatus)
+            # print('syncStatus', syncStatus)
             if syncStatus == constants.IS_IN_SYNC:
                 self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
                 self.syncIconAction.setText('&Current item in sync')
@@ -365,7 +374,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         # Getting the original ids in
         self.editLocalContent(curPath, content, None)
-        return self.handleSync(curPath)
+        return self.syncByPath(curPath)
 
     def saveImageToDB(self, key, attrDict):
         print('Saving image to DB', key, attrDict)
@@ -424,14 +433,14 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
-    def handleItemPop(self, currentItem=None, callback=print):
+    def handleItemPop(self, currentItem=None, callback=print, isGlobalPop=True):
         pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
             
         dQuery = utils.produceAndParse(
             self.__dbHandler.imageHandler.getConn, dict(uri=pathOnDisplay, select='uri,id')
         )
-        if isinstance(dQuery, dict) and dQuery.get('data', None):
+        if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('data', None):
             data = dQuery['data']
             for dDict in data:
                 print(self.__dbHandler.markerHandler.deleteConn(dict(associatedImage_id=dDict.get('id', -1))))
@@ -462,10 +471,10 @@ class GroundStation(QtWidgets.QMainWindow):
 
         queryDict = self.getImageAttrsByKey(pathOnDisplay)
         return self.__dbHandler.markerHandler.deleteConn(
-            associatedImage_id=queryDict.get('id', -1), x=x, y=y
+            dict(associatedImage_id=queryDict.get('id', -1), x=x, y=y)
         )
 
-    def handleSync(self, path):
+    def syncByPath(self, path):
         elemData = self.getImageAttrsByKey(path)
         isDirty = lambda k: k == 'marker_set' or k == 'id'
         elemAttrDict = dict((k, v) for k, v in elemData.items() if not isDirty(k))
@@ -498,6 +507,17 @@ class GroundStation(QtWidgets.QMainWindow):
                 uploadResponse = self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict)
                 if uploadResponse.status_code == 200:
                     print('\033[92mSuccessfully uploaded: %s\033[00m'%(pathSelector))
+                    if not utils.pathExists(localizedDataPath):
+                        try:
+                            shutil.copy(pathSelector, localizedDataPath)
+                        except Exception as e:
+                            print('\033[91mException: %s while trying to copy %s to %s'%(
+                                pathSelector, localizedDataPath, e
+                            ))
+                        else:
+                            print('\033[47mSuccessfully copied %s to %s\033[00m'%(
+                                pathSelector, localizedDataPath
+                            ))
                 else:
                     print('\033[91mFailed to uploaded: %s\033[00m'%(pathSelector))
                 print('responseText', uploadResponse.text)
@@ -507,9 +527,13 @@ class GroundStation(QtWidgets.QMainWindow):
             if dlPath:
                 localizedDataPath = dlPath
 
-        self.__jobRunner.run(   
-            self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
-        )
+        if localizedDataPath != pathSelector:
+            self.iconStrip.editStatusTipByKey(pathSelector, localizedDataPath)
+
+            # Swap out this path
+            self.__jobRunner.run(
+                self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
+            )
 
         elemAttrDict['uri'] = localizedDataPath
         existanceQuery = utils.produceAndParse(
@@ -575,8 +599,10 @@ class GroundStation(QtWidgets.QMainWindow):
         if popd is not None:
             popd['uri'] = popd['title'] = newPath
             self.__resourcePool[newPath] = popd
+            
         mPop = self.__keyToMarker.pop(oldPath, None)
         if mPop is not None: 
+            print('mPop', mPop)
             self.__keyToMarker[newPath] = mPop 
 
     def bulkSaveMarkers(self, associatedKey, markerDictList):
@@ -622,39 +648,25 @@ class GroundStation(QtWidgets.QMainWindow):
         pathOnDisplay = self.ui_window.pathDisplayLabel.text()
         print('Syncing current item', pathOnDisplay)
 
-        localizedPath = self.handleSync(pathOnDisplay)
+        associatedMarkerMap = self.__keyToMarker.get(pathOnDisplay, {})
+        localizedPath = self.syncByPath(pathOnDisplay)
+
         if localizedPath:
-            self.iconStrip.editStatusTipByKey(pathOnDisplay, localizedPath)
-
-            if pathOnDisplay != localizedPath:
-                # Swap out this path
-                self.__jobRunner.run(
-                    self.__swapOutResourcePaths, None, None, pathOnDisplay, localizedPath
-                )
-                pathOnDisplay = localizedPath
-
-        dbConfirmation = self.syncFromDB(uri=pathOnDisplay)
-        associatedMarkerMap = self.__keyToMarker.get(localizedPath, {})
+            pathOnDisplay = localizedPath
 
         markerDictList = []
         for m in associatedMarkerMap.values():
             markerDictList.append(dict(
                 getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved
             ))
-            
-        # Now the associated markers
-        bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
+
+        # Sync self first            
         self.dbSync(uri=pathOnDisplay)
 
-        self.renderImage(pathOnDisplay)
+        # Now the associated markers
+        bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
 
-    def syncFromDB(self, **attrs):
-        query = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, attrs)
-        if isinstance(query, dict) and query.get('status_code', 400) == 200 and query.get('data', None):
-            data = query['data']
-            for imgDict in data:
-                pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
-                self.editLocalContent(pathSelector, imgDict, print)
+        self.renderImage(pathOnDisplay)
 
     def setSyncTime(self, *args):
         curTime = QtCore.QTime.currentTime()
@@ -671,11 +683,14 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if self.ImageDisplayer.renderImage(path, markerSet, markerMap, memPixMap):
             self.ui_window.pathDisplayLabel.setText(path)
-            associatedTextFile = self.getInfoFileNameFromImagePath(path)
+            associatedTextFile = utils.getInfoFileNameFromImagePath(path)
             if associatedTextFile != -1:
                 self.processAssociatedDataFiles([associatedTextFile])
                 geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
                 self.ImageDisplayer.extractSetGeoData(geoDataDict)
+
+            for marker in markerMap.values():
+                marker.show()
 
     def dbSync(self, **queryDict):
         print('DBSync in progress')
@@ -685,6 +700,15 @@ class GroundStation(QtWidgets.QMainWindow):
             for imgDict in data:
                 markerSet = imgDict.get('marker_set', [])
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
+                print('pathSelector', pathSelector)
+
+                basename = os.path.basename(pathSelector)
+                localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+                if not utils.pathExists(localizedDataPath):
+                    dlPath = self.downloadFile(pathSelector)
+                    if dlPath:
+                        print('Downloaded', dlPath)
+
                 memDict = self.__keyToMarker.get(pathSelector, None)
                 if hasattr(memDict, 'keys'):
                     cpValues = list(memDict.values())
@@ -692,17 +716,25 @@ class GroundStation(QtWidgets.QMainWindow):
                         m.close()
 
                 for mDict in markerSet:
-                    memMarker = Marker.Marker(
-                        author=mDict.get('author', utils.getDefaultUserName()),
-                        tree=self.__keyToMarker.setdefault(pathSelector, dict()),
-                        mComments=mDict.get('comments', ''), parent=self.ImageDisplayer,
-                        lat=mDict.get('lat', 0), onDeleteCallback=self.deleteMarkerFromDB,
-                        x=int(mDict.get('x', 0)), y=int(mDict.get('y', 0)), lon=mDict.get('lon', 0)
-                    )
-                    memMarker.hide()
+                    x, y = int(mDict.get('x', 0)), int(mDict.get('y', 0))
+                    tree = self.__keyToMarker.setdefault(pathSelector, dict())
+                    memMarker = tree.get((x, y,), None)
+                    if memMarker is None:
+                        memMarker = Marker.Marker(
+                            author=mDict.get('author', utils.getDefaultUserName()),
+                            tree=self.__keyToMarker.setdefault(pathSelector, dict()),
+                            comments=mDict.get('comments', ''), parent=self.ImageDisplayer,
+                            lat=mDict.get('lat', 0), onDeleteCallback=self.deleteMarkerFromDB,
+                            x=x, y=y, lon=mDict.get('lon', 0)
+                        )
+                        memMarker.toggleSaved()
+                        memMarker.hide()
+                    else:
+                        mDict['x'] = int(x)
+                        mDict['y'] = int(y)
+                        memMarker.updateContent(**mDict)
             
                 self.__resourcePool[pathSelector] = imgDict
-
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
@@ -812,7 +844,7 @@ class GroundStation(QtWidgets.QMainWindow):
             self.msgQBox.show()
 
     def processAssociatedDataFiles(self, pathList):
-        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, print, pathList)
+        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, lambda a: a, pathList)
 
     def __processAssociatedDataFiles(self, pathList, *args, **kwargs):
         pathList = pathList[0]
@@ -838,29 +870,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         return memMap
 
-    def getInfoFileNameFromImagePath(self, fPath):
-        if not fPath:
-            return -1
-
-        splitPath = os.path.split(fPath)
-        parentDir, axiom = os.path.split(fPath)
-        seqIDExtSplit = axiom.split('.')
-
-        if not (seqIDExtSplit and len(seqIDExtSplit) == 2):
-            print('Erraneous format, expecting pathId and extension eg from 12.jpg')
-            return -1
-
-        seqID, ext = seqIDExtSplit
-        if ext != 'jpg':
-            print('Could not find an info file associated with the image', fPath)
-            return -1
-
-        # Scheme assumed is that directories [info, data] have the same parent
-        grandParentDir, endAxiom = os.path.split(parentDir)
-
-        infoFilename = os.sep.join([grandParentDir, 'info', seqID + '.txt'])
-        return infoFilename
-
+    
 def main():
     app = QtWidgets.QApplication(sys.argv)
     args, options = utils.cliParser()

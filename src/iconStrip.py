@@ -75,6 +75,14 @@ class IconStrip(QtWidgets.QListWidget):
         if hasattr(curItem, 'statusTip'):
             newlySelectedPath = curItem.statusTip() 
 
+        elif self.__itemDict:
+            it = iter(self.__itemDict)
+            for p in it:
+                if p:
+                    newlySelectedPath = p
+                    break
+            
+
         return newlySelectedPath
 
     def close(self):

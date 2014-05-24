@@ -13,7 +13,7 @@ import GPSCoord # Local GPS calculation module
 
 class Marker(QtWidgets.QPushButton):
     def __init__(
-        self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, mComments=None,
+        self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, comments=None,
         iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
     ):
         super(Marker, self).__init__(parent)
@@ -29,9 +29,9 @@ class Marker(QtWidgets.QPushButton):
         self._width = width
         self._height = height
         self.imageMap = dict()
-        self.iconPath = iconPath
+        self.iconPath = iconPath or 'icons/mapMarkerOut.png'
         self.entryData = None
-        self.memComments = mComments # Memoized comments
+        self.comments = comments
         self.onDeleteCallback = onDeleteCallback
 
         self.__pixmapCache = dict() # Keep private to avoid resource leaks
@@ -48,12 +48,11 @@ class Marker(QtWidgets.QPushButton):
         self.initIcon('icons/mapMarkerIn.png')
 
     def refreshAndToggleSave(self, attrDict):
-        self.memComments = attrDict.get('comments', None)
+        self.comments = attrDict.get('comments', None)
         self.author = attrDict.get('author', None)
         self.toggleSaved()
 
     def toggleSaved(self, *args, **kwargs):
-        self.initIcon('icons/mapMarkerOut.png')
         self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):
@@ -69,6 +68,12 @@ class Marker(QtWidgets.QPushButton):
             "width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;"
         )
         self.initExpandDimensions()
+
+    def updateContent(self, **attrs):
+        nilVar = 'nil'
+        for k, v in attrs.items():
+            if getattr(self, k, nilVar) is not nilVar:
+                setattr(self, k, v)
 
     def registerWithTree(self):
         if self.tree is not None:
@@ -110,7 +115,7 @@ class Marker(QtWidgets.QPushButton):
             self.tag.submit()
             if self.entryData:
                 self.author=self.entryData.get('Author', None)
-                self.memComments=self.entryData.get('Comments', None)
+                self.comments=self.entryData.get('Comments', None)
 
         return self.getReprForDBSave()
 
@@ -151,7 +156,7 @@ class Marker(QtWidgets.QPushButton):
                 ),
                 utils.DynaItem(
                     dict(
-                        labelLocation=(4, 0,), entryText=self.memComments, isEditable=True,
+                        labelLocation=(4, 0,), entryText=self.comments, isEditable=True,
                         title='Comments', isMultiLine=True, entryLocation=(4, 1, 6, 1)
                     )
                 )
@@ -214,11 +219,11 @@ class Marker(QtWidgets.QPushButton):
     def getReprForDBSave(self):
         return dict(
             lat=self.lat, lon=self.lon, author=self.author,
-            comments=self.memComments, x=self.x, y=self.y
+            comments=self.comments, x=self.x, y=self.y, iconPath=self.iconPath
         )
 
     def show(self):
-        # print('\033[47mShow invoked\033[00m')
+        # print('\033[47mShow invoked\033[00m', self.iconPath)
         super().show()
 
     def hide(self):

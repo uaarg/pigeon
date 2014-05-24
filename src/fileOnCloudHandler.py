@@ -14,6 +14,7 @@ except ImportError:
     sys.exit(-1)
 
 getDefaultUserName = lambda: os.environ.get('USER', 'Anonymous')
+isRegPath = lambda p: not os.path.isdir(p)
 
 class FileOnCloudHandler:
     def __init__(self, url, checkSumAlgoName='md5'):
@@ -106,17 +107,35 @@ class FileOnCloudHandler:
             return jsonParsed
 
 def main():
-    srcPath = '/Users/emmanuelodeke/pigeon/src/data/processed/2.jpg'
-    fH = FileOnCloudHandler('http://127.0.0.1:8000', 'sha1')
-    uResponse =fH.uploadFileByPath(srcPath, author=getDefaultUserName(), title=srcPath)
-    # print(uResponse)
-    print(uResponse.text)
+    argc = len(sys.argv)
+    if argc < 2:
+        sys.stderr.write('%s \033[42m<paths>\n\033[00m'%(__file__))
+    else:
+        fH = FileOnCloudHandler('http://127.0.0.1:8000', 'sha1')
+        uploadFunc = lambda p: fH.uploadFileByPath(p, author=getDefaultUserName(), title=p)
+        for p in sys.argv[1:]:
+            if not os.path.exists(p):
+                print('Non existant path', p)
+                continue
+            elif os.path.isdir(p):
+                for root, dirs, paths in os.walk(p):
+                    joinedPaths = map(lambda p: os.path.join(root, p), paths)
+                    dlResponse = map(uploadFunc, joinedPaths)
+                    print(list(dlResponse))
+            else:
+                print(uploadFunc(p))
+        '''
+        srcPath = '/Users/emmanuelodeke/Desktop/bbndk.png'
+        uResponse =fH.uploadFileByPath(srcPath, author=getDefaultUserName(), title=srcPath)
+        # print(uResponse)
+        print(uResponse.text)
   
-    shortPath = os.path.basename(srcPath) 
-    print(fH.downloadFileToDisk('documents/' + shortPath))
+        shortPath = os.path.basename(srcPath) 
+        print(fH.downloadFileToDisk('documents/' + shortPath))
+        '''
 
-    print(fH.getManifest(dict(select='id')).text)
-    # print(fH.deleteFileOnCloud().text)
+        print(fH.getManifest(dict(select='id')).text)
+        # print(fH.deleteFileOnCloud().text)
 
 if __name__ == '__main__':
     main()
