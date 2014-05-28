@@ -76,7 +76,7 @@ def produceAndParse(func, dataIn):
         outValue['status_code'] = dbCheck.get('status_code', 200)
         return outValue
       except Exception as e:
-        return dict(reason=str(e))
+        return dict(reason=str(e), status_code=500)
     else:
         return dbCheck
 

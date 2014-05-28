@@ -156,7 +156,7 @@ class ImageDisplayer(QtWidgets.QLabel):
                 memMarker.toggleSaved()
             else:
                 memMarker.author = author
-                memMarker.mecomments = comments
+                memMarker.comments = comments
 
         for m in self._childMap.values():
             m.show()
