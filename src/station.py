@@ -20,8 +20,10 @@ import iconStrip # Local module
 import constants # Local module
 import ImageDisplayer # Local module
 import DirWatchManager # Local module
-from fileOnCloudHandler import FileOnCloudHandler
+
 import mpUtils.JobRunner # Local module
+
+from resty import restDriver
 
 REPORTS_DIR = './reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
@@ -37,7 +39,7 @@ localizeToProcessedPath = lambda basename: os.sep.join(('.', 'data', 'processed'
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
-    def __init__(self, dbHandler, parent=None, eavsDroppingMode=False):
+    def __init__(self, ip, port, parent=None, eavsDroppingMode=False):
         super(GroundStation, self).__init__(parent)
 
         self.ui_window = gcs.Ui_MainWindow()
@@ -52,7 +54,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initStrip()
 
         self.inEavsDroppingMode = eavsDroppingMode
-        self.setDbHandler(dbHandler)
+        self.initRestHandler(ip, port)
 
         self.initUI()
         self.initSaveSound()
@@ -62,13 +64,11 @@ class GroundStation(QtWidgets.QMainWindow):
         # Now load all content from the DB
         self.fullDBSync()
 
-    def setDbHandler(self, dbHandler):
-        self.__dbHandler = dbHandler
+    def initRestHandler(self, ip, port):
+        self.__cloudConnector = restDriver.RestDriver(ip, port)
 
-        self.__uploadHandler = FileOnCloudHandler(os.path.dirname(self.__dbHandler.baseUrl))
-
-    def getDbHandler(self):
-        return self.__dbHandler
+        assert(self.__cloudConnector.registerLiason('Image', '/gcs/imageHandler'))
+        assert(self.__cloudConnector.registerLiason('Marker', '/gcs/markerHandler'))
 
     def initTimers(self):
         self.timer = QtCore.QTimer(self)
@@ -156,8 +156,8 @@ class GroundStation(QtWidgets.QMainWindow):
     def findSyncStatus(self, path=None): 
         queryDict = dict(format='short', uri=path, select='lastTimeEdit')
 
-        parsedResponse = utils.produceAndParse(
-          func=self.__dbHandler.imageHandler.getConn, dataIn=queryDict
+        parsedResponse = restDriver.produceAndParse(
+            func=self.__cloudConnector.getImages, format='short', uri=path, select='lastTimeEdit'
         )
 
         data = None
@@ -437,14 +437,13 @@ class GroundStation(QtWidgets.QMainWindow):
         pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
             
-        dQuery = utils.produceAndParse(
-            self.__dbHandler.imageHandler.getConn, dict(uri=pathOnDisplay, select='uri,id')
-        )
+        dQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, uri=pathOnDisplay, select='uri,id')
+
         if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('data', None):
             data = dQuery['data']
             for dDict in data:
-                print(self.__dbHandler.markerHandler.deleteConn(dict(associatedImage_id=dDict.get('id', -1))))
-                print(self.__dbHandler.imageHandler.deleteConn(dict(id=dDict.get('id', -1))))
+                print(self.__cloudConnector.deleteMarkers(associatedImage_id=dDict.get('id', -1)))
+                print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
                 self.handleItemPop(dDict.get('uri', ''))
 
         mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
@@ -470,9 +469,7 @@ class GroundStation(QtWidgets.QMainWindow):
             memMarker.close()
 
         queryDict = self.getImageAttrsByKey(pathOnDisplay)
-        return self.__dbHandler.markerHandler.deleteConn(
-            dict(associatedImage_id=queryDict.get('id', -1), x=x, y=y)
-        )
+        return self.__cloudConnector.deleteMarkers(associatedImage_id=queryDict.get('id', -1), x=x, y=y)
 
     def syncByPath(self, path):
         elemData = self.getImageAttrsByKey(path)
@@ -483,10 +480,8 @@ class GroundStation(QtWidgets.QMainWindow):
         basename = os.path.basename(pathSelector)
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
 
-        queryDict = dict(uri=localizedDataPath)
-        dQuery = self.__uploadHandler.jsonParseResponse(
-            self.__uploadHandler.getManifest(queryDict)
-        )
+        dQuery = self.__cloudConnector.getCloudFilesManifest(uri=localizedDataPath)
+        print('dQuery', dQuery)
 
         statusCode = dQuery['status_code']
         if statusCode == 200:
@@ -503,8 +498,9 @@ class GroundStation(QtWidgets.QMainWindow):
                         needsUpload = False
 
             if needsUpload:
-                queryDict['author'] = utils.getDefaultUserName()
-                uploadResponse = self.__uploadHandler.uploadFileByPath(pathSelector, **queryDict)
+                uploadResponse = self.__cloudConnector.uploadFile(
+                    pathSelector, uri=localizedDataPath, author=utils.getDefaultUserName()
+                )
                 if uploadResponse.status_code == 200:
                     print('\033[92mSuccessfully uploaded: %s\033[00m'%(pathSelector))
                     if not utils.pathExists(localizedDataPath):
@@ -536,12 +532,10 @@ class GroundStation(QtWidgets.QMainWindow):
             )
 
         elemAttrDict['uri'] = localizedDataPath
-        existanceQuery = utils.produceAndParse(
-            self.__dbHandler.imageHandler.getConn, dict(uri=localizedDataPath)
-        )
+        existanceQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, uri=localizedDataPath)
 
         memId = -1
-        methodName = 'postConn'
+        methodName = 'newImage'
         if isinstance(existanceQuery, dict) and existanceQuery.get('status_code', 400) == 200:
             if existanceQuery.get('data', None):
                 data = existanceQuery['data']
@@ -550,11 +544,11 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 sample = random.sample(data, 1)[0]
                 elemAttrDict['id'] = int(sample.get('id', -1))
-                methodName = 'putConn'
+                methodName = 'updateImages'
 
-        func = getattr(self.__dbHandler.imageHandler, methodName)
+        func = getattr(self.__cloudConnector, methodName)
 
-        parsedResponse = utils.produceAndParse(func, elemAttrDict)
+        parsedResponse = restDriver.produceAndParse(func, **elemAttrDict)
         statusCode = parsedResponse.get('status_code', 400)
         if statusCode == 200:
             pathDict = self.getImageAttrsByKey(localizedDataPath)
@@ -583,9 +577,8 @@ class GroundStation(QtWidgets.QMainWindow):
         print('basename', basename, 'pathSelector', pathSelector)
 
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
-        writtenBytes = self.__uploadHandler.downloadFileToDisk(
-            'documents/' + basename, localizedDataPath
-        )
+
+        writtenBytes = sef.__cloudConnector.downloadFile('documents/' + basenameself, altName=localizedDataPath)
         if writtenBytes:
             elemAttrDict['uri'] = localizedDataPath
             elemAttrDict['title'] = localizedDataPath
@@ -628,16 +621,16 @@ class GroundStation(QtWidgets.QMainWindow):
                     prepMemDict['x'] = saveDict.get('x', -1)
                     prepMemDict['y'] = saveDict.get('y', -1)
 
-                    idQuery = utils.produceAndParse(self.__dbHandler.markerHandler.getConn, prepMemDict)
+                    idQuery = restDriver.produceAndParse(self.__cloudConnector.getMarkers, **prepMemDict)
 
-                    connAttrForSave = self.__dbHandler.markerHandler.postConn
+                    connAttrForSave = self.__cloudConnector.newMarker
                     if isinstance(idQuery, dict) and idQuery.get('data', None):
                         sample = idQuery['data'][0]
                         sampleId = sample.get('id', -1)
-                        connAttrForSave = self.__dbHandler.markerHandler.putConn
+                        connAttrForSave = self.__cloudConnector.updateMarkers
                         saveDict['id'] = sampleId
 
-                    saveResponse = utils.produceAndParse(connAttrForSave, saveDict)
+                    saveResponse = restDriver.produceAndParse(connAttrForSave, **saveDict)
                     if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
                         funcAttrToInvoke = 'onSuccess'
 
@@ -694,7 +687,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def dbSync(self, **queryDict):
         print('DBSync in progress')
-        imgQuery = utils.produceAndParse(self.__dbHandler.imageHandler.getConn, queryDict)
+        imgQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, **queryDict)
         if isinstance(imgQuery, dict) and imgQuery.get('data', None):
             data = imgQuery['data']
             for imgDict in data:
@@ -870,18 +863,13 @@ class GroundStation(QtWidgets.QMainWindow):
 
         return memMap
 
-    
 def main():
     app = QtWidgets.QApplication(sys.argv)
     args, options = utils.cliParser()
 
     # Time to get address that the DB can be connected to via
-    dbAddress = '{ip}:{port}/gcs'.format(ip=args.ip.strip('/'), port=args.port.strip('/'))
     eavsDroppingMode = args.eavsDroppingMode
-    print('Connecting via: \033[92m dbAddress', dbAddress, eavsDroppingMode, '\033[00m')
-       
-    dbConnector = DbLiason.GCSHandler(dbAddress)
-    gStation = GroundStation(dbHandler=dbConnector, eavsDroppingMode=eavsDroppingMode)
+    gStation = GroundStation(args.ip.strip('/'), args.port.strip('/'), eavsDroppingMode=eavsDroppingMode)
 
     gStation.show()
 
