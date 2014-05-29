@@ -13,10 +13,9 @@ PyQt 5.2
 
 Qt 5.2.1
 
-MongoDB - For the marker database.
+restAssured - For all persistent data
 
-Pymongo - For the python bindings to MongoDB.
-
+resty - For utilities to connect to the restAssured dataBase
 
 pyproj - for UTM to lat lon conversion and other GIS needs
 
@@ -127,6 +126,14 @@ Install restAssured:
         + python manage.py runserver 192.168.1.75:8000
         + vi ImageViewer.py 
             ++ ... GCSHandler('http://192.168.1.75:8000/gcs')
+
+## Using resty
+    + resty is included as a submodule in pigeon.
+    + To update it:
+        ++ Go to src/
+        ++ Run: git submodule -q foreach git pull -q origin master
+        ++ ** If needed, add the module after by: git add resty
+        ++ Commit your changes and push for everyone to use.
 
 ### Install pyproj ###
 
