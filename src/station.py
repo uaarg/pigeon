@@ -578,7 +578,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
 
-        writtenBytes = sef.__cloudConnector.downloadFile('documents/' + basenameself, altName=localizedDataPath)
+        writtenBytes = self.__cloudConnector.downloadFile('documents/' + basename, altName=localizedDataPath)
         if writtenBytes:
             elemAttrDict['uri'] = localizedDataPath
             elemAttrDict['title'] = localizedDataPath
