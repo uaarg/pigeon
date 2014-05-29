@@ -127,8 +127,8 @@ class Marker(QtWidgets.QPushButton):
 
         self.tag = Tag.Tag(
             parent=None, title = '@%s'%(time.ctime()),
-            location = utils.DynaItem(dict(x=lPos.x(), y=lPos.y())),
-            size = utils.DynaItem(dict(x=300, y=240)),
+            location = utils.DynaItem(x=lPos.x(), y=lPos.y()),
+            size = utils.DynaItem(x=300, y=240),
             onSubmit = self.addTaggedInfo,
             metaData = dict(
                 captureTime=time.time(), x=tagX, y=tagY,
@@ -137,28 +137,20 @@ class Marker(QtWidgets.QPushButton):
 
             entryList = [
                 utils.DynaItem(
-                    dict(
-                        labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
-                        title='Pixel Coords', isMultiLine=False,entryLocation=(1, 1,), isEditable=False
-                    )
+                    labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
+                    title='Pixel Coords', isMultiLine=False,entryLocation=(1, 1,), isEditable=False
                 ),
                 utils.DynaItem(
-                    dict(
-                        labelLocation=(2, 0,), entryText='%s, %s'%(self.lat, self.lon),
-                        title='GPS Location', isMultiLine=False,entryLocation=(2, 1,), isEditable=False
-                    )
+                    labelLocation=(2, 0,), entryText='%s, %s'%(self.lat, self.lon),
+                    title='GPS Location', isMultiLine=False,entryLocation=(2, 1,), isEditable=False
                 ),
                 utils.DynaItem(
-                    dict(
-                        labelLocation=(3, 0), entryText=self.author, title='Author', isMultiLine=False,
-                        entryLocation=(3, 1,), isEditable=False
-                    )
+                    labelLocation=(3, 0), entryText=self.author, title='Author', isMultiLine=False,
+                    entryLocation=(3, 1,), isEditable=False
                 ),
                 utils.DynaItem(
-                    dict(
-                        labelLocation=(4, 0,), entryText=self.comments, isEditable=True,
-                        title='Comments', isMultiLine=True, entryLocation=(4, 1, 6, 1)
-                    )
+                    labelLocation=(4, 0,), entryText=self.comments, isEditable=True,
+                    title='Comments', isMultiLine=True, entryLocation=(4, 1, 6, 1)
                 )
             ]
         )

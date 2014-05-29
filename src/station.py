@@ -343,17 +343,17 @@ class GroundStation(QtWidgets.QMainWindow):
                 textExtracted = defaultImageFormDict[entry]
 
             entryList.append(
-                utils.DynaItem(dict(
+                utils.DynaItem(
                     title=entry, isMultiLine=False, labelLocation=(index, 0,),
                     isEditable=True, entryLocation=(index, 1,), entryText=str(textExtracted)
                 )
-            ))
+            )
 
 
         imageTag = Tag.Tag(
-            size=utils.DynaItem(dict(x=self.imgAttrFrame.width(), y=self.imgAttrFrame.height())),
-            location=utils.DynaItem(dict(x=self.imgAttrFrame.x(), y=self.imgAttrFrame.y())),
-            title='Location data for: ' + utils.getLocalName(self.ui_window.pathDisplayLabel.text()),
+            size=utils.DynaItem(x=self.imgAttrFrame.width(), y=self.imgAttrFrame.height()),
+            location=utils.DynaItem(x=self.imgAttrFrame.x(), y=self.imgAttrFrame.y()),
+            title='Location data for: ' + self.ui_window.pathDisplayLabel.text(),
             onSubmit=self.saveCurrentImageContent,
             entryList=entryList
         )

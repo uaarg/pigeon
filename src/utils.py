@@ -112,7 +112,7 @@ def cliParser():
     return parser.parse_args()
 
 class DynaItem:
-  def __init__(self, initArgs):
+  def __init__(self, **initArgs):
     __slots__ = (arg for arg in initArgs)
     for arg in initArgs:
       setattr(self, arg, initArgs[arg])

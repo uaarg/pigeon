@@ -16,7 +16,7 @@ def labelEntryPairFromSource(srcDict):
 
 def tagFromSource(srcDict):
     entryList = srcDict.get('entryList', [])
-    srcDict['entryList'] = [utils.DynaItem(initArgs) for initArgs in entryList]
+    srcDict['entryList'] = [utils.DynaItem(**initArgs) for initArgs in entryList]
     return Tag(**srcDict)
 
 class LabelEntryPair(object):
@@ -151,13 +151,13 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     t = Tag(
       title = 'Locked_Target',
-      size = utils.DynaItem(dict(x=200, y=200)),
-      location = utils.DynaItem(dict(x=600, y=200)),
+      size = utils.DynaItem(x=200, y=200),
+      location = utils.DynaItem(x=600, y=200),
       onSubmit = lambda content: print(content),
       entryList = [
-        utils.DynaItem(dict(title='Target', isMultiLine=False, isEditable=True, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None)),
-        utils.DynaItem(dict(title='Author', isMultiLine=False, isEditable=True, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None)),
-        utils.DynaItem(dict(title='Approx', isMultiLine=True,  isEditable=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE'))
+        utils.DynaItem(title='Target', isMultiLine=False, isEditable=True, entryLocation=(1, 1,), labelLocation=(1, 0,), entryText=None),
+        utils.DynaItem(title='Author', isMultiLine=False, isEditable=True, entryLocation=(2, 1,), labelLocation=(2, 0,), entryText=None),
+        utils.DynaItem(title='Approx', isMultiLine=True,  isEditable=True, entryLocation=(3, 1,5, 1,), labelLocation=(3, 0,), entryText='10.23NE')
     ])
 
     sys.exit(app.exec_())
