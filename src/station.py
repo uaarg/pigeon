@@ -616,7 +616,6 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 if isCallable(saveDictGetter):
                     saveDict = saveDictGetter()
-                    saveDict['associatedImage_id'] = memId
 
                     prepMemDict['x'] = saveDict.get('x', -1)
                     prepMemDict['y'] = saveDict.get('y', -1)
@@ -628,7 +627,9 @@ class GroundStation(QtWidgets.QMainWindow):
                         sample = idQuery['data'][0]
                         sampleId = sample.get('id', -1)
                         connAttrForSave = self.__cloudConnector.updateMarkers
-                        saveDict['id'] = sampleId
+                        saveDict = dict(queryParams=dict(id=sampleId), updatesBody=saveDict)
+                    else:
+                        saveDict['associatedImage_id'] = memId
 
                     saveResponse = restDriver.produceAndParse(connAttrForSave, **saveDict)
                     if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
