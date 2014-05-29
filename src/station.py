@@ -543,7 +543,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     self.editLocalContent(item.get('uri', ''), item, None)
 
                 sample = random.sample(data, 1)[0]
-                elemAttrDict['id'] = int(sample.get('id', -1))
+                elemAttrDict = dict(queryParams=dict(id=int(sample.get('id', -1))), updatesBody=elemAttrDict)
                 methodName = 'updateImages'
 
         func = getattr(self.__cloudConnector, methodName)
