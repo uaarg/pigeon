@@ -64,6 +64,33 @@ class GroundStation(QtWidgets.QMainWindow):
         # Now load all content from the DB
         self.fullDBSync()
 
+    def resizeEvent(self, event):
+        print('\033[42mResizing', event, '\033[00m')
+        oldSZ = event.oldSize()
+        sz = event.size()
+        wRatio, hRatio = sz.width()/(oldSZ.width() or 1), sz.height()/(oldSZ.height() or 1)
+        self.artificialResizeInduction(wRatio, hRatio)
+
+    def artificialResizeInduction(self, wRatio, hRatio):
+        # Function to autoResize widgets present in ui_window
+        poppables = []
+        for widgetName, widgetTuple in self.ui_windowChildren.items():
+            widget, origWidth, origHeight = widgetTuple
+            print('widget', widget)
+            try:
+                curSz = widget.size()
+                newWidth, newHeight = int(wRatio * curSz.width()), int(hRatio * curSz.height())
+                newWidth = origWidth if newWidth < origWidth else newWidth
+                newHeight = origHeight if newHeight < origHeight else newHeight
+                widget.resize(newWidth, newHeight)
+            except RuntimeError as e:
+                print('Exception while resizing', widgetName, widget)
+                poppables.append(widgetName)
+
+        if poppables:
+            for name in poppables:
+                self.ui_windowChildren.pop(name)
+
     def initRestHandler(self, ip, port):
         self.__cloudConnector = restDriver.RestDriver(ip, port)
 
@@ -222,6 +249,19 @@ class GroundStation(QtWidgets.QMainWindow):
         self.initImageDisplayer()
 
         self.ui_window.pathDisplayLabel.show()
+        names = filter(
+            lambda a: hasattr(getattr(self.ui_window, a), 'size'), dir(self.ui_window)
+        )
+
+        self.ui_windowChildren = dict()
+        for p in names:
+            child = getattr(self.ui_window, p)
+            try:
+                origSz = child.size()
+            except Exception as e:
+                print('Failed to invoke size on element with name', p, e)
+            else:
+                self.ui_windowChildren[p] = (child, origSz.width(), origSz.height(),)
 
     def initImageDisplayer(self):
         self.ImageDisplayer = ImageDisplayer.ImageDisplayer(
@@ -554,7 +594,8 @@ class GroundStation(QtWidgets.QMainWindow):
             pathDict = self.getImageAttrsByKey(localizedDataPath)
             if pathDict is None:
                 pathDict = dict(uri=localizedDataPath)
-          
+         
+            idFromDB = -1 
             if parsedResponse.get('id', None): 
                 idFromDB = parsedResponse['id']
             elif parsedResponse.get('data', None):
