@@ -1,8 +1,9 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
 import sys
 import time
+import random
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QImage, QCursor, QPixmap, QIcon
 
@@ -14,7 +15,8 @@ import GPSCoord # Local GPS calculation module
 class Marker(QtWidgets.QPushButton):
     def __init__(
         self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, comments=None,
-        iconPath='icons/mapMarkerOut.png', tree=None,onDeleteCallback=None, author=None
+        iconPath='icons/mapMarkerOut.png', tree=None, author=None, onDeleteCallback=None,
+        onMoveEvent=None, longHashNumber=0, **kwargs
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -27,16 +29,22 @@ class Marker(QtWidgets.QPushButton):
         self.tree = tree
         self.author = author
         self._width = width
+        self.longHashNumber = longHashNumber or hash((time.time(), random.random(), self.x, self.y,))
         self._height = height
         self.imageMap = dict()
         self.iconPath = iconPath or 'icons/mapMarkerOut.png'
         self.entryData = None
         self.comments = comments
+
+        self.onMoveEvent = onMoveEvent
         self.onDeleteCallback = onDeleteCallback
 
         self.__pixmapCache = dict() # Keep private to avoid resource leaks
 
         self.initUI()
+
+    def getHash(self):
+        return self.longHashNumber
 
     def initExpandDimensions(self):
         self.origW = self.width()
@@ -56,7 +64,8 @@ class Marker(QtWidgets.QPushButton):
         self.initIcon(self.iconPath)
 
     def __resetToNormalIcon(self):
-        self.setGeometry(self.x, self.y, self.origW, self.origH)
+        geometry = self.geometry()
+        self.setGeometry(geometry.x(), geometry.y(), self.origW, self.origH)
 
     def initUI(self):
         self.setGeometry(self.x, self.y, self._width, self._height)
@@ -68,16 +77,24 @@ class Marker(QtWidgets.QPushButton):
             "width:10%;height:0;padding-bottom:10%;border-radius:70%;opacity:80;"
         )
         self.initExpandDimensions()
+        self.__pressPos = None
+        self.__potentialMove = False
 
-    def updateContent(self, **attrs):
+    def updateContent(self, x=0, y=0, **attrs):
         nilVar = 'nil'
+        print("Updating", attrs)
+        origX, origY = int(self.x), int(self.y)
         for k, v in attrs.items():
             if getattr(self, k, nilVar) is not nilVar:
                 setattr(self, k, v)
 
+        newX, newY = int(self.x), int(self.y)
+        if newX != origX or newY != origY:
+            self.move(newX, newY)
+
     def registerWithTree(self):
         if self.tree is not None:
-            self.tree[(self.x, self.y)] = self
+            self.tree[self.getHash()] = self
             # print('Tree after self-registration', self.tree)
 
     def memoizeIcon(self, path):
@@ -161,7 +178,7 @@ class Marker(QtWidgets.QPushButton):
             # print('Popped marker', self.tree.pop((x, y),'Not found'))
 
             if self.onDeleteCallback and needsFlush: 
-                print(self.onDeleteCallback(x, y))
+                print(self.onDeleteCallback(self.getHash()))
 
         self.close()
 
@@ -174,30 +191,32 @@ class Marker(QtWidgets.QPushButton):
 
     def enterEvent(self, event):
         # Make the marker pop out
-        self.setGeometry(self.x, self.y, self.expandedW, self.expandedH)
-
+        geom = self.geometry()
+        self.setGeometry(geom.x(), geom.y(), self.expandedW, self.expandedH)
 
     def leaveEvent(self, event):
         # Revert to the original dimensions
-        self.__resetToNormalIcon()
-
+        # self.__resetToNormalIcon()
+        pass
 
     def mousePressEvent(self, event):
-        if event.button() == QtCore.QEvent.MouseButtonDblClick:
+        buttonPressed = event.button()
+        if buttonPressed == QtCore.QEvent.MouseButtonDblClick:
             # Weird mix here, needs more debugging on a computer
             # with a mouse since I don't use one
             # Request for a deletion
-            self.erase(self.x, self.y)
+            self.erase()
     
         else:
-            # Thanks be to Stack Overflow
-            buttonNumber = event.button()
-            self.__pressPos, self.__movePos = None, None
-            if buttonNumber == QtCore.Qt.LeftButton:
-                self.__movePos = event.globalPos()
-                self.__pressPos = event.globalPos()
+            if buttonPressed == QtCore.Qt.LeftButton:
+                self.__potentialMove = True        
+                self.__pressPos = event.pos()
+                
+    def mouseReleaseEvent(self, event):
+        if self.__potentialMove:
+            relativePos = event.pos()
 
-                # print('\033[43mActivating', self.tag, '\033[00m', self.info, self.entryData)
+            if relativePos == self.__pressPos:
                 if not self.tag:
                     if self.info:
                         self.tag = Tag.tagFromSource(self.info)
@@ -207,12 +226,30 @@ class Marker(QtWidgets.QPushButton):
                     print('Trying to activateWindow')
                     self.tag.show()
                     self.tag.activateWindow()
+            else:
+                # Manual move performed here
+                curPos = self.pos()
+                print('Time to move from', curPos, 'to', relativePos)
+                 
+                self.move(curPos.x() + relativePos.x(), curPos.y() + relativePos.y())
+                self.toggleUnsaved()
+
+                freshPos = self.pos()
+                self.x, self.y = freshPos.x(), freshPos.y()
+
+                self.onMoveEvent(curPos, freshPos)
+
+            self.__potentialMove = False
+
+    def move(self, x, y):
+        super().move(x, y)
 
     def getReprForDBSave(self):
-        return dict(
-            lat=self.lat, lon=self.lon, author=self.author,
-            comments=self.comments, x=self.x, y=self.y, iconPath=self.iconPath
-        )
+        print('getting repr', self.x, self.y)
+        return {
+            'lat':self.lat, 'lon':self.lon, 'author':self.author, 'comments':self.comments,
+             'x':self.x, 'y':self.y, 'iconPath':self.iconPath, 'longHashNumber':self.getHash()
+        }
 
     def show(self):
         # print('\033[47mShow invoked\033[00m', self.iconPath)
@@ -223,16 +260,23 @@ class Marker(QtWidgets.QPushButton):
         super().hide()
      
     def __lt__(self, other):
-        return    isinstance(other, Marker)\
+        return isinstance(other, Marker)\
                 and (self.x < other.x) and (self.y < other.y)
 
     def __gt__(self, other):
-        return    isinstance(other, Marker)\
+        return isinstance(other, Marker)\
                 and (self.x > other.x) and (self.y > other.y)
 
     def __eq__(self, other):
-        return    isinstance(other, Marker)\
+        return isinstance(other, Marker)\
             and (self.x == other.x) and (self.y == other.y)
+
+    def __hash__(self):
+        # Even though __hash__ is not encourage for mutable objects, we need it defined in order
+        # To store Markers in a hash map, and cut down network calls in order to update content
+        # or even having to re-update content on every single move
+        print("\033[91mUnimplemented. Using pseudo-hashed content in __init__\033[00m")
+        return self.longHashNumber
 
 def main():
     app = QtWidgets.QApplication(sys.argv)

@@ -76,7 +76,6 @@ class GroundStation(QtWidgets.QMainWindow):
         poppables = []
         for widgetName, widgetTuple in self.ui_windowChildren.items():
             widget, origWidth, origHeight = widgetTuple
-            print('widget', widget)
             try:
                 curSz = widget.size()
                 newWidth, newHeight = int(wRatio * curSz.width()), int(hRatio * curSz.height())
@@ -181,10 +180,10 @@ class GroundStation(QtWidgets.QMainWindow):
             self.connectionStatusAction.setText('&Connected')
 
     def findSyncStatus(self, path=None): 
-        queryDict = dict(format='short', uri=path, select='lastTimeEdit')
+        queryDict = dict(format='short', uri=path, select='lastEditTime')
 
         parsedResponse = restDriver.produceAndParse(
-            func=self.__cloudConnector.getImages, format='short', uri=path, select='lastTimeEdit'
+            func=self.__cloudConnector.getImages, format='short', uri=path, select='lastEditTime'
         )
 
         data = None
@@ -205,20 +204,20 @@ class GroundStation(QtWidgets.QMainWindow):
             memAttrMap = self.getImageAttrsByKey(path)
 
             memId = int(memAttrMap.get('id', -1))
-            memlastTimeEdit = float(memAttrMap.get('lastTimeEdit', -1))
+            memlastEditTime = float(memAttrMap.get('lastEditTime', -1))
 
             itemInfo = data[0]
             idOnCloud = int(itemInfo.get('id', -1))
-            imageOnCloudlastTimeEdit = float(itemInfo['lastTimeEdit'])
+            imageOnCloudlastEditTime = float(itemInfo['lastEditTime'])
 
             if idOnCloud < 1:
                 print('\033[48mThis data is not present on cloud, path:', path, '\033[00m')
                 return constants.IS_FIRST_TIME_SAVE, countOnCloud
 
-            elif imageOnCloudlastTimeEdit > memlastTimeEdit:
+            elif imageOnCloudlastEditTime > memlastEditTime:
                 print('\033[47mDetected a need for saving here since')
-                print('your last memoized local editTime was', memlastTimeEdit)
-                print('Most recent db editTime is\033[00m', imageOnCloudlastTimeEdit)
+                print('your last memoized local editTime was', memlastEditTime)
+                print('Most recent db editTime is\033[00m', imageOnCloudlastEditTime)
                 return constants.IS_OUT_OF_SYNC, countOnCloud
             else:
                 print('\033[42mAll good! No need for an extra save for',\
@@ -226,7 +225,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 )
                 return constants.IS_IN_SYNC, countOnCloud
         else:
-            print("\033[41mNo data back from querying about lastTimeEdit\033[00m")
+            print("\033[41mNo data back from querying about lastEditTime\033[00m")
             #TODO: Handle this special case
             return constants.NO_DATA_BACK, countOnCloud
 
@@ -266,11 +265,23 @@ class GroundStation(QtWidgets.QMainWindow):
     def initImageDisplayer(self):
         self.ImageDisplayer = ImageDisplayer.ImageDisplayer(
             parent=self.ui_window.fullSizeImageScrollArea,
-            onDeleteMarkerFromDB=self.deleteMarkerFromDB
+            onDeleteMarkerFromDB=self.deleteMarkerFromDB, onMarkerMove=self.onMarkerMove
         )
         self.ui_window.fullSizeImageScrollArea.setWidget(self.ImageDisplayer)
 
         self.imgAttrFrame = self.ui_window.imageAttributesFrame
+
+    def onMarkerMove(self, oldPos, newPos):
+        self.__jobRunner.run(self.__onMarkerMove, None, print, oldPos, newPos)
+
+    def __onMarkerMove(self, *args):
+        oldPos, newPos = args[0]
+        print('oldPos', oldPos, 'newPos', newPos)
+
+    def createMarker(self, isSaved=False, isHidden=False, **kwargs):
+        m = Marker.Marker(onMoveEvent=self.onMarkerMove, **kwargs)
+        isSaved and m.toggleSaved()
+        isHidden and m.hide()
 
     def initStrip(self):
         self.iconStrip = iconStrip.IconStrip(self)
@@ -490,6 +501,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
 
         nextPath = self.iconStrip.popIconItem(pathOnDisplay)
+        print('iconStripKeys', self.iconStrip.rawKeys())
         return self.renderImage(nextPath)
 
     def closeMarkers(self, *args, **kwargs):
@@ -500,16 +512,23 @@ class GroundStation(QtWidgets.QMainWindow):
                 if hasattr(marker, 'close') and isCallable(marker.close):
                     marker.close()
             
-    def deleteMarkerFromDB(self, x, y):
-        pathOnDisplay = self.ui_window.pathDisplayLabel.text()
-        print('deleting ', x, y, 'of', pathOnDisplay, 'from DB')
+    def deleteMarkerFromDB(self, markerHash, srcPath=None):
+        # Contract is that by the time this method gets invoked, it is
+        # originating from the current path on display
+        targetPath = srcPath or self.ui_window.pathDisplayLabel.text()
 
-        memMarker = self.__keyToMarker.get(pathOnDisplay)
-        if memMarker and hasattr(memMarker, 'close') and isCallable(memMarker):
-            memMarker.close()
+        markerSect = self.__keyToMarker.get(targetPath)
+        if markerSect:
+            memMarker = markerSect.get(markerHash, None)
+        
+            x, y = memMarker.x, memMarker.y
+            if memMarker and hasattr(memMarker, 'close') and isCallable(memMarker):
+                memMarker.close()
 
-        queryDict = self.getImageAttrsByKey(pathOnDisplay)
-        return self.__cloudConnector.deleteMarkers(associatedImage_id=queryDict.get('id', -1), x=x, y=y)
+            queryDict = self.getImageAttrsByKey(targetPath)
+            return self.__cloudConnector.deleteMarkers( 
+                associatedImage_id=queryDict.get('id', -1), x=x, y=y
+            )
 
     def syncByPath(self, path):
         elemData = self.getImageAttrsByKey(path)
@@ -564,8 +583,6 @@ class GroundStation(QtWidgets.QMainWindow):
                 localizedDataPath = dlPath
 
         if localizedDataPath != pathSelector:
-            self.iconStrip.editStatusTipByKey(pathSelector, localizedDataPath)
-
             # Swap out this path
             self.__jobRunner.run(
                 self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
@@ -583,7 +600,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     self.editLocalContent(item.get('uri', ''), item, None)
 
                 sample = random.sample(data, 1)[0]
-                elemAttrDict = dict(queryParams=dict(id=int(sample.get('id', -1))), updatesBody=elemAttrDict)
+                elemAttrDict = {'queryParams': {'id':int(sample.get('id', -1))}, 'updatesBody':elemAttrDict}
                 methodName = 'updateImages'
 
         func = getattr(self.__cloudConnector, methodName)
@@ -639,6 +656,8 @@ class GroundStation(QtWidgets.QMainWindow):
             print('mPop', mPop)
             self.__keyToMarker[newPath] = mPop 
 
+        self.iconStrip.swapOutMapKeys(oldPath, newPath)
+
     def bulkSaveMarkers(self, associatedKey, markerDictList):
         return self.__jobRunner.run(self.__bulkSaveMarkers, None, print, associatedKey, markerDictList)
 
@@ -658,8 +677,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 if isCallable(saveDictGetter):
                     saveDict = saveDictGetter()
 
-                    prepMemDict['x'] = saveDict.get('x', -1)
-                    prepMemDict['y'] = saveDict.get('y', -1)
+                    prepMemDict['longHashNumber'] = saveDict.get('longHashNumber', -1)
 
                     idQuery = restDriver.produceAndParse(self.__cloudConnector.getMarkers, **prepMemDict)
 
@@ -668,7 +686,7 @@ class GroundStation(QtWidgets.QMainWindow):
                         sample = idQuery['data'][0]
                         sampleId = sample.get('id', -1)
                         connAttrForSave = self.__cloudConnector.updateMarkers
-                        saveDict = dict(queryParams=dict(id=sampleId), updatesBody=saveDict)
+                        saveDict = {'queryParams':{'id':sampleId}, 'updatesBody':saveDict}
                     else:
                         saveDict['associatedImage_id'] = memId
 
@@ -691,15 +709,15 @@ class GroundStation(QtWidgets.QMainWindow):
 
         markerDictList = []
         for m in associatedMarkerMap.values():
-            markerDictList.append(dict(
-                getter=m.induceSave, onSuccess=m.refreshAndToggleSave, onFailure=m.toggleUnsaved
-            ))
+            markerDictList.append({
+                'getter':m.induceSave, 'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
+            })
 
-        # Sync self first            
-        self.dbSync(uri=pathOnDisplay)
-
-        # Now the associated markers
+        # Let's get those markers in
         bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
+
+        # Next pull changes
+        self.dbSync(uri=pathOnDisplay)
 
         self.renderImage(pathOnDisplay)
 
@@ -751,22 +769,20 @@ class GroundStation(QtWidgets.QMainWindow):
                         m.close()
 
                 for mDict in markerSet:
-                    x, y = int(mDict.get('x', 0)), int(mDict.get('y', 0))
                     tree = self.__keyToMarker.setdefault(pathSelector, dict())
-                    memMarker = tree.get((x, y,), None)
+                    mDict['x'] = int(mDict.get('x', 0))
+                    mDict['y'] = int(mDict.get('y', 0))
+
+                    memMarker = tree.get(mDict.get('longHashNumber', None), None)
+                    mDict.setdefault('author', utils.getDefaultUserName())
+
                     if memMarker is None:
-                        memMarker = Marker.Marker(
-                            author=mDict.get('author', utils.getDefaultUserName()),
-                            tree=self.__keyToMarker.setdefault(pathSelector, dict()),
-                            comments=mDict.get('comments', ''), parent=self.ImageDisplayer,
-                            lat=mDict.get('lat', 0), onDeleteCallback=self.deleteMarkerFromDB,
-                            x=x, y=y, lon=mDict.get('lon', 0)
+                        memMarker = self.createMarker(
+                            isSaved=True, isHidden=True, parent=self.ImageDisplayer,
+                            tree=self.__keyToMarker.setdefault(pathSelector, {}),
+                            onDeleteCallback=self.deleteMarkerFromDB, **mDict
                         )
-                        memMarker.toggleSaved()
-                        memMarker.hide()
                     else:
-                        mDict['x'] = int(x)
-                        mDict['y'] = int(y)
                         memMarker.updateContent(**mDict)
             
                 self.__resourcePool[pathSelector] = imgDict

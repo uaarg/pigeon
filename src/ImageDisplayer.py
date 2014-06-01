@@ -20,7 +20,7 @@ import mpUtils.JobRunner
 class ImageDisplayer(QtWidgets.QLabel):
     __jobRunner = mpUtils.JobRunner.JobRunner()
 
-    def __init__(self, parent=None, onDeleteMarkerFromDB=None):
+    def __init__(self, parent=None, onDeleteMarkerFromDB=None, onMarkerMove=None):
         super(ImageDisplayer, self).__init__(parent)
 
         # Set up cursor
@@ -29,7 +29,10 @@ class ImageDisplayer(QtWidgets.QLabel):
 
         self.__allowClicks = False
 
+        self.onMarkerMove = onMarkerMove
+        print('onMarkerMove', onMarkerMove)
         self.deleteMarkerFromDB = onDeleteMarkerFromDB
+
         self.initResources()
 
     def allowClicks(self):
@@ -65,14 +68,6 @@ class ImageDisplayer(QtWidgets.QLabel):
                     marker.close()
 
         super().close()
-
-    def popAllMarkers(self, path):
-        return self.__jobRunner.run(self.__popAllMarkers, None, None, path)
-
-    def __popAllMarkers(self, path, **kwargs):
-        markers = self._childMap.pop(path, [])
-        for marker in markers.values():
-            marker.close()
 
     def extractSetGeoData(self, infoDict):
         # Get position 
@@ -140,23 +135,17 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.setPixmap(self.imgPixMap)
 
         for mData in markerSet:
-            x, y = int(mData.get('x', 0)), int(mData.get('y', 0))
-            retrKey = (x, y,)
+            mData['x'] = int(mData.get('x', 0))
+            mData['y'] = int(mData.get('y', 0))
+            mData.setdefault('iconPath', 'icons/mapMarkerOut.png')
 
-            author=mData.get('author', 'Anonymous')
-            comments = mData.get('comments','')
+            memMarker = self._childMap.get(mData.get('longHashNumber', None), None)
 
-            memMarker = self._childMap.get(retrKey, None)
             if memMarker is None:
-
-                memMarker = Marker.Marker(
-                    parent=self, x=x, y=y, lat=mData.get('lat', 0), comments=comments, lon=mData.get('lon', 0), iconPath=mData.get('iconPath', 'icons/mapMarkerOut.png'),
-                    tree=self._childMap, author=author, onDeleteCallback=self.deleteMarkerFromDB
-                )
+                memMarker = self.createMarker(**mData)
                 memMarker.toggleSaved()
             else:
-                memMarker.author = author
-                memMarker.comments = comments
+                memMarker.updateContent(**mData)
 
         for m in self._childMap.values():
             m.show()
@@ -189,12 +178,19 @@ class ImageDisplayer(QtWidgets.QLabel):
             (lat, lon) = pointGPSPos.latLon()
             print(lat, lon)
 
-            m = Marker.Marker(
-                parent=self, x=curPos.x(), y=curPos.y(), lat=lat,comments='', tree=self._childMap, 
-                author=utils.getDefaultUserName(), onDeleteCallback=self.deleteMarkerFromDB, lon=lon
+            m = self.createMarker(
+                x=curPos.x(), y=curPos.y(), lat=lat,comments='',
+                author=utils.getDefaultUserName(), lon=lon
             )
             m.show()
             m.toggleUnsaved()
+
+    def createMarker(self, **data):
+        m = Marker.Marker(
+            onMoveEvent=self.onMarkerMove, parent=self, onDeleteCallback=self.deleteMarkerFromDB,
+            tree=self._childMap, **data
+        )
+        return m
 
 def main():
     import sys
