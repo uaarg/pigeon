@@ -80,7 +80,7 @@ class Marker(QtWidgets.QPushButton):
         self.__pressPos = None
         self.__potentialMove = False
 
-    def updateContent(self, x=0, y=0, **attrs):
+    def updateContent(self, **attrs):
         nilVar = 'nil'
         print("Updating", attrs)
         origX, origY = int(self.x), int(self.y)
