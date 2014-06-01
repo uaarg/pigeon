@@ -335,6 +335,12 @@ class GroundStation(QtWidgets.QMainWindow):
         for index, pathDict in enumerate(pathDictList):
             path = pathDict.get('uri', None)
 
+            if not utils.pathExists(path):
+                dlPath = self.downloadFile(path)
+                print('dlPath', dlPath)
+                if dlPath:
+                    path = dlPath
+
             if not self.iconStrip.isMemoized(path):
                 self.iconStrip.addIconItem(path, self.renderImage)
 
@@ -577,11 +583,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     print('\033[91mFailed to uploaded: %s\033[00m'%(pathSelector))
                 print('responseText', uploadResponse.text)
 
-        if not utils.pathExists(localizedDataPath):
-            dlPath = self.downloadFile(pathSelector)
-            if dlPath:
-                localizedDataPath = dlPath
-
+        
         if localizedDataPath != pathSelector:
             # Swap out this path
             self.__jobRunner.run(
@@ -632,11 +634,12 @@ class GroundStation(QtWidgets.QMainWindow):
 
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
         basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
-        print('basename', basename, 'pathSelector', pathSelector)
 
-        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+        localizedDataPath = os.sep.join((os.path.abspath('.'), 'data', 'processed', basename,))
 
-        writtenBytes = self.__cloudConnector.downloadFile('documents/' + basename, altName=localizedDataPath)
+        writtenBytes = self.__cloudConnector.downloadFile(
+            basename, altName=localizedDataPath
+        )
         if writtenBytes:
             elemAttrDict['uri'] = localizedDataPath
             elemAttrDict['title'] = localizedDataPath
