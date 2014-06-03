@@ -452,9 +452,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.dbSyncAction = QtWidgets.QAction(
             self.getIcon('icons/iconmonstr-save.png'), '&Sync from Cloud', self
         )
-        self.dbSyncAction.triggered.connect(self.dbSync)
+        self.dbSyncAction.triggered.connect(self.fullDBSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
-
         self.dirWatchAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-eye.png'), '&Select directories to watch', self)
         self.dirWatchAction.triggered.connect(self.dirWatchTrigger)
 
