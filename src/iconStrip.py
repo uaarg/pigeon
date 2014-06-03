@@ -56,7 +56,8 @@ class IconStrip(QtWidgets.QListWidget):
         memPixMap = self.getPixMap(path, None)
         if memPixMap is None:
             memPixMap = QtGui.QPixmap(path)
-            self.__pixMapCache[path] = memPixMap
+            if not memPixMap.isNull():
+                self.__pixMapCache[path] = memPixMap
 
         return memPixMap
 
