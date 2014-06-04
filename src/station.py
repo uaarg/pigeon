@@ -105,7 +105,7 @@ class GroundStation(QtWidgets.QMainWindow):
         timeout = 5000
         if self.inEavsDroppingMode:
             func = self.fullDBSync
-            timeout = 10000
+            timeout = 8000
 
         self.syncTimer.timeout.connect(func)
         self.syncTimer.start(timeout)
@@ -749,6 +749,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def dbSync(self, **queryDict):
         print('DBSync in progress')
+        queryDict['sort'] = 'lastEditTime'
         imgQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, **queryDict)
         if isinstance(imgQuery, dict) and imgQuery.get('data', None):
             data = imgQuery['data']
@@ -788,6 +789,8 @@ class GroundStation(QtWidgets.QMainWindow):
                         memMarker.updateContent(**mDict)
             
                 self.__resourcePool[pathSelector] = imgDict
+
+        self.querySyncStatus()
 
     def cleanUpAndExit(self):
         self.__dirWatcher.close()
