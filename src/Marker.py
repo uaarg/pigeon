@@ -46,6 +46,9 @@ class Marker(QtWidgets.QPushButton):
     def getHash(self):
         return self.longHashNumber
 
+    def getHashAsStr(self):
+        return str(self.getHash())
+
     def initExpandDimensions(self):
         self.origW = self.width()
         self.origH = self.height()
@@ -94,7 +97,7 @@ class Marker(QtWidgets.QPushButton):
 
     def registerWithTree(self):
         if self.tree is not None:
-            self.tree[self.getHash()] = self
+            self.tree[self.getHashAsStr()] = self
             # print('Tree after self-registration', self.tree)
 
     def memoizeIcon(self, path):
@@ -178,7 +181,7 @@ class Marker(QtWidgets.QPushButton):
             # print('Popped marker', self.tree.pop((x, y),'Not found'))
 
             if self.onDeleteCallback and needsFlush: 
-                print(self.onDeleteCallback(self.getHash()))
+                print(self.onDeleteCallback(self.getHashAsStr()))
 
         self.close()
 
@@ -237,7 +240,7 @@ class Marker(QtWidgets.QPushButton):
                 freshPos = self.pos()
                 self.x, self.y = freshPos.x(), freshPos.y()
 
-                self.onMoveEvent(curPos, freshPos)
+                self.onMoveEvent(curPos, freshPos, self.getHashAsStr())
 
             self.__potentialMove = False
 
@@ -248,7 +251,7 @@ class Marker(QtWidgets.QPushButton):
         print('getting repr', self.x, self.y)
         return {
             'lat':self.lat, 'lon':self.lon, 'author':self.author, 'comments':self.comments,
-             'x':self.x, 'y':self.y, 'iconPath':self.iconPath, 'longHashNumber':self.getHash()
+             'x':self.x, 'y':self.y, 'iconPath':self.iconPath, 'longHashNumber':self.getHashAsStr()
         }
 
     def show(self):

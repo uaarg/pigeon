@@ -232,12 +232,14 @@ class GroundStation(QtWidgets.QMainWindow):
 
         self.imgAttrFrame = self.ui_window.imageAttributesFrame
 
-    def onMarkerMove(self, oldPos, newPos):
-        self.__jobRunner.run(self.__onMarkerMove, None, print, oldPos, newPos)
+    def onMarkerMove(self, oldPos, newPos, mHash):
+        self.__jobRunner.run(self.__onMarkerMove, None, print, oldPos, newPos, mHash)
 
     def __onMarkerMove(self, *args):
-        oldPos, newPos = args[0]
-        print('oldPos', oldPos, 'newPos', newPos)
+        oldPos, newPos, mHash = args[0]
+        # ownMap = self.__keyToMarker.get(self.ui_window.pathDisplayLabel.text(), {})
+        # print('oldPos', oldPos, 'newPos', newPos, mHash, ownMap)
+        # print('picked marker', ownMap.get(mHash, None))
 
     def createMarker(self, isSaved=False, isHidden=False, **kwargs):
         m = Marker.Marker(onMoveEvent=self.onMarkerMove, **kwargs)
@@ -627,11 +629,10 @@ class GroundStation(QtWidgets.QMainWindow):
     def __bulkSaveMarkers(self, *args):
         associatedKey, markerDictList = args[0]
         memImageAttr = self.getImageAttrsByKey(associatedKey)
-        if not (isinstance(memImageAttr, dict) and int(memImageAttr.get('id', -1)) >= 1):
-            return False
-        else:
+        if (isinstance(memImageAttr, dict) and int(memImageAttr.get('id', -1)) >= 1):
             memId = memImageAttr['id']
             prepMemDict = dict(associatedImage_id=memId, select='id')
+            savedMarkers = []
             for mDict in markerDictList: 
                 saveDictGetter = mDict.get('getter', None) 
                 failedSave = True
@@ -656,9 +657,12 @@ class GroundStation(QtWidgets.QMainWindow):
                     saveResponse = restDriver.produceAndParse(connAttrForSave, **saveDict)
                     if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
                         funcAttrToInvoke = 'onSuccess'
+                        savedMarkers.append(saveResponse.get('data', {}))
 
                 if isCallable(mDict.get(funcAttrToInvoke, None)):
                     mDict[funcAttrToInvoke](saveDict)
+
+            return savedMarkers
     
     def syncCurrentItem(self):
         pathOnDisplay = self.ui_window.pathDisplayLabel.text()
@@ -671,6 +675,7 @@ class GroundStation(QtWidgets.QMainWindow):
             pathOnDisplay = localizedPath
 
         markerDictList = []
+        print('associatedMMap', associatedMarkerMap)
         for m in associatedMarkerMap.values():
             markerDictList.append({
                 'getter':m.induceSave, 'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
