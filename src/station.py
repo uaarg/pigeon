@@ -140,7 +140,6 @@ class GroundStation(QtWidgets.QMainWindow):
                     updateMsg = '%d unsaved %s'%(absDiff, plurality)
 
             self.syncUpdateAction.setText(updateMsg)
-            # print('syncStatus', syncStatus)
             if syncStatus == constants.IS_IN_SYNC:
                 self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
                 self.syncIconAction.setText('&Current item in sync')
@@ -695,7 +694,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__lastSyncLCD.display(text)
 
     def renderImage(self, path):
-        if not path:
+        if not (path and os.path.exists(path)):
             path = utils._PLACE_HOLDER_PATH
 
         memPixMap = self.iconStrip.addPixMap(path)
@@ -722,7 +721,6 @@ class GroundStation(QtWidgets.QMainWindow):
             for imgDict in data:
                 markerSet = imgDict.get('marker_set', [])
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
-                print('pathSelector', pathSelector)
 
                 basename = os.path.basename(pathSelector)
                 localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
