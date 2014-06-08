@@ -802,7 +802,7 @@ class GroundStation(QtWidgets.QMainWindow):
         srcPath = self.ui_window.pathDisplayLabel.text()
         key = utils.getLocalName(srcPath) or srcPath
         
-        storedMap = self.__resourcePool.get(key, None)
+        storedMap = self.__resourcePool.get(srcPath, None)
         if storedMap:
             if not os.path.exists(REPORTS_DIR):
                 try:
