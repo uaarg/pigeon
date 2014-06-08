@@ -76,8 +76,13 @@ class ImageDisplayer(QtWidgets.QLabel):
         zone = float(infoDict["utm_zone"])
         altitude = float(infoDict["alt"])
         # print('infoDict', infoDict)
-        dd_coord = GPSCoord.utm_to_DD(easting, northing, zone) # lat, lon
-        print('\033[94mdd_coord', dd_coord, altitude, '\033[00m')
+
+        try:
+            dd_coord = GPSCoord.utm_to_DD(easting, northing, zone) # lat, lon
+        except Exception as e:
+            print("%s", e)
+            dd_coord = (0, 0)
+
         self.plane_position = GPSCoord.Position(dd_coord[0], dd_coord[1], altitude)
 
         # Get orientation

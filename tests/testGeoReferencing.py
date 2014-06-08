@@ -34,7 +34,6 @@ class UTMToDDTests(BaseTestCase):
     http://www.latlong.net/lat-long-utm.html
     """
 
-    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testEdmonton(self):
         calculated_latlon = utm_to_DD(348783.31, 5945279.84, 12)
         self.assertLatLonEqual(calculated_latlon, (53.634426, -113.287097))
@@ -43,17 +42,14 @@ class UTMToDDTests(BaseTestCase):
         calculated_latlon = utm_to_DD(552286.59, 5528923.08, 14)
         self.assertLatLonEqual(calculated_latlon, (49.910402, -98.271773))
 
-    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testMaryland(self):
         calculated_latlon = utm_to_DD(378449.42, 4224578.88, 18)
         self.assertLatLonEqual(calculated_latlon, (38.160918, -76.387450))
     
-    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testSydney(self):
         calculated_latlon = utm_to_DD(335918.34, 6253113.37 - 10000000, 56)
         self.assertLatLonEqual(calculated_latlon, (-33.849525, 151.226451))
 
-    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testCapeTown(self):
         calculated_latlon = utm_to_DD(262609.03, 6244778.96 - 10000000, 34)
         self.assertLatLonEqual(calculated_latlon, (-33.910679, 18.432394))
@@ -62,7 +58,6 @@ class UTMToDDTests(BaseTestCase):
         calculated_latlon = utm_to_DD(452170.72, 5411703.17, 31)
         self.assertLatLonEqual(calculated_latlon, (48.856450, 2.347951))
 
-    @unittest.skip("Known issue: The algorithm is close but not perfectly accurate.")
     def testSaoPaulo(self):
         calculated_latlon = utm_to_DD(333336.30, 7394553.87 - 10000000, 23)
         self.assertLatLonEqual(calculated_latlon, (-23.5508160, -46.632830))
@@ -76,6 +71,17 @@ class UTMToDDTests(BaseTestCase):
 
         with self.assertRaises(ValueError):
             utm_to_DD(348783.31, 5945279.84, "c")
+
+    def testInvalidUTMCoord(self):
+        with self.assertRaises(Exception):
+            utm_to_DD(900000, 5411703.17, 22) # easting out of range
+
+        with self.assertRaises(Exception):
+            utm_to_DD(333336.30, -10000000, 23) # northing out of range
+
+    def testInvalidUTMZone(self):
+        with self.assertRaises(Exception):
+            utm_to_DD(378449.42, 4224578.88, 61)
 
 
 class GeoReferencingTests(BaseTestCase):
