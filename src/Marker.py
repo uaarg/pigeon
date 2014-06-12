@@ -39,7 +39,7 @@ class Marker(QtWidgets.QPushButton):
         self.onMoveEvent = onMoveEvent
         self.onDeleteCallback = onDeleteCallback
 
-        self.__pixmapCache = dict() # Keep private to avoid resource leaks
+        self.__pixmapCache = {} # Keep private to avoid resource leaks
 
         self.initUI()
 
@@ -139,6 +139,9 @@ class Marker(QtWidgets.QPushButton):
 
         return self.getReprForDBSave()
 
+    def getAuthor(self):
+        return self.author or utils.getDefaultUserName()
+
     def createTag(self, event):
         lPos = self.pos()
         gPos = self.mapToGlobal(lPos)
@@ -146,15 +149,13 @@ class Marker(QtWidgets.QPushButton):
         tagY = gPos.y()
 
         self.tag = Tag.Tag(
-            parent=None, title = '@%s'%(time.ctime()),
-            location = utils.DynaItem(x=lPos.x(), y=lPos.y()),
-            size = utils.DynaItem(x=300, y=240),
-            onSubmit = self.addTaggedInfo,
-            metaData = dict(
-                captureTime=time.time(), x=tagX, y=tagY,
-                author = utils.getDefaultUserName() if not self.author else self.author
-            ),
-
+            parent=None, title='@%s'%(time.ctime()),
+            location=utils.DynaItem(x=lPos.x(), y=lPos.y()),
+            size=utils.DynaItem(x=300, y=240), onSubmit=self.addTaggedInfo,
+            metaData = {
+                'captureTime': time.time(), 'x': tagX,
+                'y': tagY, 'author': self.getAuthor()
+            },
             entryList = [
                 utils.DynaItem(
                     labelLocation=(1, 0,), entryText='%s, %s'%(tagX, tagY),
