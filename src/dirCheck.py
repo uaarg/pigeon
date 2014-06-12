@@ -36,7 +36,7 @@ class DirWatch:
     def getRetainableDetected(self):
         return self.__retainableAction
 
-    def getPaths(self, lastSaveTime=0, statTimeAccessor=accessTimeChecker, maxDepth=-1):
+    def getPaths(self, lastSaveTime=0, statTimeAccessor=creationTimeChecker, maxDepth=-1):
         freshPaths = []
         purgeable = []
         for root, dirs, paths in os.walk(self.__pathToWatch):

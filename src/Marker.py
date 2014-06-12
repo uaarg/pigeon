@@ -177,7 +177,7 @@ class Marker(QtWidgets.QPushButton):
         )
         self.toggleUnsaved()
 
-    def erase(self, x, y, needsFlush=True):
+    def erase(self, needsFlush=True):
         if isinstance(self.tree, dict):
             # print('Popped marker', self.tree.pop((x, y),'Not found'))
 
