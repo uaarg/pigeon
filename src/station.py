@@ -821,14 +821,11 @@ class GroundStation(QtWidgets.QMainWindow):
                 f.write('\n')
                 
                 imagesIn = True
-                
-            markerSet = storedMap.get('marker_set', [])
+            
             kmlPath = os.path.join(REPORTS_DIR, key + '.kml')
-            with open(kmlPath, 'w') as h:
-                fmtdTree = dict((k, storedMap[k]) for k in exclusiveOfMarkerSetKeys)
-                fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
-                h.write(kmlUtil.kmlDoc(fmtdTree)) and print('\033[95mWrote KML info to', kmlPath)
+            self.printKMLData(storedMap, kmlPath)
 
+            markerSet = storedMap.get('marker_set', [])
             markerInfoPath =  None
             if markerSet:
                 markerInfoPath = os.path.join(REPORTS_DIR, key + '-markers.csv')
@@ -857,6 +854,20 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 self.msgQBox.setText(msg)
                 self.msgQBox.show()
+
+    def printKMLData(self, imageDataMap, kmlPath):
+        """
+        Writes data for the current image and all its contained markers into a Google Earth KML file.
+        """
+
+        markerSet = imageDataMap.get('marker_set', [])
+        with open(kmlPath, 'w') as h:
+            exclusiveOfMarkerSetKeys = [k for k in imageDataMap.keys() if k != 'marker_set']
+            fmtdTree = dict((k, imageDataMap[k]) for k in exclusiveOfMarkerSetKeys)
+            fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
+
+            imagekml = kmlUtil.placemarkKMLConvert(fmtdTree)
+            h.write(imagekml) and print('\033[95mWrote KML info to', kmlPath)
 
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):

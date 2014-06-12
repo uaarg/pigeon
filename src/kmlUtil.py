@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
+import simplekml
+
 KML_HEADER = 'xmlns="http://www.opengis.net/kml/2.2"'
 XML_HEADER = 'version="1.0" encoding="UTF-8"'
 
@@ -12,6 +14,23 @@ SEPARATOR = ','
 getStartEndTags = lambda key: ('<%s>'%(key), '</%s>'%(key))
 isListOrTuple = lambda v: isinstance(v, list) or isinstance(v, tuple)
 isStrOrNumber = lambda v: isinstance(v, str) or hasattr(v, '__divmod__')
+
+def placemarkKMLConvert(imageContentDict):
+    """
+    Extracts information needed for writing marker locations to a Google Earth kml.
+    """
+    markerkml = simplekml.Kml()
+
+    for marker in imageContentDict['marker_set']:
+        marker_id = marker['Marker']['id']  
+        marker_coords = (marker['Marker']['lon'], marker['Marker']['lat'])
+
+        markerPoint = markerkml.newpoint(name=str(marker_id), coords=[marker_coords])
+        markerPoint.description = marker['Marker']['comments']
+
+    kmltext = markerkml.kml()    
+    return markerkml.kml()
+
 
 def textifyTree(content, indentLevel=1):
     if isStrOrNumber(content):
