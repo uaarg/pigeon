@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 # Author: Emmanuel Odeke <odeke@ualberta.ca>
 
-import simplekml
+import sys
+
+try:
+    import simplekml
+except ImportError:
+    sys.stderr.write("\033[91mNeed to install 'simplekml'\033[00m\n")
+    sys.exit(-1)
 
 KML_HEADER = 'xmlns="http://www.opengis.net/kml/2.2"'
 XML_HEADER = 'version="1.0" encoding="UTF-8"'
