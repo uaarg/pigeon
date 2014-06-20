@@ -13,6 +13,7 @@ import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 import Tag # Local module
 import utils # Local module
 import Marker # Local module
+import simplekml # module used for writing to Google Earth KML files
 import kmlUtil # Local module
 import GPSCoord # Local module
 import DbLiason # Local module
@@ -823,7 +824,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 imagesIn = True
             
             kmlPath = os.path.join(REPORTS_DIR, key + '.kml')
-            self.printKMLData(storedMap, kmlPath)
+            self.printAllKMLData(kmlPath)
 
             markerSet = storedMap.get('marker_set', [])
             markerInfoPath =  None
@@ -855,19 +856,42 @@ class GroundStation(QtWidgets.QMainWindow):
                 self.msgQBox.setText(msg)
                 self.msgQBox.show()
 
-    def printKMLData(self, imageDataMap, kmlPath):
+    def printAllKMLData(self, kmlPath):
         """
-        Writes data for the current image and all its contained markers into a Google Earth KML file.
+        Saves data for all images in the current marked image set into a Google Earth KML file.
+        """
+        import simplekml
+        imagekml = simplekml.Kml()
+
+        for image in self.__resourcePool.keys():
+            try:
+                markerExists = self.__resourcePool[image]['marker_set']
+                for marker in self.__resourcePool[image]['marker_set']:
+                    print(marker)
+                    marker_lat = float(marker['lat'])
+                    marker_lon = float(marker['lon'])
+                    marker_id = marker['associatedImage_id'] + "-" + marker['id'] 
+                    marker_coords = [(marker_lon, marker_lat)]
+                    print(marker_coords)
+                    imagekml.newpoint(name=str(marker_id), coords=marker_coords)
+            except:
+                continue
+
+        kml_data = imagekml.kml()
+        with open(kmlPath, 'w') as h:
+            h.write(kml_data) and print('\033[95mWrote KML info to', kmlPath)
+
+    def writeImageKMLData(self, imageDataMap, imageSetKMLObject):
+        """
+        Writes data for the current image and all its contained markers into the KML object for this set of files, or this instance of the station.
         """
 
         markerSet = imageDataMap.get('marker_set', [])
-        with open(kmlPath, 'w') as h:
-            exclusiveOfMarkerSetKeys = [k for k in imageDataMap.keys() if k != 'marker_set']
-            fmtdTree = dict((k, imageDataMap[k]) for k in exclusiveOfMarkerSetKeys)
-            fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
+        exclusiveOfMarkerSetKeys = [k for k in imageDataMap.keys() if k != 'marker_set']
+        fmtdTree = dict((k, imageDataMap[k]) for k in exclusiveOfMarkerSetKeys)
+        fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
+        marker_kml = kmlUtil.placemarkKMLConvert(fmtdTree, imageSetKMLObject)
 
-            imagekml = kmlUtil.placemarkKMLConvert(fmtdTree)
-            h.write(imagekml) and print('\033[95mWrote KML info to', kmlPath)
 
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
