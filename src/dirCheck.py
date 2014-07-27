@@ -9,9 +9,9 @@ import threading
 isCallable = lambda obj: hasattr(obj, '__call__')
 isCallableAttr = lambda obj, attr: hasattr(obj, attr) and isCallable(getattr(obj, attr))
 
+accessTimeChecker = os.path.getatime
+creationTimeChecker = os.path.getctime
 pathExists = lambda qPath: qPath and os.path.exists(qPath)
-accessTimeChecker = lambda path: os.path.getatime(path)
-creationTimeChecker = lambda path: os.path.getctime(path)
 
 class DirWatch:
     def __init__(self, dirPath=None, sleepTimeout=10):
