@@ -461,15 +461,18 @@ class GroundStation(QtWidgets.QMainWindow):
         if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('data', None):
             data = dQuery['data']
             for dDict in data:
+                # TODO: Decide if you want to delete the file from the cloud as well
+                # print('\033[46m%s\033[00m'%(self.__cloudConnector.deleteFile(uri=pathOnDisplay)))
                 print(self.__cloudConnector.deleteMarkers(associatedImage_id=dDict.get('id', -1)))
                 print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
+
                 self.handleItemPop(dDict.get('uri', ''))
 
         mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
         self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
 
         nextPath = self.iconStrip.popIconItem(pathOnDisplay)
-        print('iconStripKeys', self.iconStrip.rawKeys())
+        # print('iconStripKeys', self.iconStrip.rawKeys())
         return self.renderImage(nextPath)
 
     def closeMarkers(self, *args, **kwargs):
