@@ -299,7 +299,7 @@ class GroundStation(QtWidgets.QMainWindow):
             path = pathDict.get('uri', None)
 
             if not utils.pathExists(path):
-                dlPath = self.downloadFile(path)
+                dlPath = self.downloadBlob(path)
                 print('dlPath', dlPath)
                 if dlPath:
                     path = dlPath
@@ -528,7 +528,7 @@ class GroundStation(QtWidgets.QMainWindow):
                         needsUpload = False
 
             if needsUpload:
-                uploadResponse = self.__cloudConnector.uploadFile(
+                uploadResponse = self.__cloudConnector.uploadBlob(
                     pathSelector, uri=localizedDataPath, author=utils.getDefaultUserName()
                 )
                 if uploadResponse.status_code == 200:
@@ -590,10 +590,10 @@ class GroundStation(QtWidgets.QMainWindow):
             
             return localizedDataPath
 
-    def downloadFile(self, resourceKey, callback=None):
-        self.__jobRunner.run(self.__downloadFile, None, callback, resourceKey)
+    def downloadBlob(self, resourceKey, callback=None):
+        self.__jobRunner.run(self.__downloadBlob, None, callback, resourceKey)
 
-    def __downloadFile(self, resourceKey):
+    def __downloadBlob(self, resourceKey):
         elemAttrDict = self.getImageAttrsByKey(resourceKey)
         print('Downloading by key', resourceKey, elemAttrDict)
 
@@ -602,7 +602,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         localizedDataPath = os.sep.join((os.path.abspath('.'), 'data', 'processed', basename,))
 
-        writtenBytes = self.__cloudConnector.downloadFile(
+        writtenBytes = self.__cloudConnector.downloadBlob(
             basename, altName=localizedDataPath
         )
         if writtenBytes:
@@ -729,7 +729,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 basename = os.path.basename(pathSelector)
                 localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
                 if not utils.pathExists(localizedDataPath):
-                    dlPath = self.downloadFile(pathSelector)
+                    dlPath = self.downloadBlob(pathSelector)
                     if dlPath:
                         print('Downloaded', dlPath)
 
