@@ -5,8 +5,6 @@ Python 3.2.3
 
 python3-dev package
 
-Pillow v.2.3.0 (PIL) - for opening and processing images
-
 SIP 4.15.1 - for PyQt's python bindings
 
 PyQt 5.2
