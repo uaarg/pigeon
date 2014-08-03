@@ -2,4 +2,4 @@ pyproj
 simplekml
 sip==4.15.1
 pyqtdeploy
-git+git://github.com/odeke-em/resty.git
+git+https://github.com/odeke-em/resty.git
