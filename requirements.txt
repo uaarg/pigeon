@@ -1,3 +1,2 @@
-sip
 pyproj
 simplekml
