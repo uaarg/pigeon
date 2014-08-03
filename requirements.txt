@@ -1,3 +1,3 @@
+sip
 pyproj
 simplekml
-sip==4.16.2
