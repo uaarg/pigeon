@@ -1,4 +1,4 @@
-pigeon readme
+pigeon readme [ ![Codeship Status for odeke-em/pigeon](https://www.codeship.io/projects/2168d5b0-fd85-0131-3861-7ac8d6a30f22/status?branch=master)](https://www.codeship.io/projects/29444)
 =============
 Pigeon is UAARG's ground station imaging software.
 Currently, it is only intended to display images, read their metadata, allow a user to place markers on images, and save the marker locations.
