@@ -63,23 +63,6 @@ def getPathsLike(regexList, srcDir=None):
 
   return matches
 
-def produceAndParse(func, dataIn):
-  dbCheck = func(dataIn)
-  if hasattr(dbCheck, 'reason'):
-    print(dbCheck['reason'])
-    return dbCheck
-  else:
-    response = dbCheck.get('value', None)
-    if response:
-      try:
-        outValue = json.loads(response.decode())
-        outValue['status_code'] = dbCheck.get('status_code', 200)
-        return outValue
-      except Exception as e:
-        return dict(reason=str(e), status_code=500)
-    else:
-        return dbCheck
-
 def getInfoFileNameFromImagePath(fPath):
         if not fPath:
             return -1

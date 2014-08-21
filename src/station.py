@@ -156,9 +156,7 @@ class GroundStation(QtWidgets.QMainWindow):
     def findSyncStatus(self, path=None): 
         queryDict = dict(format='short', uri=path, select='lastEditTime')
 
-        parsedResponse = restDriver.produceAndParse(
-            func=self.__cloudConnector.getImages, format='short', uri=path, select='lastEditTime'
-        )
+        parsedResponse = self.__cloudConnector.getImages(format='short', uri=path, select='lastEditTime')
 
         data = None
         status_code = 400
@@ -166,10 +164,11 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if hasattr(parsedResponse, 'get'):
             status_code = parsedResponse.get('status_code', 400)
-            data = parsedResponse.get('data', None)
-            meta = parsedResponse.get('meta', None)
+            result = parsedResponse['value']
+            data = result.get('data', None)
+            meta = result.get('meta', None)
             if hasattr(meta, 'keys'): 
-                countOnCloud = meta.get('count', -1)
+                countOnCloud = meta.get('collectionCount', -1)
 
         if status_code != 200:
             return constants.NO_CONNECTION, countOnCloud
@@ -456,17 +455,18 @@ class GroundStation(QtWidgets.QMainWindow):
         pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
             
-        dQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, uri=pathOnDisplay, select='uri,id')
+        dQuery = self.__cloudConnector.getImages(uri=pathOnDisplay, select='uri,id')
 
-        if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('data', None):
-            data = dQuery['data']
-            for dDict in data:
-                # TODO: Decide if you want to delete the file from the cloud as well
-                # print('\033[46m%s\033[00m'%(self.__cloudConnector.deleteFile(uri=pathOnDisplay)))
-                print(self.__cloudConnector.deleteMarkers(associatedImage_id=dDict.get('id', -1)))
-                print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
+        if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('status_code', 400) == 200:
+            data = dQuery['value'].get('data', None)
+            if data:
+                for dDict in data:
+                    # TODO: Decide if you want to delete the file from the cloud as well
+                    # print('\033[46m%s\033[00m'%(self.__cloudConnector.deleteFile(uri=pathOnDisplay)))
+                    print(self.__cloudConnector.deleteMarkers(associatedImage_id=dDict.get('id', -1)))
+                    print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
 
-                self.handleItemPop(dDict.get('uri', ''))
+                    self.handleItemPop(dDict.get('uri', ''))
 
         mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
         self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
@@ -516,7 +516,7 @@ class GroundStation(QtWidgets.QMainWindow):
         statusCode = dQuery['status_code']
         if statusCode == 200:
             needsUpload = True
-            data = dQuery.get('data', None)
+            data = dQuery.get('value', {}).get('data', None)
             if data:
                 # Now time for a size inquiry
                 if utils.pathExists(pathSelector):
@@ -556,13 +556,12 @@ class GroundStation(QtWidgets.QMainWindow):
             )
 
         elemAttrDict['uri'] = localizedDataPath
-        existanceQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, uri=localizedDataPath)
+        existanceQuery = self.__cloudConnector.getImages(uri=localizedDataPath)
 
-        memId = -1
         methodName = 'newImage'
         if isinstance(existanceQuery, dict) and existanceQuery.get('status_code', 400) == 200:
-            if existanceQuery.get('data', None):
-                data = existanceQuery['data']
+            data = existanceQuery.get('value', {}).get('data', None)
+            if data:
                 for item in data:
                     self.editLocalContent(item.get('uri', ''), item, None)
 
@@ -572,7 +571,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
         func = getattr(self.__cloudConnector, methodName)
 
-        parsedResponse = restDriver.produceAndParse(func, **elemAttrDict)
+        parsedResponse = func(**elemAttrDict)
         statusCode = parsedResponse.get('status_code', 400)
         if statusCode == 200:
             pathDict = self.getImageAttrsByKey(localizedDataPath)
@@ -580,10 +579,12 @@ class GroundStation(QtWidgets.QMainWindow):
                 pathDict = dict(uri=localizedDataPath)
          
             idFromDB = -1 
-            if parsedResponse.get('id', None): 
-                idFromDB = parsedResponse['id']
+            result = parsedResponse.get('value', {})
+            print('Result', result) 
+            if result.get('id', None):
+                idFromDB = result['id']
             elif parsedResponse.get('data', None):
-                idFromDB = parsedResponse['data'].get('id', -1)
+                idFromDB = result['data'].get('id', -1)
 
             pathDict['id'] = idFromDB
             self.__resourcePool[localizedDataPath] = pathDict
@@ -632,6 +633,7 @@ class GroundStation(QtWidgets.QMainWindow):
     def __bulkSaveMarkers(self, *args):
         associatedKey, markerDictList = args[0]
         memImageAttr = self.getImageAttrsByKey(associatedKey)
+        print('memImageAttr', memImageAttr)
         if (isinstance(memImageAttr, dict) and int(memImageAttr.get('id', -1)) >= 1):
             memId = memImageAttr['id']
             prepMemDict = dict(associatedImage_id=memId, select='id')
@@ -646,19 +648,20 @@ class GroundStation(QtWidgets.QMainWindow):
 
                     prepMemDict['longHashNumber'] = saveDict.get('longHashNumber', -1)
 
-                    idQuery = restDriver.produceAndParse(self.__cloudConnector.getMarkers, **prepMemDict)
+                    idQuery = self.__cloudConnector.getMarkers(**prepMemDict)
 
                     connAttrForSave = self.__cloudConnector.newMarker
-                    if isinstance(idQuery, dict) and idQuery.get('data', None):
-                        sample = idQuery['data'][0]
+                    data = idQuery.get('value', {}).get('data', None)
+                    if data:
+                        sample = data[0]
                         sampleId = sample.get('id', -1)
                         connAttrForSave = self.__cloudConnector.updateMarkers
                         saveDict = {'queryParams':{'id':sampleId}, 'updatesBody':saveDict}
                     else:
                         saveDict['associatedImage_id'] = memId
 
-                    saveResponse = restDriver.produceAndParse(connAttrForSave, **saveDict)
-                    if isinstance(saveResponse, dict) and saveResponse.get('status_code', 400) == 200:
+                    saveResponse = connAttrForSave(**saveDict)
+                    if saveResponse.get('status_code', 400) == 200:
                         funcAttrToInvoke = 'onSuccess'
                         savedMarkers.append(saveResponse.get('data', {}))
 
@@ -678,7 +681,7 @@ class GroundStation(QtWidgets.QMainWindow):
             pathOnDisplay = localizedPath
 
         markerDictList = []
-        print('associatedMMap', associatedMarkerMap)
+        # print('associatedMMap', associatedMarkerMap)
         for m in associatedMarkerMap.values():
             markerDictList.append({
                 'getter':m.induceSave, 'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
@@ -719,9 +722,9 @@ class GroundStation(QtWidgets.QMainWindow):
     def dbSync(self, **queryDict):
         print('DBSync in progress')
         queryDict['sort'] = 'lastEditTime'
-        imgQuery = restDriver.produceAndParse(self.__cloudConnector.getImages, **queryDict)
-        if isinstance(imgQuery, dict) and imgQuery.get('data', None):
-            data = imgQuery['data']
+        imgQuery = self.__cloudConnector.getImages(**queryDict)
+        data = imgQuery.get('value', {}).get('data', None)
+        if imgQuery.get('status_code', 400) == 200 and data:
             for imgDict in data:
                 markerSet = imgDict.get('marker_set', [])
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
@@ -868,8 +871,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         for image in self.__resourcePool.keys():
             try:
-                markerExists = self.__resourcePool[image]['marker_set']
-                for marker in self.__resourcePool[image]['marker_set']:
+                markerSet = self.__resourcePool[image]['marker_set']
+                for marker in markerSet:
                     print(marker)
                     marker_lat = float(marker['lat'])
                     marker_lon = float(marker['lon'])

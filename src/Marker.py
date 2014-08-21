@@ -85,7 +85,7 @@ class Marker(QtWidgets.QPushButton):
 
     def updateContent(self, x=0, y=0, **attrs):
         nilVar = 'nil'
-        print("Updating", attrs)
+        # print("Updating", attrs)
         origX, origY = int(self.x), int(self.y)
         for k, v in attrs.items():
             if getattr(self, k, nilVar) is not nilVar:
