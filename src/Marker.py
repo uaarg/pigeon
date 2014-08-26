@@ -13,6 +13,7 @@ import DbLiason # Local module
 import GPSCoord # Local GPS calculation module
 
 class Marker(QtWidgets.QPushButton):
+    __UNSAVED_ICON_PATH = utils.pathLocalization('icons/mapMarkerIn.png')
     def __init__(
         self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, comments=None,
         iconPath='icons/mapMarkerOut.png', tree=None, author=None, onDeleteCallback=None,
@@ -32,7 +33,7 @@ class Marker(QtWidgets.QPushButton):
         self.longHashNumber = longHashNumber or hash((time.time(), random.random(), self.x, self.y,))
         self._height = height
         self.imageMap = dict()
-        self.iconPath = iconPath or 'icons/mapMarkerOut.png'
+        self.iconPath = utils.pathLocalization(iconPath or 'icons/mapMarkerOut.png')
         self.entryData = None
         self.comments = comments
 
@@ -56,7 +57,7 @@ class Marker(QtWidgets.QPushButton):
         self.expandedH = self.origH * 1.2
 
     def toggleUnsaved(self, *args, **kwargs):
-        self.initIcon('icons/mapMarkerIn.png')
+        self.initIcon(self.__UNSAVED_ICON_PATH)
 
     def refreshAndToggleSave(self, attrDict):
         self.comments = attrDict.get('comments', None)

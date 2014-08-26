@@ -128,14 +128,12 @@ class ImageDisplayer(QtWidgets.QLabel):
         if self.imgPixMap.isNull(): 
             self.imgPixMap = altPixMap
 
-        if (not hasattr(self.imgPixMap, 'isNull')) or self.imgPixMap.isNull():
+        if (not utils.isCallableAttr(self.imgPixMap, 'isNull')) or self.imgPixMap.isNull():
             QtWidgets.QMessageBox.information(self, "Error", "Can't load image %s." %(path))
             return False
-
         else:
             self.__allowClicks = True
 
-        print('cMap is currentMap', self._childMap is currentMap)
         self._childMap = currentMap    
         self.setPixmap(self.imgPixMap)
 

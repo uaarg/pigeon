@@ -26,7 +26,7 @@ import mpUtils.JobRunner # Local module
 
 from resty import restDriver
 
-REPORTS_DIR = './reports'
+REPORTS_DIR = 'reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 defaultImageFormDict = dict(
@@ -36,7 +36,7 @@ defaultImageFormDict = dict(
 )
 
 isCallable = lambda obj: hasattr(obj, '__call__')
-localizeToProcessedPath = lambda basename: os.sep.join(('.', 'data', 'processed', basename,))
+localizeToProcessedPath = lambda basename: utils.pathLocalization('data', 'processed', basename)
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -118,13 +118,18 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def querySyncStatus(self):
         syncStatus, dbImageCount = self.findSyncStatus(self.ui_window.pathDisplayLabel.text())
+
         if syncStatus == constants.NO_CONNECTION:
-            self.connectionStatusAction.setIcon(self.getIcon('icons/iconmonstr-connection-bad.png'))
+            self.connectionStatusAction.setIcon(self.getIcon(
+                utils.pathLocalization('icons/iconmonstr-connection-bad.png')
+            ))
             self.connectionStatusAction.setText('&Not connected')
 
             self.syncUpdateAction.setText('Failed to connect')
 
-            self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+            self.syncIconAction.setIcon(self.getIcon(
+                utils.pathLocalization('icons/iconmonstr-cloud-unsyncd.png')
+            ))
             self.syncIconAction.setText('&Current item not in sync\nHit Ctrl+R for sync')
         elif dbImageCount < 0:
             print('Failed to get imageCount', dbImageCount, syncStatus)
@@ -142,21 +147,27 @@ class GroundStation(QtWidgets.QMainWindow):
 
             self.syncUpdateAction.setText(updateMsg)
             if syncStatus == constants.IS_IN_SYNC:
-                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-syncd.png'))
+                self.syncIconAction.setIcon(self.getIcon(
+                    utils.pathLocalization('icons/iconmonstr-cloud-syncd.png')
+                ))
                 self.syncIconAction.setText('&Current item in sync')
             else:
-                self.syncIconAction.setIcon(self.getIcon('icons/iconmonstr-cloud-unsyncd.png'))
+                self.syncIconAction.setIcon(self.getIcon(
+                    utils.pathLocalization('icons/iconmonstr-cloud-unsyncd.png')
+                ))
                 self.syncIconAction.setText('&Current item not in sync')
 
             self.connectionStatusAction.setIcon(
-                self.getIcon('icons/iconmonstr-connection-good.png')
-            )
+                self.getIcon(utils.pathLocalization('icons/iconmonstr-connection-good.png')
+            ))
             self.connectionStatusAction.setText('&Connected')
 
     def findSyncStatus(self, path=None): 
         queryDict = dict(format='short', uri=path, select='lastEditTime')
 
-        parsedResponse = self.__cloudConnector.getImages(format='short', uri=path, select='lastEditTime')
+        parsedResponse = self.__cloudConnector.getImages(
+            format='short', uri=path, select='lastEditTime'
+        )
 
         data = None
         status_code = 400
@@ -164,7 +175,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if hasattr(parsedResponse, 'get'):
             status_code = parsedResponse.get('status_code', 400)
-            result = parsedResponse['value']
+            print(parsedResponse)
+            result = parsedResponse.get('value', {})
             data = result.get('data', None)
             meta = result.get('meta', None)
             if hasattr(meta, 'keys'): 
@@ -208,7 +220,9 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__nowLCD.display(text)
 
     def initSaveSound(self):
-        self.__saveSound = QtMultimedia.QSound('sounds/bubblePop.wav')
+        soundsPath = utils.pathLocalization('sounds', 'bubblePop.wav')
+        print("soundsPath", soundsPath)
+        self.__saveSound = QtMultimedia.QSound(soundsPath)
 
     def initUI(self):
         # Set up actions
@@ -265,18 +279,19 @@ class GroundStation(QtWidgets.QMainWindow):
     def initFileDialogs(self):
         self.fileDialog = self.createFileDialog(
             'Add captured Images', self.pictureDropped, QtWidgets.QFileDialog.ExistingFiles,
-            './data/processed', 'All image files (*.png *.jpg *.jpeg *.gif)'
+            utils.pathLocalization('data/processed'), 'All image files (*.png *.jpg *.jpeg *.gif)'
         )
 
         self.dirWatchFileDialog = self.createFileDialog(    
             'Select directories to watch', self.watchDirs,
-            QtWidgets.QFileDialog.Directory, '../'
+            QtWidgets.QFileDialog.Directory, utils.pathLocalization('../')
         )
         self.dirWatchFileDialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly)
 
         self.locationDataDialog = self.createFileDialog(
             'Add telemetry files', self.processAssociatedDataFiles,
-            QtWidgets.QFileDialog.ExistingFiles, './data/info', 'All text files (*.txt)'
+            QtWidgets.QFileDialog.ExistingFiles, utils.pathLocalization('data', 'info'),
+            'All text files (*.txt)'
         )
 
         self.msgQBox = QtWidgets.QMessageBox(parent=self)
@@ -288,6 +303,7 @@ class GroundStation(QtWidgets.QMainWindow):
         normalizedPaths = []
         for path in paths:
             normalizedPaths.append(dict(uri=path, title=path))
+            print('normalizedPath', path)
 
         self.preparePathsForDisplay(normalizedPaths)
 
@@ -302,6 +318,8 @@ class GroundStation(QtWidgets.QMainWindow):
                 print('dlPath', dlPath)
                 if dlPath:
                     path = dlPath
+
+                print('\033[92mdlPath', dlPath, 'p', path, '\033[00m')
 
             if not self.iconStrip.isMemoized(path):
                 self.iconStrip.addIconItem(path, self.renderImage)
@@ -368,7 +386,6 @@ class GroundStation(QtWidgets.QMainWindow):
                 )
             )
 
-
         imageTag = Tag.Tag(
             size=utils.DynaItem(x=self.imgAttrFrame.width(), y=self.imgAttrFrame.height()),
             location=utils.DynaItem(x=self.imgAttrFrame.x(), y=self.imgAttrFrame.y()),
@@ -399,24 +416,30 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Saving image to DB', key, attrDict)
 
     def initActions(self):
-        self.popCurrentImageAction = QtWidgets.QAction(self.getIcon('icons/recyclebin_close.png'),
+        self.popCurrentImageAction = QtWidgets.QAction(
+            self.getIcon(utils.pathLocalization('icons/recyclebin_close.png')),
             '&Remove currentImage', self
         )
         self.popCurrentImageAction.triggered.connect(self.handleItemPop)
 
         # Synchronization with DB
         self.syncCurrentItemAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-upload.png'),'&Save to Cloud', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-upload.png')),
+            '&Save to Cloud', self
         )
         self.syncCurrentItemAction.setShortcut('Ctrl+S')
         self.syncCurrentItemAction.triggered.connect(self.syncCurrentItem)
 
         self.dbSyncAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-save.png'), '&Sync from Cloud', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-save.png')),
+            '&Sync from Cloud', self
         )
         self.dbSyncAction.triggered.connect(self.fullDBSync)
         self.dbSyncAction.setShortcut('Ctrl+R')
-        self.dirWatchAction = QtWidgets.QAction(self.getIcon('icons/iconmonstr-eye.png'), '&Select directories to watch', self)
+        self.dirWatchAction = QtWidgets.QAction(
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-eye.png')),
+            '&Select directories to watch', self
+        )
         self.dirWatchAction.triggered.connect(self.dirWatchTrigger)
 
         self.connectionStatusAction = QtWidgets.QAction('&Connection Status', self)
@@ -425,29 +448,35 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncIconAction = QtWidgets.QAction('&SyncStatus', self)
 
         # Exit
-        self.exitAction = QtWidgets.QAction(self.getIcon('icons/exit.png'), '&Exit', self)
+        self.exitAction = QtWidgets.QAction(
+            self.getIcon(utils.pathLocalization('icons/exit.png')), '&Exit', self
+        )
         self.exitAction.setShortcut('Ctrl+Q')
         self.exitAction.triggered.connect(self.cleanUpAndExit)
 
         # Finding and adding images
         self.findImagesAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-folder.png'), '&Add Images', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-folder.png')),
+            '&Add Images', self
         )
         self.findImagesAction.setShortcut('Ctrl+O')
         self.findImagesAction.triggered.connect(self.findImages)
         self.editCurrentImageAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-picture-edit.png'), '&Edit Current Image', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-picture-edit.png')),
+            '&Edit Current Image', self
         )
         self.editCurrentImageAction.triggered.connect(self.editCurrentImage)
         self.editCurrentImageAction.setShortcut('Ctrl+E')
 
         self.addLocationDataAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-note.png'), '&Add Telemetry Info', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-note.png')),
+            '&Add Telemetry Info', self
         )
         self.addLocationDataAction.triggered.connect(self.addLocationData)
 
         self.printCurrentImageDataAction = QtWidgets.QAction(
-            self.getIcon('icons/iconmonstr-printer.png'), '&Print Current Image Info', self
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-printer.png')),
+            '&Print Current Image Info', self
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
@@ -505,13 +534,14 @@ class GroundStation(QtWidgets.QMainWindow):
         elemData = self.getImageAttrsByKey(path)
         isDirty = lambda k: k == 'marker_set' or k == 'id'
         elemAttrDict = dict((k, v) for k, v in elemData.items() if not isDirty(k))
-        pathSelector = elemData.get('uri', '') or elemData.get('title', '')
+        shortKey = elemData.get('uri', '') or elemData.get('title', '')
 
-        basename = os.path.basename(pathSelector)
-        localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+        basename = os.path.basename(shortKey)
+        localizedDataPath = utils.pathLocalization('data', 'processed', basename)
 
-        dQuery = self.__cloudConnector.getCloudFilesManifest(uri=localizedDataPath)
-        print('dQuery', dQuery)
+        dQuery = self.__cloudConnector.getCloudFilesManifest(uri=shortKey)
+        pathSelector = localizedDataPath
+        # print('dQuery', dQuery, localizedDataPath, shortKey)
 
         statusCode = dQuery['status_code']
         if statusCode == 200:
@@ -529,9 +559,10 @@ class GroundStation(QtWidgets.QMainWindow):
 
             if needsUpload:
                 uploadResponse = self.__cloudConnector.uploadBlob(
-                    pathSelector, uri=localizedDataPath, author=utils.getDefaultUserName()
+                    localizedDataPath, uri=shortKey, author=utils.getDefaultUserName()
                 )
-                if uploadResponse.status_code == 200:
+                # print('uploadResponse', uploadResponse)
+                if uploadResponse and uploadResponse.status_code == 200:
                     print('\033[92mSuccessfully uploaded: %s\033[00m'%(pathSelector))
                     if not utils.pathExists(localizedDataPath):
                         try:
@@ -545,7 +576,7 @@ class GroundStation(QtWidgets.QMainWindow):
                                 pathSelector, localizedDataPath
                             ))
                 else:
-                    print('\033[91mFailed to uploaded: %s\033[00m'%(pathSelector))
+                    print('\033[91mFailed to upload: %s\033[00m'%(pathSelector))
                 print('responseText', uploadResponse.text)
 
         
@@ -566,7 +597,10 @@ class GroundStation(QtWidgets.QMainWindow):
                     self.editLocalContent(item.get('uri', ''), item, None)
 
                 sample = random.sample(data, 1)[0]
-                elemAttrDict = {'queryParams': {'id':int(sample.get('id', -1))}, 'updatesBody':elemAttrDict}
+                elemAttrDict = {
+                    'updatesBody':elemAttrDict,
+                    'queryParams': {'id':int(sample.get('id', -1))}
+                }
                 methodName = 'updateImages'
 
         func = getattr(self.__cloudConnector, methodName)
@@ -580,7 +614,7 @@ class GroundStation(QtWidgets.QMainWindow):
          
             idFromDB = -1 
             result = parsedResponse.get('value', {})
-            print('Result', result) 
+            # print('Result', result) 
             if result.get('id', None):
                 idFromDB = result['id']
             elif parsedResponse.get('data', None):
@@ -601,7 +635,7 @@ class GroundStation(QtWidgets.QMainWindow):
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
         basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
 
-        localizedDataPath = os.sep.join((os.path.abspath('.'), 'data', 'processed', basename,))
+        localizedDataPath = utils.pathLocalization('data', 'processed', basename,)
 
         writtenBytes = self.__cloudConnector.downloadBlob(
             basename, altName=localizedDataPath
@@ -622,18 +656,20 @@ class GroundStation(QtWidgets.QMainWindow):
             
         mPop = self.__keyToMarker.pop(oldPath, None)
         if mPop is not None: 
-            print('mPop', mPop)
+            # print('mPop', mPop)
             self.__keyToMarker[newPath] = mPop 
 
         self.iconStrip.swapOutMapKeys(oldPath, newPath)
 
     def bulkSaveMarkers(self, associatedKey, markerDictList):
-        return self.__jobRunner.run(self.__bulkSaveMarkers, None, print, associatedKey, markerDictList)
+        return self.__jobRunner.run(
+            self.__bulkSaveMarkers, None, print, associatedKey, markerDictList
+        )
 
     def __bulkSaveMarkers(self, *args):
         associatedKey, markerDictList = args[0]
         memImageAttr = self.getImageAttrsByKey(associatedKey)
-        print('memImageAttr', memImageAttr)
+        # print('memImageAttr', memImageAttr)
         if (isinstance(memImageAttr, dict) and int(memImageAttr.get('id', -1)) >= 1):
             memId = memImageAttr['id']
             prepMemDict = dict(associatedImage_id=memId, select='id')
@@ -681,10 +717,10 @@ class GroundStation(QtWidgets.QMainWindow):
             pathOnDisplay = localizedPath
 
         markerDictList = []
-        # print('associatedMMap', associatedMarkerMap)
         for m in associatedMarkerMap.values():
             markerDictList.append({
-                'getter':m.induceSave, 'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
+                'getter':m.induceSave,
+                'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
             })
 
         # Let's get those markers in
@@ -701,6 +737,7 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__lastSyncLCD.display(text)
 
     def renderImage(self, path):
+        print('rendering path', path)
         if not (path and os.path.exists(path)):
             path = utils._PLACE_HOLDER_PATH
 
@@ -730,7 +767,7 @@ class GroundStation(QtWidgets.QMainWindow):
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
 
                 basename = os.path.basename(pathSelector)
-                localizedDataPath = os.sep.join(('.', 'data', 'processed', basename,))
+                localizedDataPath = utils.pathLocalization('data', 'processed', basename,)
                 if not utils.pathExists(localizedDataPath):
                     dlPath = self.downloadBlob(pathSelector)
                     if dlPath:
@@ -815,10 +852,10 @@ class GroundStation(QtWidgets.QMainWindow):
                 try:
                     os.mkdir(REPORTS_DIR)
                 except Exception as e:
-                    print('\033[91m', e, '\033[00m')
+                    print('\033[91m:%s\033[00m', e)
                     return
 
-            imageInfoPath = os.path.join(REPORTS_DIR, key + '-image.csv')
+            imageInfoPath = utils.pathLocalization(REPORTS_DIR, key + '-image.csv')
             imagesIn = markersIn = False
             exclusiveOfMarkerSetKeys = [k for k in storedMap.keys() if k != 'marker_set']
             with open(imageInfoPath, 'w') as f:
@@ -829,13 +866,13 @@ class GroundStation(QtWidgets.QMainWindow):
                 
                 imagesIn = True
             
-            kmlPath = os.path.join(REPORTS_DIR, key + '.kml')
+            kmlPath = utils.pathLocalization(REPORTS_DIR, key + '.kml')
             self.printAllKMLData(kmlPath)
 
             markerSet = storedMap.get('marker_set', [])
             markerInfoPath =  None
             if markerSet:
-                markerInfoPath = os.path.join(REPORTS_DIR, key + '-markers.csv')
+                markerInfoPath = utils.pathLocalization(REPORTS_DIR, key + '-markers.csv')
                 with open(markerInfoPath, 'w') as g:
                     sampleElement = markerSet[0]
                     representativeKeys = sampleElement.keys()
@@ -845,7 +882,7 @@ class GroundStation(QtWidgets.QMainWindow):
                         g.write(','.join([str(elem[k]) for k in representativeKeys]))
                         g.write('\n')
                     markersIn = True
-                    print('\033[94mWrote marker attributes to', markerInfoPath, '\033[00m')
+                    print('\033[94mWrote marker attributes to %s\033[00m'(markerInfoPath))
                     
             if (imagesIn or markersIn): 
                 msg = 'Wrote: '
@@ -855,7 +892,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     msg += '\nCSV marker information to: %s'%(markerInfoPath)
                     msg += '\nKML marker information to: %s'%(kmlPath)
 
-                print('\033[92m', msg, '\033[00m')
+                print('\033[92m%s\033[00m'%(msg))
                 if not hasattr(self.msgQBox, 'setText'):
                     self.msgQBox = QtWidgets.QMessageBox(parent=self)
 
@@ -880,7 +917,8 @@ class GroundStation(QtWidgets.QMainWindow):
                     marker_coords = [(marker_lon, marker_lat)]
                     print(marker_coords)
                     imagekml.newpoint(name=str(marker_id), coords=marker_coords)
-            except:
+            except Exception as e:
+                print("During KML Data print", e)
                 continue
 
         kml_data = imagekml.kml()
@@ -889,9 +927,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def writeImageKMLData(self, imageDataMap, imageSetKMLObject):
         """
-        Writes data for the current image and all its contained markers into the KML object for this set of files, or this instance of the station.
+        Writes data for the current image and all its contained markers into the\
+        KML object for this set of files, or this instance of the station.
         """
-
         markerSet = imageDataMap.get('marker_set', [])
         exclusiveOfMarkerSetKeys = [k for k in imageDataMap.keys() if k != 'marker_set']
         fmtdTree = dict((k, imageDataMap[k]) for k in exclusiveOfMarkerSetKeys)

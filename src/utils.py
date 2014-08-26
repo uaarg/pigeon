@@ -10,13 +10,18 @@ import glob
 import json
 from optparse import OptionParser
 
-_404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
-_PLACE_HOLDER_PATH = os.sep.join(('.', _404_IMAGE_PATH,))
-
 getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 pathExists = lambda p : p and os.path.exists(p)
 isDir = lambda p : pathExists(p) and stat.S_ISDIR(getStatDict(p).st_mode)
 isReg = lambda p : pathExists(p) and stat.S_ISREG(getStatDict(p).st_mode)
+
+baseDir = os.path.dirname(os.path.abspath(__file__))
+pathLocalization = lambda *args: os.sep.join((baseDir,) + args)
+isCallable = lambda a: hasattr(a, '__call__')
+isCallableAttr = lambda obj, attr: isCallable(getattr(obj, attr, None))
+
+_404_IMAGE_PATH = 'icons/wile-e-coyote-card.jpg'
+_PLACE_HOLDER_PATH = pathLocalization( _404_IMAGE_PATH)
 
 def itemComparisonInWords(countA, countB):
     diff = countA - countB
