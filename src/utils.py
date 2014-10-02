@@ -12,8 +12,8 @@ from optparse import OptionParser
 
 getDefaultUserName = lambda : os.environ.get('USER', 'Anonymous')
 pathExists = lambda p : p and os.path.exists(p)
-isDir = lambda p : pathExists(p) and stat.S_ISDIR(getStatDict(p).st_mode)
-isReg = lambda p : pathExists(p) and stat.S_ISREG(getStatDict(p).st_mode)
+isDir = lambda p : p and os.path.isdir(p)
+isReg = lambda p : p and os.path.isfile(p)
 
 baseDir = os.path.dirname(os.path.abspath(__file__))
 pathLocalization = lambda *args: os.sep.join((baseDir,) + args)

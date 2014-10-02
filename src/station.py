@@ -36,7 +36,8 @@ defaultImageFormDict = dict(
 )
 
 isCallable = lambda obj: hasattr(obj, '__call__')
-localizeToProcessedPath = lambda basename: utils.pathLocalization('data', 'processed', basename)
+localizeToProcessedPath = lambda basename:\
+                                utils.pathLocalization('data', 'processed', basename)
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -163,8 +164,6 @@ class GroundStation(QtWidgets.QMainWindow):
             self.connectionStatusAction.setText('&Connected')
 
     def findSyncStatus(self, path=None): 
-        queryDict = dict(format='short', uri=path, select='lastEditTime')
-
         parsedResponse = self.__cloudConnector.getImages(
             format='short', uri=path, select='lastEditTime'
         )
@@ -175,7 +174,6 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if hasattr(parsedResponse, 'get'):
             status_code = parsedResponse.get('status_code', 400)
-            print(parsedResponse)
             result = parsedResponse.get('value', {})
             data = result.get('data', None)
             meta = result.get('meta', None)
@@ -194,6 +192,8 @@ class GroundStation(QtWidgets.QMainWindow):
             itemInfo = data[0]
             idOnCloud = int(itemInfo.get('id', -1))
             imageOnCloudlastEditTime = float(itemInfo['lastEditTime'])
+            print('memAttrMap', memAttrMap.keys(), 'itemInfo', itemInfo.keys())
+            print('idOnCloud', idOnCloud)
 
             if idOnCloud < 1:
                 print('\033[48mThis data is not present on cloud, path:', path, '\033[00m')
@@ -256,8 +256,18 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def createMarker(self, isSaved=False, isHidden=False, **kwargs):
         m = Marker.Marker(onMoveEvent=self.onMarkerMove, **kwargs)
-        isSaved and m.toggleSaved()
-        isHidden and m.hide()
+
+        if isSaved:
+            m.toggleSaved()
+        else:
+            m.toggleUnSaved()
+
+        if isHidden:
+            m.hide()
+        else:
+            m.show()
+
+        return m
 
     def initStrip(self):
         self.iconStrip = iconStrip.IconStrip(self)
@@ -303,7 +313,7 @@ class GroundStation(QtWidgets.QMainWindow):
         normalizedPaths = []
         for path in paths:
             normalizedPaths.append(dict(uri=path, title=path))
-            print('normalizedPath', path)
+            # print('normalizedPath', path)
 
         self.preparePathsForDisplay(normalizedPaths)
 
@@ -331,8 +341,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if lastItem: # Sound only if there is an item to be displayed
             self.__saveSound.play()
-        else:
-            self.querySyncStatus()
+
+        self.querySyncStatus()
 
         isCallable(onFinish) and onFinish()
 
@@ -369,9 +379,7 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Editing Current Image', self.ui_window.pathDisplayLabel.text())
 
         srcPath = self.ui_window.pathDisplayLabel.text()
-
         stateDict = self.getImageAttrsByKey(srcPath)
-
         entryList = []
 
         for index, entry in enumerate(defaultImageFormDict.keys()):
@@ -393,12 +401,11 @@ class GroundStation(QtWidgets.QMainWindow):
             onSubmit=self.saveCurrentImageContent,
             entryList=entryList
         )
+
         imageTag.show()
 
     def saveCurrentImageContent(self, content):
-        print('Saving currentImage content', content)
         curPath = self.ui_window.pathDisplayLabel.text()
-        
         currentMap = self.getImageAttrsByKey(curPath)
 
         if isinstance(content, dict):
@@ -411,9 +418,6 @@ class GroundStation(QtWidgets.QMainWindow):
         # Getting the original ids in
         self.editLocalContent(curPath, content, None)
         return self.syncByPath(curPath)
-
-    def saveImageToDB(self, key, attrDict):
-        print('Saving image to DB', key, attrDict)
 
     def initActions(self):
         self.popCurrentImageAction = QtWidgets.QAction(
@@ -480,7 +484,10 @@ class GroundStation(QtWidgets.QMainWindow):
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
-    def handleItemPop(self, currentItem=None, callback=print, isGlobalPop=True):
+    def handleItemPop(
+            self, currentItem=None, callback=print,
+            isGlobalPop=True, isDBFileDelete=True):
+
         pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
             
@@ -490,10 +497,18 @@ class GroundStation(QtWidgets.QMainWindow):
             data = dQuery['value'].get('data', None)
             if data:
                 for dDict in data:
-                    # TODO: Decide if you want to delete the file from the cloud as well
-                    # print('\033[46m%s\033[00m'%(self.__cloudConnector.deleteFile(uri=pathOnDisplay)))
-                    print(self.__cloudConnector.deleteMarkers(associatedImage_id=dDict.get('id', -1)))
+                    print(self.__cloudConnector.deleteMarkers(
+                                associatedImage_id=dDict.get('id', -1)))
                     print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
+
+                    if isDBFileDelete:
+                        selector = {'uri': pathOnDisplay}
+                        checkSum = self.__cloudConnector.getFileCheckSum(pathOnDisplay)
+                        if checkSum:
+                            selector = {'checkSum': checkSum}
+
+                        print('\033[46m%s\033[00m'%
+                            (self.__cloudConnector.deleteBlob(**selector)))
 
                     self.handleItemPop(dDict.get('uri', ''))
 
@@ -541,12 +556,15 @@ class GroundStation(QtWidgets.QMainWindow):
 
         dQuery = self.__cloudConnector.getCloudFilesManifest(uri=shortKey)
         pathSelector = localizedDataPath
-        # print('dQuery', dQuery, localizedDataPath, shortKey)
+        print('dQuery', dQuery, localizedDataPath, shortKey)
 
-        statusCode = dQuery['status_code']
-        if statusCode == 200:
+        statusCode = dQuery.get('status_code', 400)
+        if statusCode != 200:
+            return Exception('Failed to upload: %d! Try again later'%(statusCode))
+        else:
             needsUpload = True
-            data = dQuery.get('value', {}).get('data', None)
+            data = dQuery.get('data', None)
+            print('\033[47mdata here', data, 'pathSelector', pathSelector, '\033[00m')
             if data:
                 # Now time for a size inquiry
                 if utils.pathExists(pathSelector):
@@ -675,6 +693,7 @@ class GroundStation(QtWidgets.QMainWindow):
             prepMemDict = dict(associatedImage_id=memId, select='id')
             savedMarkers = []
             for mDict in markerDictList: 
+                print('mDict', mDict)
                 saveDictGetter = mDict.get('getter', None) 
                 failedSave = True
                 funcAttrToInvoke = 'onFailure'
@@ -687,6 +706,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     idQuery = self.__cloudConnector.getMarkers(**prepMemDict)
 
                     connAttrForSave = self.__cloudConnector.newMarker
+                    print('idQuery', idQuery)
                     data = idQuery.get('value', {}).get('data', None)
                     if data:
                         sample = data[0]
@@ -719,15 +739,15 @@ class GroundStation(QtWidgets.QMainWindow):
         markerDictList = []
         for m in associatedMarkerMap.values():
             markerDictList.append({
-                'getter':m.induceSave,
-                'onSuccess':m.refreshAndToggleSave, 'onFailure':m.toggleUnsaved
+                'getter': m.induceSave,
+                'onSuccess': m.refreshAndToggleSave, 'onFailure': m.toggleUnsaved
             })
-
-        # Let's get those markers in
-        bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
 
         # Next pull changes
         self.dbSync(uri=pathOnDisplay)
+
+        # Let's get those markers in
+        bulkSaveResults = self.bulkSaveMarkers(pathOnDisplay, markerDictList)
 
         self.renderImage(pathOnDisplay)
 
@@ -753,11 +773,8 @@ class GroundStation(QtWidgets.QMainWindow):
                 geoDataDict = GPSCoord.getInfoDict(associatedTextFile)
                 self.ImageDisplayer.extractSetGeoData(geoDataDict)
 
-            for marker in markerMap.values():
-                marker.show()
-
     def dbSync(self, **queryDict):
-        print('DBSync in progress')
+        print('DBSync in progress', queryDict)
         queryDict['sort'] = 'lastEditTime'
         imgQuery = self.__cloudConnector.getImages(**queryDict)
         data = imgQuery.get('value', {}).get('data', None)
@@ -768,7 +785,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 basename = os.path.basename(pathSelector)
                 localizedDataPath = utils.pathLocalization('data', 'processed', basename,)
-                if not utils.pathExists(localizedDataPath):
+                if not utils.isReg(localizedDataPath):
                     dlPath = self.downloadBlob(pathSelector)
                     if dlPath:
                         print('Downloaded', dlPath)
@@ -783,9 +800,9 @@ class GroundStation(QtWidgets.QMainWindow):
                     tree = self.__keyToMarker.setdefault(pathSelector, dict())
                     mDict['x'] = int(mDict.get('x', 0))
                     mDict['y'] = int(mDict.get('y', 0))
+                    mDict.setdefault('author', utils.getDefaultUserName())
 
                     memMarker = tree.get(mDict.get('longHashNumber', None), None)
-                    mDict.setdefault('author', utils.getDefaultUserName())
 
                     if memMarker is None:
                         memMarker = self.createMarker(
@@ -936,7 +953,6 @@ class GroundStation(QtWidgets.QMainWindow):
         fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
         marker_kml = kmlUtil.placemarkKMLConvert(fmtdTree, imageSetKMLObject)
 
-
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
             self.locationDataDialog.show()
@@ -945,15 +961,17 @@ class GroundStation(QtWidgets.QMainWindow):
             self.msgQBox.show()
 
     def processAssociatedDataFiles(self, pathList):
-        return self.__jobRunner.run(self.__processAssociatedDataFiles, None, lambda a: a, pathList)
+        return self.__jobRunner.run(
+                    self.__processAssociatedDataFiles, None, lambda a: a, pathList)
 
     def __processAssociatedDataFiles(self, pathList, *args, **kwargs):
         pathList = pathList[0]
         outMap = dict()
         for path in pathList:
             key = localizeToProcessedPath('%s.jpg'%(utils.getLocalName(path) or path))
-            outMap[key] = GPSCoord.getInfoDict(path)
-            outMap[key]['author'] = utils.getDefaultUserName()
+            infoDict           = GPSCoord.getInfoDict(path)
+            infoDict['author'] = utils.getDefaultUserName()
+            outMap[key]        = infoDict
 
         # Time to swap out the fields and replace
         for k, v in outMap.items():

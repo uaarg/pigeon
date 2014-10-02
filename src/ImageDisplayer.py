@@ -30,7 +30,6 @@ class ImageDisplayer(QtWidgets.QLabel):
         self.__allowClicks = False
 
         self.onMarkerMove = onMarkerMove
-        print('onMarkerMove', onMarkerMove)
         self.deleteMarkerFromDB = onDeleteMarkerFromDB
 
         self.initResources()
@@ -57,7 +56,6 @@ class ImageDisplayer(QtWidgets.QLabel):
 
         self.imgPixMap = None
         self._childMap = None
-        self.__resourcePool = dict()
 
     def close(self, **kwargs):
         self.__jobRunner.close()
@@ -75,12 +73,11 @@ class ImageDisplayer(QtWidgets.QLabel):
         easting = float(infoDict["utm_east"])
         zone = float(infoDict["utm_zone"])
         altitude = float(infoDict["alt"])
-        # print('infoDict', infoDict)
 
         try:
             dd_coord = GPSCoord.utm_to_DD(easting, northing, zone) # lat, lon
         except Exception as e:
-            print("%s", e)
+            print(e)
             dd_coord = (0, 0)
 
         self.plane_position = GPSCoord.Position(dd_coord[0], dd_coord[1], altitude)
@@ -91,11 +88,9 @@ class ImageDisplayer(QtWidgets.QLabel):
         yaw = float(infoDict["psi"])
 
         self.plane_orientation = GPSCoord.Orientation(pitch, roll, yaw)
-        # print("orientation object set up")
 
         # Set up georeference object
         self.georeference = GPSCoord.GeoReference(self.camera)
-        # print("georef object set up")
 
     def pointGeoReference(self, georeference_obj, position, orientation, point_x, point_y):
         """
@@ -140,7 +135,7 @@ class ImageDisplayer(QtWidgets.QLabel):
         for mData in markerSet:
             mData['x'] = int(mData.get('x', 0))
             mData['y'] = int(mData.get('y', 0))
-            mData.setdefault('iconPath', 'icons/mapMarkerOut.png')
+            mData.setdefault('iconPath', utils.pathLocalization('icons/mapMarkerIn.png'))
 
             memMarker = self._childMap.get(mData.get('longHashNumber', None), None)
 

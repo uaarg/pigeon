@@ -37,12 +37,14 @@ class Marker(QtWidgets.QPushButton):
         self.entryData = None
         self.comments = comments
 
+        self.__isSaved = False
         self.onMoveEvent = onMoveEvent
         self.onDeleteCallback = onDeleteCallback
 
         self.__pixmapCache = {} # Keep private to avoid resource leaks
 
         self.initUI()
+        self.show()
 
     def getHash(self):
         return self.longHashNumber
@@ -57,15 +59,16 @@ class Marker(QtWidgets.QPushButton):
         self.expandedH = self.origH * 1.2
 
     def toggleUnsaved(self, *args, **kwargs):
-        self.initIcon(self.__UNSAVED_ICON_PATH)
+        self.__isSaved = False
 
     def refreshAndToggleSave(self, attrDict):
         self.comments = attrDict.get('comments', None)
         self.author = attrDict.get('author', None)
         self.toggleSaved()
+        self.show()
 
     def toggleSaved(self, *args, **kwargs):
-        self.initIcon(self.iconPath)
+        self.__isSaved = True
 
     def __resetToNormalIcon(self):
         geometry = self.geometry()
@@ -86,7 +89,6 @@ class Marker(QtWidgets.QPushButton):
 
     def updateContent(self, x=0, y=0, **attrs):
         nilVar = 'nil'
-        # print("Updating", attrs)
         origX, origY = int(self.x), int(self.y)
         for k, v in attrs.items():
             if getattr(self, k, nilVar) is not nilVar:
@@ -99,7 +101,6 @@ class Marker(QtWidgets.QPushButton):
     def registerWithTree(self):
         if self.tree is not None:
             self.tree[self.getHashAsStr()] = self
-            # print('Tree after self-registration', self.tree)
 
     def memoizeIcon(self, path):
         memPixMap, memIcon = self.__pixmapCache.get(path, (None, None,))
@@ -126,7 +127,6 @@ class Marker(QtWidgets.QPushButton):
         self.entryData = tagIn
         if self.tag:
             self.tag.hide()
-            # print('hiding tag', self.tag)
 
     def serialize(self):
         return self.__dict__
@@ -180,8 +180,6 @@ class Marker(QtWidgets.QPushButton):
 
     def erase(self, needsFlush=True):
         if isinstance(self.tree, dict):
-            # print('Popped marker', self.tree.pop((x, y),'Not found'))
-
             if self.onDeleteCallback and needsFlush: 
                 print(self.onDeleteCallback(self.getHashAsStr()))
 
@@ -191,7 +189,7 @@ class Marker(QtWidgets.QPushButton):
         if hasattr(self.tag, 'close'):
             self.tag.close()
 
-        # print(self, 'closing')
+        print(self, 'closing')
         super().close()
 
     def enterEvent(self, event):
@@ -257,12 +255,17 @@ class Marker(QtWidgets.QPushButton):
         }
 
     def show(self):
-        # print('\033[47mShow invoked\033[00m', self.iconPath)
+        iconPath = self.iconPath if self.__isSaved else self.__UNSAVED_ICON_PATH
+        # print('\033[47mShow invoked\033[00m', iconPath)
         super().show()
+        self.initIcon(iconPath)
 
     def hide(self):
         # print('\033[46mHide invoked\033[00m')
         super().hide()
+
+    def isHidden(self):
+        return self.__isSaved
      
     def __lt__(self, other):
         return isinstance(other, Marker)\
