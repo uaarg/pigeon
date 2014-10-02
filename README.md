@@ -58,9 +58,18 @@ ground altitude: set in flightplan?
 
 Running the ground station
 --------------------------
-For commandline arguments:
+** First step:
+    git submodule update --init --recursive
+
+** Next set up the DB:
+    + Go to directory 'src/restAssured'
+        ++ python manage.py syncdb
+        ++ python manage.py <ip>:<port>
+            eg python manage.py 127.0.0.1:8000
+
+** Now to run the Ground station:
+    For commandline arguments:
         Provide the address on which to connect to the DB provided by restAssured[See docs/dependencies]
-        
           + python station.py -p 8000 -i http://127.0.0.1
             which is equivalent to 
           + python station.py --port 8000 --ip http://127.0.0.1
