@@ -293,6 +293,7 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
     An exception will be raised if the conversion involves invalid values.
     """
 
+    easting, northing = float(easting), float(northing)
     # Easting and Northing ranges from https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
     if not(167000 < easting < 833000):
         # raise RuntimeError("Easting value is out of bounds.")
