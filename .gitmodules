@@ -1,6 +1,6 @@
 [submodule "src/resty"]
 	path = src/resty
-	url = git@github.com:odeke-em/resty.git
+	url = https://github.com/odeke-em/resty.git
 [submodule "src/restAssured"]
 	path = src/restAssured
-	url = git@github.com:odeke-em/restAssured.git
+	url = https://github.com/odeke-em/restAssured.git
