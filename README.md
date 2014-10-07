@@ -59,6 +59,11 @@ ground altitude: set in flightplan?
 Running the ground station
 --------------------------
 ** First step:
+    git submodule init
+    git submodule update
+
+    OR
+
     git submodule update --init --recursive
 
 ** Next set up the DB:

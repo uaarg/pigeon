@@ -898,17 +898,18 @@ class GroundStation(QtWidgets.QMainWindow):
         print('printCurrentImageData')
         srcPath = self.ui_window.pathDisplayLabel.text()
         key = utils.getLocalName(srcPath) or srcPath
-        
+       
+        reportsDir = utils.pathLocalization(REPORTS_DIR)
         storedMap = self.__resourcePool.get(srcPath, None)
         if storedMap:
-            if not os.path.exists(REPORTS_DIR):
+            if not os.path.exists(reportsDir):
                 try:
-                    os.mkdir(REPORTS_DIR)
+                    os.mkdir(reportsDir)
                 except Exception as e:
                     print('\033[91m:%s\033[00m', e)
                     return
 
-            imageInfoPath = utils.pathLocalization(REPORTS_DIR, key + '-image.csv')
+            imageInfoPath = os.path.join(reportsDir, key + '-image.csv')
             imagesIn = markersIn = False
             exclusiveOfMarkerSetKeys = [k for k in storedMap.keys() if k != 'marker_set']
             with open(imageInfoPath, 'w') as f:
@@ -919,13 +920,13 @@ class GroundStation(QtWidgets.QMainWindow):
                 
                 imagesIn = True
             
-            kmlPath = utils.pathLocalization(REPORTS_DIR, key + '.kml')
+            kmlPath = os.path.join(reportsDir, key + '.kml')
             self.printAllKMLData(kmlPath)
 
             markerSet = storedMap.get('marker_set', [])
             markerInfoPath =  None
             if markerSet:
-                markerInfoPath = utils.pathLocalization(REPORTS_DIR, key + '-markers.csv')
+                markerInfoPath = os.path.join(reportsDir, key + '-markers.csv')
                 with open(markerInfoPath, 'w') as g:
                     sampleElement = markerSet[0]
                     representativeKeys = sampleElement.keys()
@@ -935,7 +936,7 @@ class GroundStation(QtWidgets.QMainWindow):
                         g.write(','.join([str(elem[k]) for k in representativeKeys]))
                         g.write('\n')
                     markersIn = True
-                    print('\033[94mWrote marker attributes to %s\033[00m'(markerInfoPath))
+                    print('\033[94mWrote marker attributes to %s\033[00m'%(markerInfoPath))
                     
             if (imagesIn or markersIn): 
                 msg = 'Wrote: '
@@ -966,7 +967,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     print(marker)
                     marker_lat = float(marker['lat'])
                     marker_lon = float(marker['lon'])
-                    marker_id = marker['associatedImage_id'] + "-" + marker['id'] 
+                    marker_id = '%s-%s'%(marker['associatedImage_id'], marker['id'])
                     marker_coords = [(marker_lon, marker_lat)]
                     print(marker_coords)
                     imagekml.newpoint(name=str(marker_id), coords=marker_coords)
