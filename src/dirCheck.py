@@ -44,9 +44,6 @@ class DirWatch:
             for path in paths:
                 joinedPath = os.path.join(root, path)
 
-                st = statTimeAccessor(joinedPath)
-                print('st', st, 'lm', lastModTime)
-
                 if statTimeAccessor(joinedPath) >= lastModTime:
                     print('freshPath', joinedPath)
                     freshPaths.append(joinedPath)
