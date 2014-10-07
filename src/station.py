@@ -47,11 +47,13 @@ class GroundStation(QtWidgets.QMainWindow):
         self.ui_window = gcs.Ui_MainWindow()
         self.ui_window.setupUi(self)
 
-        self.__resourcePool = dict()
+        self.__watchedBacklog = []
         self.__keyToMarker = dict()
+        self.__resourcePool = dict()
+
         self.__dirWatcher = DirWatchManager.DirWatchManager(
             onStalePaths=lambda a: a,
-            onFreshPaths=lambda p: self.pictureDropped([p])
+            onFreshPaths=lambda p: self._addToBackLog(p)
         )
         self.__iconMemMap = dict()
         self.initStrip()
@@ -90,6 +92,35 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncTimer.start(timeout)
 
         self.timer.start(1000)
+
+        # To solve insertion of backlogs since other threads like directory
+        # watchers cannot add content to the UI running on the main thread
+        self._backlogTimer = QtCore.QTimer(self) 
+        self._backlogTimer.timeout.connect(self.handleBackLog)
+        self._backlogTimer.start(5000) # Every 5 seconds
+
+    def _addToBackLog(self, path):
+        self.__jobRunner.run(self.__addToBackLog, None, None, path)
+
+    def __addToBackLog(self, path):
+        print("Adding %s to backlog"%(path))
+        self.__watchedBacklog.append(path)
+
+    def handleBackLog(self):
+        self.__jobRunner.run(self.__handleBackLog, None, None)
+
+    def __handleBackLog(self, *args, **kwargs):
+        if not self.__watchedBacklog:
+            print("Backlog is empty!")
+        else:
+            backlogCopy = self.__watchedBacklog[:]
+            print("\033[46mMade a copy of the backlog!\033[00m", backlogCopy)
+
+            # Since this memory reference is still needed
+            self.__watchedBacklog.clear()
+            print("\033[47mCleared the backlog!\033[00m")
+
+            self.pictureDropped(backlogCopy)
 
     def initLCDDisplays(self):
         self.__nowLCD = self.ui_window.nowLCDNumber

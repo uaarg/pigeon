@@ -35,15 +35,20 @@ class DirWatch:
     def getRetainableDetected(self):
         return self.__retainableAction
 
-    def getPaths(self, lastSaveTime=0,
-            statTimeAccessor=accessTimeChecker, maxDepth=-1):
+    def getPaths(self, lastModTime=0,
+            statTimeAccessor=creationTimeChecker, maxDepth=-1):
 
         freshPaths = []
         purgeable = []
         for root, dirs, paths in os.walk(self.__pathToWatch):
             for path in paths:
-                joinedPath = os.path.join(os.path.abspath(root), path)
-                if statTimeAccessor(joinedPath) >= lastSaveTime:
+                joinedPath = os.path.join(root, path)
+
+                st = statTimeAccessor(joinedPath)
+                print('st', st, 'lm', lastModTime)
+
+                if statTimeAccessor(joinedPath) >= lastModTime:
+                    print('freshPath', joinedPath)
                     freshPaths.append(joinedPath)
                 else:
                     purgeable.append(joinedPath)
