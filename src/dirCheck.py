@@ -7,17 +7,16 @@ import math
 import threading
 
 isCallable = lambda obj: hasattr(obj, '__call__')
-isCallableAttr = lambda obj, attr: hasattr(obj, attr) and isCallable(getattr(obj, attr))
+isCallableAttr = lambda obj, attr:\
+        hasattr(obj, attr) and isCallable(getattr(obj, attr))
 
 accessTimeChecker = os.path.getatime
 creationTimeChecker = os.path.getctime
+isDir = lambda p: p and  os.path.isdir(p)
 pathExists = lambda qPath: qPath and os.path.exists(qPath)
 
 class DirWatch:
     def __init__(self, dirPath=None, sleepTimeout=10):
-        if not pathExists(dirPath):
-            raise Exception("Unknown directory")
-
         self.__pathToWatch = dirPath
         self.__sleepTimeout = sleepTimeout or 10
         self.__eventMemoizer = dict()
@@ -36,7 +35,9 @@ class DirWatch:
     def getRetainableDetected(self):
         return self.__retainableAction
 
-    def getPaths(self, lastSaveTime=0, statTimeAccessor=creationTimeChecker, maxDepth=-1):
+    def getPaths(self, lastSaveTime=0,
+            statTimeAccessor=accessTimeChecker, maxDepth=-1):
+
         freshPaths = []
         purgeable = []
         for root, dirs, paths in os.walk(self.__pathToWatch):
@@ -80,7 +81,9 @@ class DirWatch:
         maxDepth = args[1] if len(args) > 1 else -1
         while not associatedEvent.is_set():
             freshTh, purgeTh = self.getPaths(threshTime, maxDepth=maxDepth) 
-            print('\033[92mSleeping for ', self.__sleepTimeout, '\033[00m')
+            print('\033[92mSleeping for %2.2f\033[00m Next cutoff time: %2.3f'%(
+                                                        self.__sleepTimeout, threshTime))
+
             threshTime = time.time()
             associatedEvent.wait(self.__sleepTimeout)
 
@@ -91,7 +94,8 @@ class DirWatch:
             print('\033[93mInvoking \'set\' method to kill thread\033[00m')
             return eventHandler.set() or True
         else:
-            print('\033[31mCannot invoke \'set\' of eventHandler', eventHandler, '\033[00m')
+            print('\033[31mCannot invoke \'set\' of eventHandler',
+                                                    eventHandler, '\033[00m')
             return False
 
     def kill(self, th):
@@ -100,27 +104,38 @@ class DirWatch:
             if isCallableAttr(th, 'join'):
                 if isCallableAttr(th, 'isAlive') and th.isAlive():
                     th.join()
+                    print('\033[42m Alive thread joined\033[00m')
+                else:
+                    print('\033[42m Thread was already dead\033[00m')
 
                 print('\033[42mSuccessfully exited', th, '\033[00m')
             else:
-                print('\033[91mCould not join', th, '\033[00m')
+                print('\033[91mUnJoinable object encountered', th, '\033[00m')
         else:
             print('\033[42mFailed to exit', th, '\033[00m')
 
     def killAll(self):
-        for th in self.__eventMemoizer:
+        thQ = list(self.__eventMemoizer.keys())
+
+        while thQ:
+            # First in first out
+            th = thQ.pop(0)
             self.kill(th)
 
     def bootStrap(self, thresholdTime):
         runner = self.runByEventTrigger(self.__handleRun, thresholdTime)
-        if isCallableAttr(runner, 'start'):
-            print('Starting', runner)
-            runner.start()
+        assert isCallableAttr(runner, 'start'), "Runner must have a start method"
+
+        print('Starting', runner)
+        runner.start()
         return runner
 
     def runByEventTrigger(self, func, *args):
         associatedEvent = threading.Event()
-        # Usage of the above credited to a post on StackOverflow
+        # Usage of threading.Event
+        # credited to a post on StackOverflow
+        assert isCallable(func), "The function must be callable"
+
         patchedArgs = (associatedEvent,) + args
         runner = threading.Thread(
             target=func, args=patchedArgs

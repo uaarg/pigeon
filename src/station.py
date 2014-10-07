@@ -50,7 +50,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.__resourcePool = dict()
         self.__keyToMarker = dict()
         self.__dirWatcher = DirWatchManager.DirWatchManager(
-            onFreshPaths=lambda p: self.pictureDropped([p]), onStalePaths=lambda a: a
+            onStalePaths=lambda a: a,
+            onFreshPaths=lambda p: self.pictureDropped([p])
         )
         self.__iconMemMap = dict()
         self.initStrip()
@@ -69,8 +70,10 @@ class GroundStation(QtWidgets.QMainWindow):
     def initRestHandler(self, ip, port):
         self.__cloudConnector = restDriver.RestDriver(ip, port)
 
-        assert(self.__cloudConnector.registerLiason('Image', '/gcs/imageHandler'))
-        assert(self.__cloudConnector.registerLiason('Marker', '/gcs/markerHandler'))
+        assert self.__cloudConnector.registerLiason('Image', '/gcs/imageHandler'),\
+                                                            'Should create the image handler'
+        assert self.__cloudConnector.registerLiason('Marker', '/gcs/markerHandler'),\
+                                                            'Should create the marker handler'
 
     def initTimers(self):
         self.timer = QtCore.QTimer(self)
@@ -98,11 +101,13 @@ class GroundStation(QtWidgets.QMainWindow):
         self.showCurrentTime()
 
     def fullDBSync(self, popUnSavedChanges=True):
-        print('FullDBSync')
+        print('FullDBSync', popUnSavedChanges)
         if popUnSavedChanges:
             keyManifest = list(self.__resourcePool.keys())
+            print('\033[91mkeyManifest', keyManifest, '\033[00m')
             for p in keyManifest:
                 syncStatus, dbImageCount = self.findSyncStatus(p)
+                print('checking the manifest', p, syncStatus, dbImageCount)
                 if syncStatus != constants.IS_IN_SYNC:
                     self.handleItemPop(p, isGlobalPop=False, callback=print)
 
@@ -693,7 +698,7 @@ class GroundStation(QtWidgets.QMainWindow):
             prepMemDict = dict(associatedImage_id=memId, select='id')
             savedMarkers = []
             for mDict in markerDictList: 
-                print('mDict', mDict)
+                # print('mDict', mDict)
                 saveDictGetter = mDict.get('getter', None) 
                 failedSave = True
                 funcAttrToInvoke = 'onFailure'
@@ -706,7 +711,7 @@ class GroundStation(QtWidgets.QMainWindow):
                     idQuery = self.__cloudConnector.getMarkers(**prepMemDict)
 
                     connAttrForSave = self.__cloudConnector.newMarker
-                    print('idQuery', idQuery)
+                    # print('idQuery', idQuery)
                     data = idQuery.get('value', {}).get('data', None)
                     if data:
                         sample = data[0]

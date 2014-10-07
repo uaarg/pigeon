@@ -13,17 +13,18 @@ class DirWatchManager:
         self.__pathToChecker = dict()
 
     def watchDir(self, path, sleepTimeout=10):
-        if dirCheck.pathExists(path):
+        if dirCheck.isDir(path):
             memWatcher = self.__pathToChecker.get(path, None)
             if memWatcher is None:
                 memWatcher = dirCheck.DirWatch(path, sleepTimeout)
                 self.__pathToChecker[path] = memWatcher
                 runner = memWatcher.bootStrap(time.time())
             else:
-                print('\033[47mAlready watching', path, '\033[00mwill just set latest eventHandlers')
+                print(
+                    '\033[47mAlready watching%s\033[00m will just set latest eventHandlers', path)
                
-            memWatcher.setOnRetainableDetected(self.__onFreshPaths)
             memWatcher.setOnPurgeableDetected(self.__onStalePaths)
+            memWatcher.setOnRetainableDetected(self.__onFreshPaths)
 
             return memWatcher
 
