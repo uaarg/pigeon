@@ -629,9 +629,10 @@ class GroundStation(QtWidgets.QMainWindow):
                             print('\033[47mSuccessfully copied %s to %s\033[00m'%(
                                 pathSelector, localizedDataPath
                             ))
+                    print('responseText', uploadResponse.text)
                 else:
                     print('\033[91mFailed to upload: %s\033[00m'%(pathSelector))
-                print('responseText', uploadResponse.text)
+
 
         
         if localizedDataPath != pathSelector:
