@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>676</width>
+    <width>689</width>
     <height>500</height>
    </rect>
   </property>
@@ -115,7 +115,7 @@
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
-         <layout class="QGridLayout" name="gridLayout_2">
+         <layout class="QFormLayout" name="formLayout">
           <item row="0" column="0">
            <widget class="QLabel" name="label">
             <property name="sizePolicy">
@@ -127,10 +127,19 @@
             <property name="text">
              <string>LastSync</string>
             </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
            </widget>
           </item>
           <item row="0" column="1">
            <widget class="QLCDNumber" name="lastSyncLCDNumber">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -142,7 +151,20 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
+          <item row="2" column="1">
+           <widget class="QLCDNumber" name="nowLCDNumber">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font: 13pt &quot;.Lucida Grande UI&quot;;background-color:rgb(255,255,255);</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
            <widget class="QLabel" name="label_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
@@ -152,19 +174,15 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>62</width>
-              <height>16</height>
+              <width>0</width>
+              <height>0</height>
              </size>
             </property>
             <property name="text">
              <string>Now</string>
             </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QLCDNumber" name="nowLCDNumber">
-            <property name="styleSheet">
-             <string notr="true">font: 13pt &quot;.Lucida Grande UI&quot;;background-color:rgb(255,255,255);</string>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -214,7 +232,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>676</width>
+     <width>689</width>
      <height>21</height>
     </rect>
    </property>
