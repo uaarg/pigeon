@@ -5,20 +5,28 @@ Python 3.2.3
 
 python3-dev package
 
-SIP 4.15.1 - for PyQt's python bindings
-
-PyQt 5.2
+SIP 4.15.1 - Python bindings for Qt.
 
 Qt 5.2.1
 
-restAssured - For all persistent data
 
-resty - For utilities to connect to the restAssured dataBase
 
-pyproj - for UTM to lat lon conversion and other GIS needs
 
-Installation
-------------
+System Dependencies
+-------------------
+* Python 3.2+
+* Qt 5.2
+* PyQt 5.2
+* SIP 4.15+ - for PyQt's python bindings
+
+### Ubuntu Install ###
+On Ubuntu 14.04, you can install the following packages:
+* qtdeclarative5-dev
+* qtmultimedia5-dev
+* python3-dev
+* python3-pyqt5
+
+### Non-Ubuntu / non-package-based install ###
 Download the Qt5 installer first from http://qt-project.org/downloads
 
 Download SIP.
@@ -26,45 +34,7 @@ Download SIP.
 Download PyQt.
 
 ### Setting up Python ###
-This project requires Python 3.2, the python3-dev package, and the libraries listed above. If you just want to work on this project without worrying about affecting other python-based projects (which may have different versions of modules, libraries, python itself, etc...), it might be a good idea to use the tool virtualenv to set up a virtual Python environment before installing the libraries.
-
-For more details, see the following links:
-http://docs.python-guide.org/en/latest/dev/virtualenvs/
-
-http://www.virtualenv.org/en/latest/index.html
-
-http://virtualenvwrapper.readthedocs.org/en/latest/index.html
-
-I've also set up virtualenvwrapper in this example, which is a tool that organizes these virtual environments into one place.
-
-If you have the tool pip, you can install virtualenv easily:
-
-> pip install virtualenv
-> pip install virtualenvwrapper
-
-To configure virtualenvwrapper:
-
-> export WORKON_HOME=~/Envs
-> source /usr/local/bin/virtualenvwrapper.sh
-
-This will create a new folder called ~/Envs to put all of your virtual environments in and activate all the virtualenvwrapper commands. You'll also want to put those lines in your ~/.bashrc or your ~/.profile or whatever shell startup script you have.
-
-To create a new virtualenv, run:
-
-> mkvirtualenv -p /usr/bin/pythonx.x pigeon-virtualenv
-
-Where x.x is your python version.
-
-To get in and out of your virtual environment:
-
-> workon pigeon-virtualenv
-> (install libraries, work on code, do stuff...)
-> deactivate
-
-**All of the following library installations should be done while in the virtual environment that you'll be working on pigeon with.**
-
-If you want to get rid of the virtual environment:
-> rmvirtualenv pigeon-virtualenv
+This project requires Python 3.2.
 
 ### Install Qt5 ###
 Use the provided graphical installer. 
@@ -103,7 +73,11 @@ To check your PYTHONPATH, open up a python session and type in:
 > import sys
 > print(sys.path)
 
-To run the project with the  DB component rigged up:
+External Modules
+----------------
+External projects that are needed for pigeon:
+* restAssured - For all persistent data
+* resty - For utilities to connect to the restAssured dataBase
 
 Install restAssured:
 
@@ -145,11 +119,62 @@ Install restAssured:
 
             +++ Commit your changes and push for everyone to use.
 
+Python Dependencies
+-------------------
+* pyproj - for UTM to lat lon conversion and other GIS needs
 
-### Install pyproj ###
+The best way to install these is via `pip`:
+`sudo pip install pyproj`
 
-On Ubuntu: pip install pyproj
+### Setting up a Python virtual environment ###
+It is highly recommended that you set up a virtual environment when developing for pigeon (or for any other Python project)! 
+A virtual environment for a Python project sets up a sandbox for that project with all the necessary Python modules that the project is dependent on.
+(You can even switch between different Python interpreters!)
 
-On Windows: download and run the appropriate executable from here:
+If you just want to work on this project without worrying about affecting other Python-based projects 
+(which may have different versions of modules, libraries, python itself, etc...), 
+you should set up a `virtualenv` before installing the modules listed above.
 
-    http://code.google.com/p/pyproj/downloads/list
+For more details, see the following links:
+http://docs.python-guide.org/en/latest/dev/virtualenvs/
+
+http://www.virtualenv.org/en/latest/index.html
+
+http://virtualenvwrapper.readthedocs.org/en/latest/index.html
+
+If you have the tool pip, you can install virtualenv easily:
+
+```
+pip install virtualenv
+pip install virtualenvwrapper
+```
+
+I've also set up virtualenvwrapper in this example, which is a tool that organizes these virtual environments into one place.
+
+To configure virtualenvwrapper, put the following in your `~/.bashrc`:
+
+```
+export WORKON_HOME=~/Envs
+source /usr/local/bin/virtualenvwrapper.sh
+```
+
+This will create a new folder called ~/Envs to put all of your virtual environments in and activate all the virtualenvwrapper commands. You'll also want to put those lines in your ~/.bashrc or your ~/.profile or whatever shell startup script you have.
+
+To create a new virtualenv, run:
+
+`mkvirtualenv --system-site-packages -p /usr/bin/pythonx.x pigeon`
+
+`--system-site-packages` is optional - it is only necessary if you want to use the python modules already installed on the system inside your virtualenv.
+`-p /usr/bin/pythonx.x` is optional - it is only necessary if you want to use a different python interpreter than the system default.
+
+To get in and out of your virtual environment:
+
+```
+workon pigeon-virtualenv
+(install libraries, work on code, do stuff...)
+deactivate
+```
+
+If you want to get rid of the virtual environment:
+`rmvirtualenv pigeon-virtualenv`
+
