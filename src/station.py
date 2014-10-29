@@ -6,6 +6,7 @@ import re
 import sys
 import shutil
 import random
+import csv
 from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
@@ -396,6 +397,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.syncCurrentItemAction)
         self.toolbar.addAction(self.dbSyncAction)
         self.toolbar.addAction(self.printCurrentImageDataAction)
+        self.toolbar.addAction(self.exportCSVAction)
+        self.toolbar.addAction(self.exportKMLAction)
         self.toolbar.addAction(self.exitAction)
 
         self.syncToolbar = self.ui_window.syncInfoToolbar
@@ -519,6 +522,19 @@ class GroundStation(QtWidgets.QMainWindow):
             '&Print Current Image Info', self
         )
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
+
+        self.exportCSVAction = QtWidgets.QAction(
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-csv.png')),
+            '&Export to CSV', self
+        )
+        self.exportCSVAction.triggered.connect(self.exportCSV)
+
+        self.exportKMLAction = QtWidgets.QAction(
+            self.getIcon(utils.pathLocalization('icons/iconmonstr-kml.png')),
+            '&Export to KML', self
+        )
+        self.exportKMLAction.triggered.connect(self.exportKML)
+
 
     def handleItemPop(
             self, currentItem=None, callback=print,
@@ -895,11 +911,57 @@ class GroundStation(QtWidgets.QMainWindow):
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
 
+    def getExportData(self):
+        """
+        Pulls the data for export from __resourcePool (looks messy..)
+        returns a list of dictionaries of the data that is useful in an export
+
+        >>> self.getExportData()
+        [{'Name': '/home/john/uaarg/pigeon/src/data/processed/wile-e-coyote-card.jpg', 'comments': '', 'lat': '0', 'lon': '0'}]
+        """
+
+        marker_set = 'marker_set'
+        images = dict(self.__resourcePool.copy())
+
+        rows = []
+
+        for name, data in images.items():
+            if marker_set in data:
+                for point in data[marker_set]:
+                    rows.append({"Name": name, "lat": point['lat'], "lon": point['lon'], "comments": point['comments']})
+
+        return rows
+
+    def exportCSV(self, callback=False, filename="export.csv", fieldnames=["Name", "lat", "lon", "comments"]):
+        """
+        Exports all marked data to CSV
+
+        :Args:
+            - filename: the name of the output file
+            - fieldnames: a list containing headers consistent with the headers returned by getExportData
+
+        """
+
+        data = self.getExportData()
+        with open(filename, 'w') as f:
+            w = csv.DictWriter(f, fieldnames)
+            w.writeheader()
+            w.writerows(data)
+        #TODO user feedback goes here
+
+    def exportKML(self, filename="export.kml"):
+        """
+        Exports all marked data to KML
+        """
+        data = self.getExportData()
+        print("STUB")
+        #TODO logic goes here
+
     def printCurrentImageData(self):
         print('printCurrentImageData')
         srcPath = self.ui_window.pathDisplayLabel.text()
         key = utils.getLocalName(srcPath) or srcPath
-       
+
         reportsDir = utils.pathLocalization(REPORTS_DIR)
         storedMap = self.__resourcePool.get(srcPath, None)
         if storedMap:
