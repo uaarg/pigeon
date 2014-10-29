@@ -528,13 +528,13 @@ class GroundStation(QtWidgets.QMainWindow):
         self.printCurrentImageDataAction.triggered.connect(self.printCurrentImageData)
 
         self.exportCSVAction = QtWidgets.QAction(
-            self.getIcon(utils.pathLocalization('icons/iconmonstr-csv.png')),
+            self.getIcon(utils.pathLocalization('icons/csv.png')),
             '&Export to CSV', self
         )
         self.exportCSVAction.triggered.connect(self.exportCSV)
 
         self.exportKMLAction = QtWidgets.QAction(
-            self.getIcon(utils.pathLocalization('icons/iconmonstr-kml.png')),
+            self.getIcon(utils.pathLocalization('icons/kml.png')),
             '&Export to KML', self
         )
         self.exportKMLAction.triggered.connect(self.exportKML)
@@ -974,13 +974,29 @@ class GroundStation(QtWidgets.QMainWindow):
             w.writerows(data)
         #TODO user feedback goes here
 
-    def exportKML(self, filename="export.kml"):
+    def exportKML(self, callback = False,
+                  filename="export.kml"):
         """
         Exports all marked data to KML
+
+        :Args:
+            - filename: the name of the output file
         """
         data = self.getExportData()
-        print("STUB")
-        #TODO logic goes here
+
+        status, reportsDir = utils.ensureDir(
+            utils.pathLocalization(REPORTS_DIR))
+
+        doc = simplekml.Kml()
+        for d in data:
+            lat = d['lat']
+            lon = d['lon']
+            comment = d['comments']
+            doc.newpoint(name=comment, coords=[(lat, lon)])
+
+        doc.save(os.path.join(reportsDir, filename))
+
+        #TODO user feedback
 
     def printCurrentImageData(self):
         print('printCurrentImageData', self.__resourcePool)
