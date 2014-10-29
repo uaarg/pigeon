@@ -15,8 +15,7 @@ pathExists = lambda p : p and os.path.exists(p)
 isDir = lambda p : p and os.path.isdir(p)
 isReg = lambda p : p and os.path.isfile(p)
 
-# baseDir = os.path.dirname(os.path.abspath(__file__))
-baseDir = "."
+baseDir = os.path.dirname(os.path.abspath(__file__))
 
 pathLocalization = lambda *args: os.sep.join((baseDir,) + args)
 isCallable = lambda a: hasattr(a, '__call__')
