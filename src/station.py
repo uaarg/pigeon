@@ -31,14 +31,17 @@ REPORTS_DIR = 'reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 defaultImageFormDict = dict(
-    time=0, utm_north=0, speed=0, image_width=1294.0, image_height=964.0, course=0,
-    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0,
-    viewangle_horiz=21.733333, viewangle_vert=16.833333, pixel_per_meter=0, ppm_difference=0
+    image_width=1294.0,
+    time=0, utm_north=0, speed=0,
+    image_height=964.0, course=0,
+    pixel_per_meter=0, ppm_difference=0,
+    viewangle_horiz=21.733333, viewangle_vert=16.833333,
+    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0
 )
 
 isCallable = lambda obj: hasattr(obj, '__call__')
-localizeToProcessedPath = lambda basename:\
-                                utils.pathLocalization('data', 'processed', basename)
+localizeToProcessedPath =\
+                lambda basename: utils.pathLocalization('data', 'processed', basename)
 
 class GroundStation(QtWidgets.QMainWindow):
     __jobRunner     = mpUtils.JobRunner.JobRunner()
@@ -451,10 +454,12 @@ class GroundStation(QtWidgets.QMainWindow):
             for k, v in content.items():
                 currentMap[k] = v
 
-        currentMap.setdefault('uri', curPath)
-        currentMap.setdefault('title', curPath)
+        basename = os.path.basename(curPath)
+        currentMap.setdefault('uri', basename)
+        currentMap.setdefault('title', basename)
 
         # Getting the original ids in
+
         self.editLocalContent(curPath, content, None)
         return self.syncByPath(curPath)
 
@@ -544,11 +549,13 @@ class GroundStation(QtWidgets.QMainWindow):
         popd = self.__resourcePool.pop(pathOnDisplay, None)
             
         dQuery = self.__cloudConnector.getImages(uri=pathOnDisplay, select='uri,id')
+        errCode = dQuery.get('status_code', 400)
 
-        if isGlobalPop and isinstance(dQuery, dict) and dQuery.get('status_code', 400) == 200:
+        if isGlobalPop and isinstance(dQuery, dict) and errCode == 200:
             data = dQuery['value'].get('data', None)
             if data:
                 for dDict in data:
+                    # TODO: Chain up statuses from the marker deletions + image deletions
                     print(self.__cloudConnector.deleteMarkers(
                                 associatedImage_id=dDict.get('id', -1)))
                     print(self.__cloudConnector.deleteImages(id=dDict.get('id', -1)))
@@ -561,8 +568,6 @@ class GroundStation(QtWidgets.QMainWindow):
 
                         print('\033[46m%s\033[00m'%
                             (self.__cloudConnector.deleteBlob(**selector)))
-
-                    self.handleItemPop(dDict.get('uri', ''))
 
         mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
         self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
@@ -603,8 +608,8 @@ class GroundStation(QtWidgets.QMainWindow):
         elemAttrDict = dict((k, v) for k, v in elemData.items() if not isDirty(k))
         shortKey = elemData.get('uri', '') or elemData.get('title', '')
 
-        basename = os.path.basename(shortKey)
-        localizedDataPath = utils.pathLocalization('data', 'processed', basename)
+        basename = utils.getBaseSuffix(shortKey)
+        localizedDataPath = localizeToProcessedPath(basename)
 
         dQuery = self.__cloudConnector.getCloudFilesManifest(uri=shortKey)
         pathSelector = localizedDataPath
@@ -631,7 +636,8 @@ class GroundStation(QtWidgets.QMainWindow):
                 uploadResponse = self.__cloudConnector.uploadBlob(
                     localizedDataPath, uri=shortKey, author=utils.getDefaultUserName()
                 )
-                # print('uploadResponse', uploadResponse)
+
+                print('uploadResponse', uploadResponse)
                 if uploadResponse and uploadResponse.status_code == 200:
                     print('\033[92mSuccessfully uploaded: %s\033[00m'%(pathSelector))
                     if not utils.pathExists(localizedDataPath):
@@ -657,8 +663,8 @@ class GroundStation(QtWidgets.QMainWindow):
                 self.__swapOutResourcePaths, None, None, pathSelector, localizedDataPath
             )
 
-        elemAttrDict['uri'] = localizedDataPath
-        existanceQuery = self.__cloudConnector.getImages(uri=localizedDataPath)
+        elemAttrDict['uri'] = basename
+        existanceQuery = self.__cloudConnector.getImages(uri=basename)
 
         methodName = 'newImage'
         if isinstance(existanceQuery, dict) and existanceQuery.get('status_code', 400) == 200:
@@ -704,7 +710,7 @@ class GroundStation(QtWidgets.QMainWindow):
         print('Downloading by key', resourceKey, elemAttrDict)
 
         pathSelector = elemAttrDict.get('uri', '') or elemAttrDict.get('title', '')
-        basename = os.path.basename(pathSelector) or '%s.jpg'%(resourceKey)
+        basename = utils.getBaseSuffix(pathSelector) or '%s.jpg'%(resourceKey)
 
         localizedDataPath = utils.pathLocalization('data', 'processed', basename,)
 
@@ -712,8 +718,8 @@ class GroundStation(QtWidgets.QMainWindow):
             basename, altName=localizedDataPath
         )
         if writtenBytes:
-            elemAttrDict['uri'] = localizedDataPath
-            elemAttrDict['title'] = localizedDataPath
+            elemAttrDict['uri'] = basename
+            elemAttrDict['title'] = basename
 
             return localizedDataPath
 
@@ -836,8 +842,10 @@ class GroundStation(QtWidgets.QMainWindow):
                 markerSet = imgDict.get('marker_set', [])
                 pathSelector = imgDict.get('uri', '') or imgDict.get('title', '')
 
-                basename = os.path.basename(pathSelector)
-                localizedDataPath = utils.pathLocalization('data', 'processed', basename,)
+                basename = utils.getBaseSuffix(pathSelector)
+
+                localizedDataPath = localizeToProcessedPath(basename)
+
                 if not utils.isReg(localizedDataPath):
                     dlPath = self.downloadBlob(pathSelector)
                     if dlPath:
@@ -1080,7 +1088,8 @@ class GroundStation(QtWidgets.QMainWindow):
         return outMap
 
     def editLocalContent(self, key, outMap, callback=None):
-        return self.__jobRunner.run(self.__editLocalContent, None, callback, key, outMap)
+        return self.__jobRunner.run(
+                self.__editLocalContent, None, callback, key, outMap)
 
     def __editLocalContent(self, key, outMap):
         memMap = self.__resourcePool.setdefault(key, dict(uri=key, title=key))
@@ -1095,7 +1104,8 @@ def main():
 
     # Time to get address that the DB can be connected to via
     eavsDroppingMode = args.eavsDroppingMode
-    gStation = GroundStation(args.ip.strip('/'), args.port.strip('/'), eavsDroppingMode=eavsDroppingMode)
+    gStation = GroundStation(
+       args.ip.strip('/'), args.port.strip('/'), eavsDroppingMode=eavsDroppingMode)
 
     gStation.show()
 

@@ -15,6 +15,7 @@ pathExists = lambda p : p and os.path.exists(p)
 isDir = lambda p : p and os.path.isdir(p)
 isReg = lambda p : p and os.path.isfile(p)
 
+getBaseSuffix = lambda k: os.path.basename(k)
 baseDir = os.path.dirname(os.path.abspath(__file__))
 
 pathLocalization = lambda *args: os.sep.join((baseDir,) + args)
