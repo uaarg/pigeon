@@ -979,6 +979,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if not filename:
             self.getExportFilename(".csv")
+            if not filename:
+                return
 
         data = self.getExportData(fieldnames)
 
@@ -1004,6 +1006,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
         if not filename:
             filename = self.getExportFilename('.kml')
+            if not filename:
+                return
 
         status, reportsDir = utils.ensureDir(
             utils.pathLocalization(REPORTS_DIR))
