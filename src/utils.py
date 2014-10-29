@@ -112,3 +112,20 @@ class DynaItem:
 
   def __repr__(self):
     return self.__str__()
+
+def ensureDir(dirPath):
+    # dirPath => String expected
+    # Checks if dirPath exists
+    # SideEffects: Creates the dir
+    # Returns absolute path relative to curdir as set in os module.
+    if not (dirPath and isinstance(dirPath, str)):
+        return 400, 'Expecting a non empty string'
+
+    if not os.path.exists(dirPath):
+        try:
+            os.mkdir(dirPath)
+        except Exception as e:
+            print('\033[91m:%s\033[00m', e)
+            return 500, e
+
+    return 200, os.path.abspath(dirPath)

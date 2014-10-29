@@ -31,12 +31,10 @@ REPORTS_DIR = 'reports'
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
 
 defaultImageFormDict = dict(
-    image_width=1294.0,
-    time=0, utm_north=0, speed=0,
-    image_height=964.0, course=0,
-    pixel_per_meter=0, ppm_difference=0,
     viewangle_horiz=21.733333, viewangle_vert=16.833333,
-    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(), utm_east=0.0
+    time=0, utm_north=0, speed=0, image_height=964.0, course=0,
+    phi=0.0, psi=0, theta=0, alt=0, author=utils.getDefaultUserName(),
+    image_width=1294.0, pixel_per_meter=0, utm_east=0.0, ppm_difference=0
 )
 
 isCallable = lambda obj: hasattr(obj, '__call__')
@@ -361,15 +359,15 @@ class GroundStation(QtWidgets.QMainWindow):
         lastItem = None
 
         for index, pathDict in enumerate(pathDictList):
-            path = pathDict.get('uri', None)
+            uri = utils.getBaseSuffix(pathDict.get('uri', None))
+            path = localizeToProcessedPath(uri)
 
             if not utils.pathExists(path):
-                dlPath = self.downloadBlob(path)
-                print('dlPath', dlPath)
+                dlPath = self.downloadBlob(uri)
                 if dlPath:
                     path = dlPath
 
-                print('\033[92mdlPath', dlPath, 'p', path, '\033[00m')
+                print('\033[92mdlPath %s p %s\033[00m'%(dlPath, path))
 
             if not self.iconStrip.isMemoized(path):
                 self.iconStrip.addIconItem(path, self.renderImage)
@@ -409,7 +407,8 @@ class GroundStation(QtWidgets.QMainWindow):
         self.syncToolbar.addAction(self.syncUpdateAction)
         self.syncToolbar.addAction(self.connectionStatusAction)
 
-    def getImageAttrsByKey(self, key):
+    def getImageAttrsByKey(self, path):
+        key = utils.getBaseSuffix(path)
         memDict = self.__resourcePool.get(key, None)
         if memDict is None:
             memDict = dict(uri=key, title=key)
@@ -547,8 +546,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         pathOnDisplay = currentItem or self.ui_window.pathDisplayLabel.text()
         popd = self.__resourcePool.pop(pathOnDisplay, None)
+        key = utils.getBaseSuffix(pathOnDisplay)
             
-        dQuery = self.__cloudConnector.getImages(uri=pathOnDisplay, select='uri,id')
+        dQuery = self.__cloudConnector.getImages(uri=key, select='uri,id')
         errCode = dQuery.get('status_code', 400)
 
         if isGlobalPop and isinstance(dQuery, dict) and errCode == 200:
@@ -568,6 +568,8 @@ class GroundStation(QtWidgets.QMainWindow):
 
                         print('\033[46m%s\033[00m'%
                             (self.__cloudConnector.deleteBlob(**selector)))
+                    
+                # TODO: Clear out the back log of duplicate items.
 
         mpopd = self.__keyToMarker.pop(pathOnDisplay, None)
         self.__jobRunner.run(self.closeMarkers, None, callback, mpopd)
@@ -940,7 +942,9 @@ class GroundStation(QtWidgets.QMainWindow):
 
         return rows
 
-    def exportCSV(self, callback=False, filename="export.csv", fieldnames=["Name", "lat", "lon", "comments"]):
+    def exportCSV(
+            self, callback=False, filename="export.csv",
+            fieldnames=["Name", "lat", "lon", "comments"]):
         """
         Exports all marked data to CSV
 
@@ -966,23 +970,31 @@ class GroundStation(QtWidgets.QMainWindow):
         #TODO logic goes here
 
     def printCurrentImageData(self):
-        print('printCurrentImageData')
+        print('printCurrentImageData', self.__resourcePool)
         srcPath = self.ui_window.pathDisplayLabel.text()
         key = utils.getLocalName(srcPath) or srcPath
 
-        reportsDir = utils.pathLocalization(REPORTS_DIR)
         storedMap = self.__resourcePool.get(srcPath, None)
+
         if storedMap:
-            if not os.path.exists(reportsDir):
-                try:
-                    os.mkdir(reportsDir)
-                except Exception as e:
-                    print('\033[91m:%s\033[00m', e)
-                    return
+            status, reportsDir = utils.ensureDir(
+                                        utils.pathLocalization(REPORTS_DIR))
+            if status != 200:
+                msg = "Failed to create reports directory\nTry again later!"
+                print('\033[92m%s\033[00m'%(reportsDir))
+                if not hasattr(self.msgQBox, 'setText'):
+                    self.msgQBox = QtWidgets.QMessageBox(parent=self)
+
+                self.msgQBox.setText(msg)
+                self.msgQBox.show()
+                return
 
             imageInfoPath = os.path.join(reportsDir, key + '-image.csv')
             imagesIn = markersIn = False
-            exclusiveOfMarkerSetKeys = [k for k in storedMap.keys() if k != 'marker_set']
+            exclusiveOfMarkerSetKeys = [
+                        k for k in storedMap.keys() if k != 'marker_set'
+            ]
+
             with open(imageInfoPath, 'w') as f:
                 f.write(','.join(exclusiveOfMarkerSetKeys))
                 f.write('\n')
