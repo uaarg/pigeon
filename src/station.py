@@ -950,8 +950,24 @@ class GroundStation(QtWidgets.QMainWindow):
                         rows.append(point)
         return rows
 
+    def getExportFilename(self, extension=""):
+        """
+        Spawns a QFileDialog for saving a file with given extension
+        :param extension: the target file extension (default: none)
+        :return: the full path of the file to save
+        """
+
+        filename, ext = QtWidgets.QFileDialog.getSaveFileName(self, directory=utils.pathLocalization(REPORTS_DIR),
+                                                              filter = '*'+extension)
+
+        if not filename.endswith(extension):
+            filename += extension
+
+        return filename
+
+
     def exportCSV(
-            self, callback=False, filename="export.csv",
+            self, callback=False, filename=None,
             fieldnames=None):
         """
         Exports all marked data to CSV
@@ -960,6 +976,9 @@ class GroundStation(QtWidgets.QMainWindow):
             - filename: the name of the output file
             - fieldnames: the column names to export (default: all)
         """
+
+        if not filename:
+            self.getExportFilename(".csv")
 
         data = self.getExportData(fieldnames)
 
@@ -974,8 +993,7 @@ class GroundStation(QtWidgets.QMainWindow):
             w.writerows(data)
         #TODO user feedback goes here
 
-    def exportKML(self, callback = False,
-                  filename="export.kml"):
+    def exportKML(self, callback=False, filename=None):
         """
         Exports all marked data to KML
 
@@ -983,6 +1001,9 @@ class GroundStation(QtWidgets.QMainWindow):
             - filename: the name of the output file
         """
         data = self.getExportData()
+
+        if not filename:
+            filename = self.getExportFilename('.kml')
 
         status, reportsDir = utils.ensureDir(
             utils.pathLocalization(REPORTS_DIR))
