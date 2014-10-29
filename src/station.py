@@ -921,14 +921,18 @@ class GroundStation(QtWidgets.QMainWindow):
     def pictureDropped(self, itemList):
         self.__normalizeFileAdding(itemList)
 
-    def getExportData(self):
+    def getExportData(self, columnNames=False):
         """
         Pulls the data for export from __resourcePool (looks messy..)
         returns a list of dictionaries of the data that is useful in an export
 
+        :Args:
+            - columnNames: Names of columns to grab for export (default: All)
+
         >>> self.getExportData()
         [{'Name': '/home/john/uaarg/pigeon/src/data/processed/wile-e-coyote-card.jpg', 'comments': '', 'lat': '0', 'lon': '0'}]
         """
+
 
         marker_set = 'marker_set'
         images = dict(self.__resourcePool.copy())
@@ -938,25 +942,34 @@ class GroundStation(QtWidgets.QMainWindow):
         for name, data in images.items():
             if marker_set in data:
                 for point in data[marker_set]:
-                    rows.append({"Name": name, "lat": point['lat'], "lon": point['lon'], "comments": point['comments']})
+                    point["image name"] = name
 
+                    if columnNames:
+                        rows.append({k:v for k, v in point.items() if k in columnNames})
+                    else:
+                        rows.append(point)
         return rows
 
     def exportCSV(
             self, callback=False, filename="export.csv",
-            fieldnames=["Name", "lat", "lon", "comments"]):
+            fieldnames=None):
         """
         Exports all marked data to CSV
 
         :Args:
             - filename: the name of the output file
-            - fieldnames: a list containing headers consistent with the headers returned by getExportData
-
+            - fieldnames: the column names to export (default: all)
         """
 
-        data = self.getExportData()
-        with open(filename, 'w') as f:
-            w = csv.DictWriter(f, fieldnames)
+        data = self.getExportData(fieldnames)
+
+        header = list(sorted(data[0].keys()))
+
+        status, reportsDir = utils.ensureDir(
+            utils.pathLocalization(REPORTS_DIR))
+
+        with open(os.path.join(reportsDir,filename), 'w') as f:
+            w = csv.DictWriter(f, header)
             w.writeheader()
             w.writerows(data)
         #TODO user feedback goes here
