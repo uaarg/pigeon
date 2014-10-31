@@ -1026,7 +1026,16 @@ class GroundStation(QtWidgets.QMainWindow):
 
         storedMap = self.__resourcePool.get(srcPath, None)
 
-        if storedMap:
+        exclusiveOfMarkerSetKeys = [
+            k for k in storedMap.keys() if k != 'marker_set'
+        ]
+
+        joined = ','.join(exclusiveOfMarkerSetKeys)
+        for path, storedMap in self.__resourcePool.items(): 
+            joined += '\n' + ','.join(
+                        str(storedMap.get(k, 'null')) for k in exclusiveOfMarkerSetKeys)
+
+        if joined:
             status, reportsDir = utils.ensureDir(
                                         utils.pathLocalization(REPORTS_DIR))
             if status != 200:
@@ -1039,18 +1048,11 @@ class GroundStation(QtWidgets.QMainWindow):
                 self.msgQBox.show()
                 return
 
-            imageInfoPath = os.path.join(reportsDir, key + '-image.csv')
+            imageInfoPath = os.path.join(reportsDir, 'all_images.csv')
             imagesIn = markersIn = False
-            exclusiveOfMarkerSetKeys = [
-                        k for k in storedMap.keys() if k != 'marker_set'
-            ]
 
             with open(imageInfoPath, 'w') as f:
-                f.write(','.join(exclusiveOfMarkerSetKeys))
-                f.write('\n')
-                f.write(','.join(str(storedMap[k]) for k in exclusiveOfMarkerSetKeys))
-                f.write('\n')
-                
+                f.write(joined)
                 imagesIn = True
             
             kmlPath = os.path.join(reportsDir, key + '.kml')
@@ -1058,6 +1060,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
             markerSet = storedMap.get('marker_set', [])
             markerInfoPath =  None
+
             if markerSet:
                 markerInfoPath = os.path.join(reportsDir, key + '-markers.csv')
                 with open(markerInfoPath, 'w') as g:

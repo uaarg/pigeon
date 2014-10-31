@@ -135,6 +135,7 @@ class ImageDisplayer(QtWidgets.QLabel):
         for mData in markerSet:
             mData['x'] = int(mData.get('x', 0))
             mData['y'] = int(mData.get('y', 0))
+	    
             mData.setdefault('iconPath', utils.pathLocalization('icons/mapMarkerIn.png'))
 
             memMarker = self._childMap.get(mData.get('longHashNumber', None), None)
@@ -178,7 +179,7 @@ class ImageDisplayer(QtWidgets.QLabel):
 
             m = self.createMarker(
                 x=curPos.x(), y=curPos.y(), lat=lat,comments='',
-                author=utils.getDefaultUserName(), lon=lon
+                author=utils.getDefaultUserName(), lon=lon, toggleTag=True
             )
             m.show()
             m.toggleUnsaved()
