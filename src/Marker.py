@@ -17,7 +17,7 @@ class Marker(QtWidgets.QPushButton):
     def __init__(
         self, parent=None, x=0, y=0, lat=0, lon=0, width=30,height=58, comments=None,
         iconPath='icons/mapMarkerOut.png', tree=None, author=None, onDeleteCallback=None,
-        onMoveEvent=None, longHashNumber=0, **kwargs
+        onMoveEvent=None, longHashNumber=0, toggleTag=True, **kwargs
     ):
         super(Marker, self).__init__(parent)
         __slots__ = ('x', 'y', 'width', 'height', 'iconPath',)
@@ -45,6 +45,9 @@ class Marker(QtWidgets.QPushButton):
 
         self.initUI()
         self.show()
+
+        if toggleTag:  # User needs the tag to pop up ASAP!
+           self.createTag(None)
 
     def getHash(self):
         return self.longHashNumber

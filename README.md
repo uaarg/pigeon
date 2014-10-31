@@ -69,8 +69,8 @@ Running the ground station
 ** Next set up the DB:
     + Go to directory 'src/restAssured'
         ++ python manage.py syncdb
-        ++ python manage.py <ip>:<port>
-            eg python manage.py 127.0.0.1:8000
+        ++ python manage.py runserver <ip>:<port>
+            eg python manage.py runserver 127.0.0.1:8000
 
 ** Now to run the Ground station:
     For commandline arguments:

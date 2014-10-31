@@ -7,7 +7,7 @@ import sys
 import shutil
 import random
 import csv
-from PyQt5 import QtCore, QtWidgets, QtGui, QtMultimedia
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
 
@@ -259,8 +259,7 @@ class GroundStation(QtWidgets.QMainWindow):
 
     def initSaveSound(self):
         soundsPath = utils.pathLocalization('sounds', 'bubblePop.wav')
-        print("soundsPath", soundsPath)
-        self.__saveSound = QtMultimedia.QSound(soundsPath)
+        print("Deprecated saveSound!")
 
     def initUI(self):
         # Set up actions
@@ -376,9 +375,6 @@ class GroundStation(QtWidgets.QMainWindow):
 
         # Display the last added item
         self.renderImage(lastItem)
-
-        if lastItem: # Sound only if there is an item to be displayed
-            self.__saveSound.play()
 
         self.querySyncStatus()
 

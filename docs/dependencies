@@ -82,10 +82,12 @@ External projects that are needed for pigeon:
 Install restAssured:
 
     Requires Django Installation on your computer, as well as any Python 2.X.
+    
+    ##For Ubuntu just sudo apt-get install python-django##
 
     To get the source for restAssured clone it from:
 
-        git@github.com:odeke-em/restAssured.git 
+        https://github.com/odeke-em/restAssured.git
 
         Please follow the intro in the main directory or view it online at:
 
