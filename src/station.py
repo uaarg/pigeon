@@ -619,7 +619,7 @@ class GroundStation(QtWidgets.QMainWindow):
         else:
             needsUpload = True
             data = dQuery.get('data', None)
-            print('\033[47mdata here', data, 'pathSelector', pathSelector, '\033[00m')
+            # print('\033[47mdata here', data, 'pathSelector', pathSelector, '\033[00m')
             if data:
                 # Now time for a size inquiry
                 if utils.pathExists(pathSelector):
@@ -673,9 +673,10 @@ class GroundStation(QtWidgets.QMainWindow):
 
                 sample = random.sample(data, 1)[0]
                 elemAttrDict = {
-                    'updatesBody':elemAttrDict,
+                    'updateParams': elemAttrDict,
                     'queryParams': {'id':int(sample.get('id', -1))}
                 }
+                
                 methodName = 'updateImages'
 
         func = getattr(self.__cloudConnector, methodName)
@@ -769,7 +770,11 @@ class GroundStation(QtWidgets.QMainWindow):
                         sample = data[0]
                         sampleId = sample.get('id', -1)
                         connAttrForSave = self.__cloudConnector.updateMarkers
-                        saveDict = {'queryParams':{'id':sampleId}, 'updatesBody':saveDict}
+
+                        saveDict = {
+                           'updateParams': saveDict,
+                           'queryParams': {'id':sampleId}
+                        }
                     else:
                         saveDict['associatedImage_id'] = memId
 
