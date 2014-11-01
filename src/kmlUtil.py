@@ -21,21 +21,20 @@ getStartEndTags = lambda key: ('<%s>'%(key), '</%s>'%(key))
 isListOrTuple = lambda v: isinstance(v, list) or isinstance(v, tuple)
 isStrOrNumber = lambda v: isinstance(v, str) or hasattr(v, '__divmod__')
 
-def placemarkKMLConvert(imageContentDict):
+def placemarkKMLConvert(markerList):
     """
     Extracts information needed for writing marker locations to a Google Earth kml.
     """
-    markerkml = simplekml.Kml()
+    markerskml = simplekml.Kml()
 
-    for marker in imageContentDict['marker_set']:
+    for marker in markerList:
         marker_id = marker['Marker']['id']  
         marker_coords = (marker['Marker']['lon'], marker['Marker']['lat'])
 
-        markerPoint = markerkml.newpoint(name=str(marker_id), coords=[marker_coords])
+        markerPoint = markerskml.newpoint(name=str(marker_id), coords=[marker_coords])
         markerPoint.description = marker['Marker']['comments']
 
-    kmltext = markerkml.kml()    
-    return markerkml.kml()
+    return markerskml.kml()
 
 
 def textifyTree(content, indentLevel=1):

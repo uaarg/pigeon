@@ -1030,10 +1030,13 @@ class GroundStation(QtWidgets.QMainWindow):
             k for k in storedMap.keys() if k != 'marker_set'
         ]
 
+
+        markerSet = []
         joined = ','.join(exclusiveOfMarkerSetKeys)
         for path, storedMap in self.__resourcePool.items(): 
             joined += '\n' + ','.join(
                         str(storedMap.get(k, 'null')) for k in exclusiveOfMarkerSetKeys)
+            markerSet += storedMap.get('marker_set', [])
 
         if joined:
             status, reportsDir = utils.ensureDir(
@@ -1054,15 +1057,14 @@ class GroundStation(QtWidgets.QMainWindow):
             with open(imageInfoPath, 'w') as f:
                 f.write(joined)
                 imagesIn = True
-            
-            kmlPath = os.path.join(reportsDir, key + '.kml')
-            self.printAllKMLData(kmlPath)
 
-            markerSet = storedMap.get('marker_set', [])
+            kmlWriteSuccess, kmlPath = self.writeImageKMLData(
+                                    exclusiveOfMarkerSetKeys, reportsDir)
+
             markerInfoPath =  None
 
             if markerSet:
-                markerInfoPath = os.path.join(reportsDir, key + '-markers.csv')
+                markerInfoPath = os.path.join(reportsDir, 'all_markers.csv')
                 with open(markerInfoPath, 'w') as g:
                     sampleElement = markerSet[0]
                     representativeKeys = sampleElement.keys()
@@ -1074,12 +1076,13 @@ class GroundStation(QtWidgets.QMainWindow):
                     markersIn = True
                     print('\033[94mWrote marker attributes to %s\033[00m'%(markerInfoPath))
                     
-            if (imagesIn or markersIn): 
+            if imagesIn or markersIn:
                 msg = 'Wrote: '
                 if imagesIn:
                     msg += '\nCSV image information to: %s'%(imageInfoPath)
                 if markersIn:
                     msg += '\nCSV marker information to: %s'%(markerInfoPath)
+                if kmlWriteSuccess:
                     msg += '\nKML marker information to: %s'%(kmlPath)
 
                 print('\033[92m%s\033[00m'%(msg))
@@ -1115,16 +1118,25 @@ class GroundStation(QtWidgets.QMainWindow):
         with open(kmlPath, 'w') as h:
             h.write(kml_data) and print('\033[95mWrote KML info to', kmlPath)
 
-    def writeImageKMLData(self, imageDataMap, imageSetKMLObject):
+    def writeImageKMLData(self, headers=[], reportsDir='.'):
         """
-        Writes data for the current image and all its contained markers into the\
+        Writes data for the all images and all its contained markers into the\
         KML object for this set of files, or this instance of the station.
         """
-        markerSet = imageDataMap.get('marker_set', [])
-        exclusiveOfMarkerSetKeys = [k for k in imageDataMap.keys() if k != 'marker_set']
-        fmtdTree = dict((k, imageDataMap[k]) for k in exclusiveOfMarkerSetKeys)
-        fmtdTree['marker_set'] = [dict(Marker=m) for m in markerSet]
-        marker_kml = kmlUtil.placemarkKMLConvert(fmtdTree, imageSetKMLObject)
+        allMarkers = []
+        for path, imageDataMap in self.__resourcePool.items():
+            markerSet = imageDataMap.get('marker_set', [])
+            allMarkers += [dict(Marker=m) for m in markerSet]
+
+        markersKMLText =  kmlUtil.placemarkKMLConvert(allMarkers)
+
+        kmlPath = os.path.join(reportsDir, 'all_markers.kml')
+        status = False
+        with open(kmlPath, 'w') as f:
+            f.write(markersKMLText)
+            status = True
+
+        return status, kmlPath
 
     def addLocationData(self):
         if isinstance(self.locationDataDialog, QtWidgets.QFileDialog):
