@@ -934,7 +934,7 @@ class GroundStation(QtWidgets.QMainWindow):
         [{'Name': '/home/john/uaarg/pigeon/src/data/processed/wile-e-coyote-card.jpg', 'comments': '', 'lat': '0', 'lon': '0'}]
         """
 
-
+        self.fullDBSync()
         marker_set = 'marker_set'
         images = dict(self.__resourcePool.copy())
 
@@ -979,7 +979,7 @@ class GroundStation(QtWidgets.QMainWindow):
         """
 
         if not filename:
-            self.getExportFilename(".csv")
+            filename = self.getExportFilename(".csv")
             if not filename:
                 return
 
