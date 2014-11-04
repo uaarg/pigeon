@@ -39,7 +39,7 @@ class Runner:
         Recursively traverses the directory structure down from "path", 
         returning the relative path to any kml file found.
         """
-        f = [[os.path.join(root,f) for f in files if f.endswith('.kml')] for root, dirs, files in os.walk(path)]
+        f = [[os.path.join(root,f) for f in files if f.endswith('.kml') and not f.startswith('.')] for root, dirs, files in os.walk(path)]
         self.debugPrint("Found the following {} files: {}".format(path, f))
         return list(itertools.chain.from_iterable(f))
 

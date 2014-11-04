@@ -63,9 +63,15 @@ class CorrelationEngine:
         >>> c.importKML("Pizza.kml", myCoolListLikeVariable)
 
         """
-        
+
+        print(filename)
+
+        # try:
         with open(filename, 'r') as f:
             doc = parser.parse(f)
+        # except UnicodeDecodeError as e:
+        #     with open(filename, 'rb') as f:
+        #         doc = parser.parse(f)
 
         pm = doc.getroot().getchildren()[0].getchildren()
 
