@@ -1,15 +1,25 @@
 #! /usr/bin/env python3
 import csv
 import ipdb
+import difflib
 from pykml import parser
-
+import Levenshtein as Lev
 
 class CorrelationEngine:
 
     def __init__(self):
         self.reference = []
         self.collected = []
+        self.cFunc = self.closestName
 
+    def setCorrelationFunction(self, func):
+        """
+        Set the internal correlation comparison function!
+        :param func: pointer to the function to use
+        :return: nothing
+        """
+
+        self.cFunc = func
 
     def addReference(self, filename):
         """
@@ -75,7 +85,6 @@ class CorrelationEngine:
 
         pm = doc.getroot().getchildren()[0].getchildren()
 
-
         for child in pm:
 
             entry = []
@@ -86,7 +95,7 @@ class CorrelationEngine:
                 entry.append(child.name)
 
                 if noDuplicates and (tuple(entry) not in destination):
-                    destination.append(tuple(entry))
+                    destination.append(XYPair(*entry))
 
             except Exception as e:
                 print(e)
@@ -109,51 +118,77 @@ class CorrelationEngine:
             writer = csv.writer(f)
 
             for row in results:
-                writer.writerow(row[0] + row[1])
+                writer.writerow(row[0].triplet + row[1].triplet)
 
 
     def correlateInternal(self):
         """
         Run correlate on the internally stored data
         """
-        return self.correlate(self.reference, self.collected)
+        return self.correlate(self.reference, self.collected, self.cFunc)
 
 
-    def correlate(self, reference, collected):
+    def correlate(self, reference, collected, correlationFunction):
         """
         Returns tuples of the nearest match
 
         Args
             - reference: list-like of (x, y, [other info]) reference data
             - collected: list-like of (x, y, [other info]) collected data
+            - correlationFunction: the comparison function to use
 
         >>> ref = [(100, 20), (2000, 13), (-15, 10)]
         >>> col = [(99, 19), (1999, 20)]
-        >>> closest_node(ref, col)
+        >>> closestNode(ref, col)
         [((100, 20), (99, 19)), ((2000,13), (1999, 20))]
 
         """
-        return [(self.closest_node(reference, coordinate), coordinate) for coordinate in collected]
+        return [(correlationFunction(reference, coordinate), coordinate) for coordinate in collected]
 
+    def closestName(self, reference, node):
+        """
+        :param reference: reference data
+        :param node: the node being matched
+        :return: the closet match
+        """
 
-    def closest_node(self, reference, node):
+        return min(reference, key=lambda ref:Lev.distance(ref.name, node.name))
+
+    def closestNode(self, reference, node):
         """
         Returns the closest node to node in reference
 
 
         >>> ref = [(100, 20), (2000, 13), (-15, 10)]
-        >>> closest_node(ref, (1, 10))
+        >>> closestNode(ref, (1, 10))
         (-15, 10)
 
         """
-        return min(reference, key=lambda pair:(node[0] - pair[0])**2 + (node[1] - pair[1])**2)
+        return min(reference, key=lambda pair:(node.x - pair.x)**2 + (node.y - pair.y)**2)
 
 
 class XYPair:
-    def __init__(self, x, y, info=None):
-        self.x = x
-        self.y = y
-        self.info = info
+    def __init__(self, x, y, name, data={}):
+        self._x = x
+        self._y = y
+        self._name = name
+        self._data = data
+
+    @property
+    def triplet(self):
+        return tuple((self.x, self.y, self.name))
+
+    @property
+    def name(self):
+        return str(self._name)
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
 
 
 if __name__ == "__main__":
