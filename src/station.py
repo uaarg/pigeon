@@ -1018,7 +1018,7 @@ class GroundStation(QtWidgets.QMainWindow):
             lat = d['lat']
             lon = d['lon']
             comment = d['comments']
-            doc.newpoint(name=comment, coords=[(lat, lon)])
+            doc.newpoint(name=comment, coords=[(lon, lat)])
 
         doc.save(os.path.join(reportsDir, filename))
 
