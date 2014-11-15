@@ -166,8 +166,8 @@ class GeoReference:
         camera = self.camera
 
         # Step 1: claculating angle offsets of pixel selected
-        delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) / camera.tan_angle_div_2_horiz)
-        delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) / camera.tan_angle_div_2_vert)
+        delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) * camera.tan_angle_div_2_horiz)
+        delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) * camera.tan_angle_div_2_vert)
 
         # Step 2: calculating effective pitch and roll
         pitch = orientation.pitch_rad + delta_theta_vert
