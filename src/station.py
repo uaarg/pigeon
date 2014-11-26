@@ -10,7 +10,7 @@ import csv
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 import gcs # Generated module by running: pyuic5 gcs.ui > gcs.py
-
+import checkboxes
 import Tag # Local module
 import utils # Local module
 import Marker # Local module
@@ -934,7 +934,7 @@ class GroundStation(QtWidgets.QMainWindow):
         [{'Name': '/home/john/uaarg/pigeon/src/data/processed/wile-e-coyote-card.jpg', 'comments': '', 'lat': '0', 'lon': '0'}]
         """
 
-        self.fullDBSync()
+        # self.fullDBSync()
         marker_set = 'marker_set'
         images = dict(self.__resourcePool.copy())
 
@@ -942,13 +942,20 @@ class GroundStation(QtWidgets.QMainWindow):
 
         for name, data in images.items():
             if marker_set in data:
+                row = {}
                 for point in data[marker_set]:
                     point["image name"] = name
 
                     if columnNames:
-                        rows.append({k:v for k, v in point.items() if k in columnNames})
+                        row.update({k:v for k, v in point.items() if k in columnNames})
                     else:
-                        rows.append(point)
+                        row.update(point)
+                row.update({k:v for k, v in data.items() if not isinstance(v, list)})
+
+                rows.append(row)
+
+
+
         return rows
 
     def getExportFilename(self, extension=""):
@@ -978,14 +985,30 @@ class GroundStation(QtWidgets.QMainWindow):
             - fieldnames: the column names to export (default: all)
         """
 
+        data = self.getExportData(fieldnames)
+
+        header = list(sorted(data[0].keys()))
+
+        d = checkboxes.Checkbox_Dialog(self)
+
+        box = d.getCheckedBoxes(header)
+        if box:
+            print(box)
+
+            header = [heading for heading in header if box[heading]]
+            self.exportCSVStage2(data, header)
+
+    def exportCSVStage2(self, data, header):
+
+
+        filename = None
+        #need to make this lock
+
         if not filename:
             filename = self.getExportFilename(".csv")
             if not filename:
                 return
 
-        data = self.getExportData(fieldnames)
-
-        header = list(sorted(data[0].keys()))
 
         status, reportsDir = utils.ensureDir(
             utils.pathLocalization(REPORTS_DIR))
