@@ -92,6 +92,10 @@ class Checkbox_Dialog():
         QtCore.QMetaObject.connectSlotsByName(self.Dialog)
 
     def addButton(self, text):
+        """
+        Adds a checkbox to the panel, with text to the right
+        :param text: The exact text (this should correspond directly to column name)
+        """
         _translate = QtCore.QCoreApplication.translate
         cbox = QtWidgets.QCheckBox(self.widgets[(len(self.checkBoxes) + 1) % 2])
 
@@ -106,7 +110,14 @@ class Checkbox_Dialog():
 
 
 
+
     def getCheckedBoxes(self, input, callback = None):
+        """
+        Figure out which checkboxes were selected.
+        :param input: the input header, which is a list of column names
+        :param callback: (optional)
+        :return: list of headers that were checked
+        """
 
         def wrapCallback():
             if callback: callback()
@@ -116,12 +127,9 @@ class Checkbox_Dialog():
         self.commandLinkButton.clicked.connect(wrapCallback)
         self.addOptions(input)
 
-        # QtWidgets.QCheckBox.isChecked()
-
         self.Dialog.exec_()
 
         return {thing:cbox.isChecked() for thing, cbox in self.checkBoxes.items()}
-
 
 
 
