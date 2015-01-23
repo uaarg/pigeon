@@ -47,6 +47,17 @@ class Position:
         self.height = height
         self.alt = alt
 
+    def __str__(self):
+        output = "(%s, %s)" % (self.lat, self.lon)
+
+        if self.height != 0:
+            output += " height=%s" % self.height
+
+        if self.alt is not None:
+            output += " alt=%s" % self.alt
+
+        return output
+
     def latLon(self):
         return (self.lat, self.lon)
 
@@ -119,30 +130,7 @@ class GeoReference:
         the image was taken should be provided 
         as Location and Orientation objects.
         """
-        camera = self.camera
-
-        # Step 2: calculating effective pitch and roll
-        pitch = orientation.pitch_rad
-        roll = orientation.roll_rad
-
-        # Step 3: calculating level distance and angle to pixel
-        distance_x = location.height * tan(pitch)
-        distance_y = location.height * tan(-roll)
-        distance = sqrt(pow(distance_x, 2) + pow(distance_y, 2))
-        phi = atan2(distance_y, distance_x) # atan2 used to provide 
-                # angle properly for any quadrant
-
-        # Step 4: calculating angle from north to pixel
-        forward_azimuth = phi + orientation.yaw_rad
-
-        # Step 5: claculating endpoint using pyproj GIS module
-        geod = pyproj.Geod(ellps="WGS84")
-        pixel_lon, pixel_lat, back_azimuth = geod.fwd(location.lon, location.lat, degrees(forward_azimuth), distance)
-
-        # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
-        print('pixel_lat', pixel_lat, 'pixel_lon', pixel_lon)
-
-        return Position(pixel_lat, pixel_lon)
+        return self.pointInImage(location, orientation, self.camera.image_width/2, self.camera.image_height/2)
 
     def pointInImage(self, location, orientation, pixel_x, pixel_y):
         """
