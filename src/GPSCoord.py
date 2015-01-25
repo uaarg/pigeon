@@ -281,17 +281,17 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
     An exception will be raised if the conversion involves invalid values.
     """
 
-    easting, northing = float(easting), float(northing)
+    easting, northing, zone = float(easting), float(northing), int(zone)
     # Easting and Northing ranges from https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
-    if not(167000 < easting < 833000):
-        # raise RuntimeError("Easting value is out of bounds.")
-        print("Easting value is out of bounds.")
-    if not(-9900000 < northing < 9400000):
-        # raise RuntimeError("Northing value is out of bounds.")
-        print("Northing value is out of bounds.")
+    if not (167000 < easting < 833000):
+        raise(ValueError("Easting value is out of bounds."))
+    if not (-9900000 < northing < 9400000):
+        raise(ValueError("Northing value is out of bounds."))
+
+    if not (1 <= zone <= 60):
+        raise(ValueError("Zone value of %s is out of bounds" % zone))
 
     pr = pyproj.Proj(proj='utm', zone=zone, ellps='WGS84', errcheck=True)
-    # Note that pyproj throws a RunTimeError exception if the zone is incorrect.
 
     lon, lat = pr(easting, northing, inverse=True)
     return lat, lon

@@ -62,7 +62,6 @@ class UTMToDDTests(BaseTestCase):
         calculated_latlon = utm_to_DD(333336.30, 7394553.87 - 10000000, 23)
         self.assertLatLonEqual(calculated_latlon, (-23.5508160, -46.632830))
 
-    @unittest.skip(reason="Fails, but not sure if this is the desired behaviour.")
     def testNonNumeric(self):
         with self.assertRaises(ValueError):
             utm_to_DD(348783.31, "b", 12)
@@ -73,16 +72,15 @@ class UTMToDDTests(BaseTestCase):
         with self.assertRaises(ValueError):
             utm_to_DD(348783.31, 5945279.84, "c")
 
-    @unittest.skip(reason="Fails, but not sure if this is the desired behaviour.")
     def testInvalidUTMCoord(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             utm_to_DD(900000, 5411703.17, 22) # easting out of range
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             utm_to_DD(333336.30, -10000000, 23) # northing out of range
 
     def testInvalidUTMZone(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             utm_to_DD(378449.42, 4224578.88, 61)
 
 
