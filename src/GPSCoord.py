@@ -5,6 +5,7 @@ Covers:
     - Extracting info from a text file sent with the images.
     - Converting UTM coordinates sent by the GPS to Decimal Degree coords.
     - Georeferencing features in an image.
+    - Calculating properties of a series of points (ex. length, area)
 
 Cindy Xiao <dixin@ualberta.ca>
 Cameron Lee <cwlee1@ualberta.ca>
@@ -15,20 +16,14 @@ import os
 import re
 import sys
 import collections
+import pyproj
+from shapely.geometry import shape, Polygon
+from math import *
+from statistics import mean
 
 ATTR_VALUE_REGEX_COMPILE = re.compile('([^\s]+)\s*=\s*([^\s]+)\s*', re.UNICODE)
-
-try:
-    import pyproj
-except ImportError as e:
-    sys.stderr.write(
-        "\033[91mNeeds module 'pyproj'. Install it by 'pip install pyproj' or 'easy_install pyproj'\n\033[00m"
-    )
-    sys.exit(-1)
-    
-from math import *
-
 __INFO_FILE_CACHE__ = collections.defaultdict(lambda: None)
+
 
 class Position:
     """
@@ -57,6 +52,9 @@ class Position:
             output += " alt=%s" % self.alt
 
         return output
+
+    def __eq__(self, other):
+        return self.lat == other.lat and self.lon == other.lon and self.height == other.height and self.alt == other.alt
 
     def latLon(self):
         return (self.lat, self.lon)
@@ -178,6 +176,136 @@ class GeoReference:
         # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
 
         return Position(pixel_lat, pixel_lon)
+
+
+class PositionCollection:
+    def __init__(self, positions, interior_positions_list=None):
+        """
+        Class for calculating properties of an ordered series of positions.
+
+        A list of interior positions can be provided to define 
+        holes in the polygon for area calculations or to be included in
+        the perimeter for perimeter calculations. Note that this is a 
+        list of lists of positions unlike the positions argument which 
+        is just a list of positions.
+        """
+        self.positions = positions
+        self.interior_positions_list = interior_positions_list
+
+    def area(self):
+        """
+        Calculates the area of polygon defined by the sequence of 
+        positions (and optional holes defined by interior_positions_list).
+        """
+        if len(self.positions) < 4:
+            return 0
+
+        lat, lon = zip(*[position.latLon() for position in self.positions])
+
+        projection = pyproj.Proj(proj="aea", lat_1=min(lat), lat_2=max(lat), lat_0=mean(lat), lon_0=mean(lon))
+            # Defining an equal area projection around the location of interest. aea stands for Albers equal-area
+
+        def positions_to_coords(positions):
+            lat, lon = zip(*[position.latLon() for position in positions])
+                # Converting to a list of latitudes and a list of longitudes since this is what pyproj expects
+            x, y = projection(lon, lat) # Projection the lat/lon into x/y
+            coords = list(zip(x, y))
+            return coords
+
+        # Converting the outside of the polygon:
+        coords = positions_to_coords(self.positions)
+
+        # Now doing the same for the interiors, if any:
+        if self.interior_positions_list:
+            interior_coords_list = []
+            for interior_positions in self.interior_positions_list:
+                interior_coords_list.append(positions_to_coords(interior_positions))
+        else:
+            interior_coords_list = None
+
+        # Creating the planar shape and getting its area
+        polygon = Polygon(coords, interior_coords_list)
+        if not polygon.is_valid:
+            raise(ValueError("Positions do not define a valid polygon."))
+        return polygon.area
+
+    def _segment_length(self, positions, include_height, include_alt):
+        """
+        For internal use to keep things DRY.
+
+        If include_height or include_alt is specified, factors is the
+        vertical change between positions as part of the length.
+        """
+        if include_height and include_alt:
+            raise(ValueError("Both include_height and include_alt specified. Must pick only one or neither."))
+
+        length = 0
+        geod = pyproj.Geod(ellps="WGS84")
+        for i, position in enumerate(positions):
+            if i == 0:
+                continue
+            position1 = positions[i-1]
+            position2 = positions[i]
+            lat1, lon1 = position1.latLon()
+            lat2, lon2 = position2.latLon()
+            forward_azimuth, back_azimuth, distance = geod.inv(lon1, lat1, lon2, lat2)
+
+            if include_height:
+                try:
+                    delta_height = abs(position1.height - position2.height)
+                except TypeError:
+                    raise(ValueError("Valid height values must be provided for all positions when specifying include_height."))
+                distance = sqrt(distance*distance + delta_height*delta_height)
+
+            if include_alt:
+                try:
+                    delta_alt = abs(position1.alt - position2.alt)
+                except TypeError:
+                    raise(ValueError("Valid alt values must be provided for all positions when specifying include_alt."))
+
+                distance = sqrt(distance*distance + delta_alt*delta_alt)
+
+            length += distance
+        return length
+
+    def perimeter(self, include_height=False, include_alt=False):
+        """
+        Returns the length around the outside of the polygon plus the 
+        length around each hole (if interior_positions provided).
+        Connects the last point to the first point if not already
+        explicitely done.
+
+        Specify include_height or include_alt to include height
+        or altitude changes in the distance calculations (otherwise
+        treats all positions as if on the surface of the earth).
+        """
+        if self.positions[0] != self.positions[-1]:
+            positions = self.positions + [self.positions[0]]
+        else:
+            positions = self.positions
+
+        length = 0
+
+        if self.interior_positions_list:
+            segments = [positions] + self.interior_positions_list
+        else:
+            segments = [positions]
+
+        for segment in segments:
+            length += self._segment_length(segment, include_height=include_height, include_alt=include_alt)
+        return length
+
+    def length(self, include_height=False, include_alt=False):
+        """
+        Returns the length along the provided points. Does not connect
+        the last to the first automatically.
+
+        Specify include_height or include_alt to include height
+        or altitude changes in the distance calculations (otherwise
+        treats all positions as if on the surface of the earth).
+        """
+        return self._segment_length(self.positions, include_height=include_height, include_alt=include_alt)
+
 
 def getInfoDict(info_file_loc, needsRefresh=False):
     cachedInfoDict = __INFO_FILE_CACHE__.get(info_file_loc, None)

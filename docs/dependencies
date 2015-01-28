@@ -124,9 +124,12 @@ Install restAssured:
 Python Dependencies
 -------------------
 * pyproj - for UTM to lat lon conversion and other GIS needs
+* shapely - for planar geometry calculations (ex. area)
 
-The best way to install these is via `pip`:
+The best way to install pyproj is via `pip`:
 `sudo pip install pyproj`
+The best way to install shapely is via `apt-get`:
+`sudo apt-get install python3-shapely`
 
 ### Setting up a Python virtual environment ###
 It is highly recommended that you set up a virtual environment when developing for pigeon (or for any other Python project)! 

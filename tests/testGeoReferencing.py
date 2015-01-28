@@ -1,6 +1,6 @@
 import unittest
 
-from GPSCoord import utm_to_DD, Position, Orientation, CameraSpecs, GeoReference
+from GPSCoord import utm_to_DD, Position, Orientation, CameraSpecs, GeoReference, PositionCollection
 
 class BaseTestCase(unittest.TestCase):
     def assertLatLonEqual(self, latlon1, latlon2):
@@ -199,3 +199,256 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
         self.correct_position = Position(53.6359816, -113.287097)
 
         self.assertGeoReferencing()
+
+class AreaCalculationTests(BaseTestCase):
+    """
+    Correct answers from: http://www.earthpoint.us/Shapes.aspx
+    """
+
+    def assertAlmostEqual(self, *args, **kwargs):
+        kwargs["places"] = 1
+        super().assertAlmostEqual(*args, **kwargs)
+
+    def testEmptyArea(self):
+        """
+        If the points provided define nothing, just a point, or just a line,
+        then the area should be 0.
+        """
+        calculated_area = PositionCollection([]).area()
+        self.assertEqual(calculated_area, 0)
+
+        calculated_area = PositionCollection([Position(53, -113)]).area()
+        self.assertEqual(calculated_area, 0)
+
+        calculated_area = PositionCollection([Position(53, -113), Position(53.01, -113.001)]).area()
+        self.assertEqual(calculated_area, 0)
+
+    def testAreaSimple(self):
+        locations = [Position(53.640376, -113.287968),
+                     Position(53.639969, -113.285930),
+                     Position(53.641470, -113.285865),
+                     Position(53.641063, -113.287432)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 14515.74)
+
+    def testAreaSmall(self):
+        locations = [Position(53.63858895845907, -113.2858449974274),
+                     Position(53.63871695800452, -113.2858515527736),
+                     Position(53.63872128665391, -113.2860433590805),
+                     Position(53.63858895868907, -113.2860271060327)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 178.96)
+
+    def testAreaComplex(self):
+        locations = [Position(38.14612244235001, -76.42605941380039),
+                     Position(38.14557025842809, -76.4260394110355),
+                     Position(38.1464050578743,  -76.42329134077552),
+                     Position(38.1463024179381,  -76.42236638287116),
+                     Position(38.14528885141904, -76.42215724758948),
+                     Position(38.14422805636855, -76.42268283414849),
+                     Position(38.14366797831114, -76.42184126223457),
+                     Position(38.14396571089122, -76.41846735018396),
+                     Position(38.15060936431924, -76.41864985065172),
+                     Position(38.14998716757382, -76.4267023103049),
+                     Position(38.14880902767541, -76.42648506976147),
+                     Position(38.14876177614931, -76.42528994302296),
+                     Position(38.14827224853664, -76.42506909773816),
+                     Position(38.1477850368527,  -76.42497975447422),
+                     Position(38.14758905846647, -76.42497564853529),
+                     Position(38.14725924076873, -76.42496874021477),
+                     Position(38.14701678016844, -76.42505456535311),
+                     Position(38.14684321151271, -76.42547186145289),
+                     Position(38.14712333083869, -76.42624364166178),
+                     Position(38.14724720470556, -76.42694061104336),
+                     Position(38.14664853608051, -76.42721561228375),
+                     Position(38.14559495995302, -76.42723612427338),
+                     Position(38.14464229313943, -76.42710553328192),
+                     Position(38.14457479586402, -76.42640560039129),
+                     Position(38.1455702150766,  -76.42658573372728),
+                     Position(38.14624881836266, -76.42684902051074),
+                     Position(38.1464912488537,  -76.42684131329734),
+                     Position(38.14659388833043, -76.42632759464361),
+                     Position(38.14612244235001, -76.42605941380039)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 399631.38)
+
+    def testAreaSmall(self):
+        locations = [Position(53.63858895845907, -113.2858449974274),
+                     Position(53.63871695800452, -113.2858515527736),
+                     Position(53.63872128665391, -113.2860433590805),
+                     Position(53.63858895868907, -113.2860271060327)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 178.96)
+
+    def testAreaCCW(self):
+        locations = [
+                     Position(53.63858895868907, -113.2860271060327),
+                     Position(53.63872128665391, -113.2860433590805),
+                     Position(53.63871695800452, -113.2858515527736),
+                     Position(53.63858895845907, -113.2858449974274)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 178.96)
+
+    def testAreaBowTie(self):
+        locations = [Position(49.9075074454562, -98.27381389704948),
+                     Position(49.90870140727183, -98.27199796319962),
+                     Position(49.9090626965297, -98.27026881457152),
+                     Position(49.90766478562761, -98.2710446237257),
+                     Position(49.90937980170813, -98.27461239710256)]
+        with self.assertRaises(ValueError):
+            calculated_area = PositionCollection(locations).area()
+
+    def testAreaGreenwhich(self):
+        """
+        Tests that areas which cross the prime meridian are handled correctly.
+        """
+        locations = [Position(51.48212172072677, -0.002771281514114237),
+                     Position(51.48204262113154, 0.002880768718658212),
+                     Position(51.48567704805823, 0.003183298765256712),
+                     Position(51.48571103900387, -0.002685273093026672),
+                     Position(51.48212172072677, -0.002771281514114237)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 160880.36)
+
+    def testAreaEquator(self):
+        """
+        Tests that areas which cross the equator are handled correctly.
+        """
+        locations = [Position(-0.01604936098212071, -50.66581007367251),
+                     Position(-0.01256420473522116, -50.65153429348242),
+                     Position(-0.007535324220401473, -50.6409805643024),
+                     Position( 0.005395914507239023, -50.64070177329288),
+                     Position( 0.01686381814129759, -50.66715824094524),
+                     Position(-0.001824446289355828, -50.64870274967773),
+                     Position(-0.01604936098212071, -50.66581007367251)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 3857566.39)
+
+    def testAreaEquator2(self):
+        """
+        Tests that areas which cross the equator are handled correctly.
+        """
+        locations = [Position(0.0007322725219188839, -50.66495399830471),
+                     Position(-0.00106961883117696, -50.66483373897671),
+                     Position(-0.001109697280278675, -50.66303324085633),
+                     Position(0.000704133213207757, -50.66303196301214),
+                     Position(0.0007322725219188839, -50.66495399830471)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 41393.96)
+
+    def testSouthernHemisphere(self):
+        locations = [Position(-33.85648753781738, 151.2167346164685),
+                     Position(-33.85653688889253, 151.2170107526296),
+                     Position(-33.85723388355765, 151.2168419382072),
+                     Position(-33.85690927283394, 151.2174174065159),
+                     Position(-33.85638296117077, 151.217273679916),
+                     Position(-33.856280417931, 151.2166540661909),
+                     Position(-33.8561565141336, 151.2165050031699),
+                     Position(-33.85615167691103, 151.2164707363791),
+                     Position(-33.85614677095479, 151.2162109302047),
+                     Position(-33.8567845959764, 151.2160473417744),
+                     Position(-33.85709009653129, 151.21614005947),
+                     Position(-33.85648753781738, 151.2167346164685)]
+        calculated_area = PositionCollection(locations).area()
+        self.assertAlmostEqual(calculated_area, 7322.28)
+
+    def testHolyArea(self):
+        """
+        Tests that excluding interior regions works.
+        """
+        locations = [Position(38.87253259892824, -77.05788457660967),
+                     Position(38.87291016281703, -77.05465973756702),
+                     Position(38.87053267794386, -77.05315536854791),
+                     Position(38.868757801256,   -77.05552622493516),
+                     Position(38.86996206506943, -77.05844056290393),
+                     Position(38.87253259892824, -77.05788457660967)]
+
+        inner_locations = [Position(38.87154239798456, -77.05668055019126),
+                           Position(38.87167890344077, -77.05542625960818),
+                           Position(38.87076535397792, -77.05485125901024),
+                           Position(38.87008686581446, -77.05577677433152),
+                           Position(38.87054446963351, -77.05691162017543),
+                           Position(38.87154239798456, -77.05668055019126)]
+        calculated_area = PositionCollection(locations, [inner_locations]).area()
+        self.assertAlmostEqual(calculated_area, 120948.23)
+
+class PerimeterCalculationTests(BaseTestCase):
+    """
+    Correct answers from: http://www.earthpoint.us/Shapes.aspx
+    """
+
+    def assertAlmostEqual(self, *args, **kwargs):
+        kwargs["places"] = 1
+        super().assertAlmostEqual(*args, **kwargs)
+
+    def testSouthernHemisphere(self):
+        locations = [Position(-33.85648753781738, 151.2167346164685),
+                     Position(-33.85653688889253, 151.2170107526296),
+                     Position(-33.85723388355765, 151.2168419382072),
+                     Position(-33.85690927283394, 151.2174174065159),
+                     Position(-33.85638296117077, 151.217273679916),
+                     Position(-33.856280417931, 151.2166540661909),
+                     Position(-33.8561565141336, 151.2165050031699),
+                     Position(-33.85615167691103, 151.2164707363791),
+                     Position(-33.85614677095479, 151.2162109302047),
+                     Position(-33.8567845959764, 151.2160473417744),
+                     Position(-33.85709009653129, 151.21614005947),
+                     Position(-33.85648753781738, 151.2167346164685)]
+        calculated_perimeter = PositionCollection(locations).perimeter()
+        self.assertAlmostEqual(calculated_perimeter, 528.23)
+
+    def testWithoutExplicitClose(self):
+        """
+        Tests that the perimeter is calculated correctly even if the last
+        point isn't equal to the first point.
+        """
+        locations = [Position(-33.85648753781738, 151.2167346164685),
+                     Position(-33.85653688889253, 151.2170107526296),
+                     Position(-33.85723388355765, 151.2168419382072),
+                     Position(-33.85690927283394, 151.2174174065159),
+                     Position(-33.85638296117077, 151.217273679916),
+                     Position(-33.856280417931, 151.2166540661909),
+                     Position(-33.8561565141336, 151.2165050031699),
+                     Position(-33.85615167691103, 151.2164707363791),
+                     Position(-33.85614677095479, 151.2162109302047),
+                     Position(-33.8567845959764, 151.2160473417744),
+                     Position(-33.85709009653129, 151.21614005947)]
+        calculated_perimeter = PositionCollection(locations).perimeter()
+        self.assertAlmostEqual(calculated_perimeter, 528.23)
+
+class LengthCalculationTests(BaseTestCase):
+    """
+    Correct answers mostly from: http://www.earthpoint.us/Shapes.aspx
+    """
+
+    def assertAlmostEqual(self, *args, **kwargs):
+        kwargs["places"] = 1
+        super().assertAlmostEqual(*args, **kwargs)
+
+    def testSimple(self):
+        """
+        Tests that the perimeter is calculated correctly even if the last
+        point isn't equal to the first point.
+        """
+        locations = [Position(53.634426, -113.287097),
+                     Position(53.634427, -113.288608)]
+        calculated_length = PositionCollection(locations).length()
+        self.assertAlmostEqual(calculated_length, 100)
+
+    def testHeightChange(self):
+        locations = [Position(53.634426, -113.287097, 100),
+                     Position(53.634427, -113.288608)]
+        calculated_length = PositionCollection(locations).length(include_height=True)
+        self.assertAlmostEqual(calculated_length, 141.42)
+
+    def testAltitudeChange(self):
+        locations = [Position(53.634426, -113.287097, alt=610),
+                     Position(53.634427, -113.288608, alt=710)]
+        calculated_length = PositionCollection(locations).length(include_alt=True)
+        self.assertAlmostEqual(calculated_length, 141.42)
+
+    def testMissingAlt(self):
+        locations = [Position(53.634426, -113.287097, alt=610),
+                     Position(53.634427, -113.288608)]
+        with self.assertRaises(ValueError):
+            calculated_length = PositionCollection(locations).length(include_alt=True)
