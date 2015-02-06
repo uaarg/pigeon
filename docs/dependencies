@@ -1,83 +1,25 @@
-Dependencies
-===========
+Pigeon Installation Guide
+=========================
 
-Python 3.2.3
+This is how to install pigeon. You can follow the steps below for a simple Ubuntu installation, or skip to the bottom for a more advanced, non-package-based install. 
 
-python3-dev package
+Simple Ubuntu Install
+---------------------
+These steps assume that you have Ubuntu 14.04.
 
-SIP 4.15.1 - Python bindings for Qt.
-
-Qt 5.2.1
-
-
-
-
-System Dependencies
--------------------
-* Python 3.2+
-* Qt 5.2
-* PyQt 5.2
-* SIP 4.15+ - for PyQt's python bindings
-
-### Ubuntu Install ###
-On Ubuntu 14.04, you can install the following packages:
+### Ubuntu Packages
+Install the following packages via `sudo apt-get install`:
 * qtdeclarative5-dev
 * qtmultimedia5-dev
 * python3-dev
 * python3-pyqt5
 
-### Non-Ubuntu / non-package-based install ###
-Download the Qt5 installer first from http://qt-project.org/downloads
-
-Download SIP.
-
-Download PyQt.
-
-### Setting up Python ###
-This project requires Python 3.2.
-
-### Install Qt5 ###
-Use the provided graphical installer. 
-Installing in your home directory is fine.
-
-### Install SIP ###
-Navigate to the directory where you downloaded SIP. Run the following:
-
-> configure.py
-> make
-> make install 
-
-### Install PyQt ###
-Navigate to the directory where you downloaded PyQt.
-
-Run configuration.py to generate the Makefile for PyQt. You'll need to specify where Qt's qmake file is for this to work. Run the following:
-
-> configure.py --qmake /path/to/qmake
-
-qmake should be in something like Qt-install-directory/Qt-version-number/Compiler-version/bin/qmake (eg. ~/Qt/5.2.1/gcc/bin/qmake). See the README in your Qt install directory for more details.
-
-After that, run:
-
-> make
-> sudo make install
-
-Afterwards, you may have to change your PYTHONPATH environment variable to point to the place in your system that PyQt5 is installed in order to use the module.
-If you set up a python virtualenv for pigeon and installed PyQt5 while in the virtualenv, this will be in the virtualenv folder. (eg.~/Envs/pigeon-virtualenv/lib/python3.2/site-packages/PyQt5)
-Otherwise, take a look at PyQt's configure.py to figure out where it installed itself.
-
-Changing the PYTHONPATH can be done by putting
-> export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
-in your ~/.profile or ~/.bashrc file.
-
-To check your PYTHONPATH, open up a python session and type in:
-> import sys
-> print(sys.path)
-
-External Modules
-----------------
+### External Modules
+Install the following external modules:
 External projects that are needed for pigeon:
 * restAssured - For all persistent data
 * resty - For utilities to connect to the restAssured dataBase
+Note that you need Python 2.X, rather than 3, to install these!
 
 Install restAssured:
 
@@ -120,9 +62,9 @@ Install restAssured:
             +++ ** If need be, add the module after by: git add resty
 
             +++ Commit your changes and push for everyone to use.
-
-Python Dependencies
--------------------
+            
+            
+### Python Modules
 * pyproj - for UTM to lat lon conversion and other GIS needs
 * shapely - for planar geometry calculations (ex. area)
 
@@ -131,7 +73,59 @@ The best way to install pyproj is via `pip`:
 The best way to install shapely is via `apt-get`:
 `sudo apt-get install python3-shapely`
 
-### Setting up a Python virtual environment ###
+Advanced Install
+-------------------
+
+Download the Qt5 installer first from http://qt-project.org/downloads.
+
+Download SIP 4.15+ for PyQt's python bindings.
+
+Download PyQt 5.2.
+
+### Setting up Python ###
+This project requires Python 3.2.
+
+### Install Qt5 ###
+Use the provided graphical installer. 
+Installing in your home directory is fine.
+
+### Install SIP ###
+Navigate to the directory where you downloaded SIP. Run the following:
+
+> configure.py
+> make
+> make install 
+
+### Install PyQt ###
+Navigate to the directory where you downloaded PyQt.
+
+Run configuration.py to generate the Makefile for PyQt. You'll need to specify where Qt's qmake file is for this to work. Run the following:
+
+> configure.py --qmake /path/to/qmake
+
+qmake should be in something like Qt-install-directory/Qt-version-number/Compiler-version/bin/qmake (eg. ~/Qt/5.2.1/gcc/bin/qmake). See the README in your Qt install directory for more details.
+
+After that, run:
+
+> make
+> sudo make install
+
+Afterwards, you may have to change your PYTHONPATH environment variable to point to the place in your system that PyQt5 is installed in order to use the module.
+If you set up a python virtualenv for pigeon and installed PyQt5 while in the virtualenv, this will be in the virtualenv folder. (eg.~/Envs/pigeon-virtualenv/lib/python3.2/site-packages/PyQt5)
+Otherwise, take a look at PyQt's configure.py to figure out where it installed itself.
+
+Changing the PYTHONPATH can be done by putting
+> export PYTHONPATH="/path/to/install/directory":$PYTHONPATH
+in your ~/.profile or ~/.bashrc file.
+
+To check your PYTHONPATH, open up a python session and type in:
+> import sys
+> print(sys.path)
+
+### Install External Modules
+See the steps in the "Simple Ubuntu Installation" above.
+
+### Setting up a Python virtual environment and installing packages
 It is highly recommended that you set up a virtual environment when developing for pigeon (or for any other Python project)! 
 A virtual environment for a Python project sets up a sandbox for that project with all the necessary Python modules that the project is dependent on.
 (You can even switch between different Python interpreters!)
