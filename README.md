@@ -1,93 +1,75 @@
-pigeon readme  [![wercker status](https://app.wercker.com/status/828795e523fe5e7abeeb16a3e8c4ac9c/m "wercker status")](https://app.wercker.com/project/bykey/828795e523fe5e7abeeb16a3e8c4ac9c) 
+pigeon readme
 =============
-Pigeon is UAARG's ground station imaging software.
-Currently, it is only intended to display images, read their metadata, allow a user to place markers on images, and save the marker locations.
-For the onboard imaging software, see Waldo.
+Pigeon is UAARG's ground station imaging software. It is used to analyze
+images received from the aircraft through a combination of manual and
+automatic processes. The ultimate goal is to quickly provide accurate 
+information about points of interest found on the ground. 
 
-Configuration
--------------
-Pigeon is designed to work with the following setup:
+Implemented Features:
+---------------------
+* Monitors a folder for images added to it
+* Displays a scrollable list of images
+* Displays a main image as selected from the scrollable list
+* Settings area for specifying and saving settings
 
-Onboard
-	* Paparazzi UAV
-	
-Ground station computer
-	* Set up as FTP server
-	* Images and data stored by Waldo in a single directory. 
+Future Features:
+----------------
+* See the bitbucket issue tracker for desired features.
+
+
+Input
+-----
+* Some configuration (ex. Camera specs, folder to watch)
+* Image files in a single folder as specified in the configuration
+  (usually, expect these to be added a few at a time during the flight)
+* Image info files. Also in a folder as specified in the configuration
+  There should be an info file for each image: the two will be imported 
+  together. 
+  Info file fields:
+  * (to be added later)
+* Data entered into UI by human operator (ex. Marker locations)
+
+Output
+------
+* UI for manually viewing images
+* Marker list as a csv file
+
 
 Installation
 ------------
-Pigeon is written in PyQt.
-For a list of dependencies required by pigeon, see docs/dependencies.
+Pigeon is written in PyQt. It also has a few python module dependencies.
+To install on Ubuntu (tested on 14.04), do:
 
-Features
---------
-Not all of these features have been implemented yet.
+sudo apt-get install python3
+sudo apt-get install python3-dev qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
+sudo apt-get install python3-shapely python3-pyproj
+sudo pip3 install pyinotify
 
-Critical
-* Load image metadata.
-* Display image and allow user to place markers of targets on image.
-* Load and save persistent target markers.
-* Read and load configuration data - camera lens properties, default directories, etc...
-
-Planned
-* Present a list of images and allow user to choose between images.
-* Present images sequentially in different ways - by time, proximity to ground station, etc...
-
-
-Important variables
--------------------
-phi
-Roll. +phi = roll right.
-
-psi
-Yaw. +psi = yaw right.
-
-theta
-Pitch. +theta = pitch up.
-
-altitude
-For imaging purposes, we care about the absolute altitude above the ground terrain.
-This is absolute altitude above ground level (AGL). This can also be referred to as "height."
-[Paparazzi Wiki article on altitude definitions](http://wiki.paparazziuav.org/wiki/Demystified/Altitude_and_Height)
-
-GPS:altitude
-ESTIMATOR:z-estimator
-
-ground altitude: set in flightplan?
 
 Running the ground station
 --------------------------
-** First step:
-    git submodule init
-    git submodule update
+From the station directory, do:
+python3 station.py
 
-    OR
+See the README in the station directory for usage notes.
 
-    git submodule update --init --recursive
+uavsimulator.py in the utils directory is useful for creating images periodically
+instead of running the onboard software. 
 
-** Next set up the DB:
-    + Go to directory 'src/restAssured'
-        ++ python manage.py syncdb
-        ++ python manage.py runserver <ip>:<port>
-            eg python manage.py runserver 127.0.0.1:8000
 
-** Now to run the Ground station:
-    For commandline arguments:
-        Provide the address on which to connect to the DB provided by restAssured[See docs/dependencies]
-          + python station.py -p 8000 -i http://127.0.0.1
-            which is equivalent to 
-          + python station.py --port 8000 --ip http://127.0.0.1
+Run the tests
+-------------
+From the station directory, do:
+python3 test.py
 
-        For help with the arguments:
-            python station.py --help
-                Usage: station.py [options]
 
-                Options:
-                    -h, --help            show this help message and exit
-                    -i IP, --ip=IP        Port server is on
-                    -p PORT, --port=PORT  IP address db connects to
-                    -e, --eavsdropping    Turn on eavsdropping 
+Contributing
+------------
+A few notes about contributing:
 
-                * eavsdropping enables the ground station to become a mirror
-                  of snapshots of the database ie only synced data will be persistent
+* Please feel free to ask any question at any time.
+* Please feel free to ask for help.
+* Please follow pep8 for style: https://www.python.org/dev/peps/pep-0008/
+* Please run the tests and make sure they pass before commiting anything:
+  if the tests don't pass, it means you broke something somehow (or, someone 
+  else commited a break, in which case find who and get them to fix it).
