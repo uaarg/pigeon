@@ -15,9 +15,10 @@ def delete_file(location):
 
 class BaseWatcherTestCase(unittest.TestCase):
     grace_period = 0.01 # Time in seconds before the image watcher should have detected a new image
+    source_image = os.path.join(*["tests", "data", "images", "1.jpg"])
 
     def createFile(self, image_path):
-        open(image_path, "a").close()
+        shutil.copy(self.source_image, image_path)
 
 
 class WatcherTestCase(BaseWatcherTestCase):

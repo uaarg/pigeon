@@ -314,20 +314,6 @@ class AreaCalculationTests(BaseTestCase):
         """
         Tests that areas which cross the equator are handled correctly.
         """
-        locations = [Position(-0.01604936098212071, -50.66581007367251),
-                     Position(-0.01256420473522116, -50.65153429348242),
-                     Position(-0.007535324220401473, -50.6409805643024),
-                     Position( 0.005395914507239023, -50.64070177329288),
-                     Position( 0.01686381814129759, -50.66715824094524),
-                     Position(-0.001824446289355828, -50.64870274967773),
-                     Position(-0.01604936098212071, -50.66581007367251)]
-        calculated_area = PositionCollection(locations).area()
-        self.assertAlmostEqual(calculated_area, 3857566.39)
-
-    def testAreaEquator2(self):
-        """
-        Tests that areas which cross the equator are handled correctly.
-        """
         locations = [Position(0.0007322725219188839, -50.66495399830471),
                      Position(-0.00106961883117696, -50.66483373897671),
                      Position(-0.001109697280278675, -50.66303324085633),
