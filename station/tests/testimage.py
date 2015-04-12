@@ -15,10 +15,34 @@ def delete_file(location):
 
 class BaseWatcherTestCase(unittest.TestCase):
     grace_period = 0.01 # Time in seconds before the image watcher should have detected a new image
-    source_image = os.path.join(*["tests", "data", "images", "1.jpg"])
+    source_path = os.path.join(*["tests", "data", "images"])
+    source_name = "1"
+    image_extension = "jpg"
+    info_extension = "txt"
+    source_image = os.path.join(*[source_path, source_name + os.extsep + image_extension])
+    source_info = os.path.join(*[source_path, source_name + os.extsep + info_extension])
 
-    def createFile(self, image_path):
+    def createFile(self, path, binary=True):
+        """
+        Creates a file at the specified path. Can be a large, binary file
+        (default) or a small text file by specifying binary=False.
+        """
+        if binary:
+            shutil.copy(self.source_image, path)
+        else:
+            with open(path, "a") as f:
+                f.write("File created during unittest.")
+
+    def createImageInfoPair(self, path, name):
+        """
+        Creates an image and associated text file at the specified path 
+        with the specified name (name excludes exension).
+        """
+        image_path = os.path.join(*[path, name + os.extsep + self.image_extension])
+        info_path = os.path.join(*[path, name + os.extsep + self.info_extension])
         shutil.copy(self.source_image, image_path)
+        shutil.copy(self.source_info, info_path)
+        return image_path, info_path
 
 
 class WatcherTestCase(BaseWatcherTestCase):
@@ -57,8 +81,7 @@ class WatcherTestCase(BaseWatcherTestCase):
         the queue.
         """
         self.assertTrue(self.image_watcher.queue.empty(), msg="Queue should be empty before any images are added.")
-        image_path = self.makeFilePath("image1.jpg")
-        self.createFile(image_path)
+        image_path, info_path = self.createImageInfoPair(self.watched_directories[0], "1")
 
         found_image = self.getImageAndAssert()
 
@@ -66,6 +89,7 @@ class WatcherTestCase(BaseWatcherTestCase):
         self.assertTrue(self.image_watcher.queue.empty(), msg="Only one image should have been added to the queue.")
 
         self.assertTrue(os.path.samefile(image_path, found_image.path))
+        self.assertTrue(os.path.samefile(info_path, found_image.info_path))
 
     def testRandomFileAdded(self):
         """
@@ -73,7 +97,10 @@ class WatcherTestCase(BaseWatcherTestCase):
         """
 
         file_path = self.makeFilePath("debug.log")
-        self.createFile(file_path)
+        self.createFile(file_path, binary=False)
+
+        file_path = self.makeFilePath("binary_dump.bin")
+        self.createFile(file_path, binary=True)
 
         try:
             found_image = self.image_watcher.queue.get(True, self.grace_period)
@@ -87,16 +114,13 @@ class WatcherTestCase(BaseWatcherTestCase):
         Tests that the folder being monitored can be changed after
         initialization.
         """
-
-        image1_path = self.makeFilePath("image1.jpg")
-        self.createFile(image1_path)
+        image1_path, info1_path = self.createImageInfoPair(self.watched_directories[0], "image1")
 
         time.sleep(self.grace_period) # Giving the watcher time to find image1 before the watched directory is changed
 
         self.image_watcher.setDirectory(self.watched_directories[1])
 
-        image2_path = self.makeFilePath("image2.jpg", watched_directory_index=1)
-        self.createFile(image2_path)
+        image2_path, info2_path = self.createImageInfoPair(self.watched_directories[1], "image2")
 
         found_image_1 = self.getImageAndAssert()
         found_image_2 = self.getImageAndAssert()
@@ -110,12 +134,30 @@ class WatcherTestCase(BaseWatcherTestCase):
         added in a short amount of time.
         """
         number_of_images = 500
-        image_name = "image%s.jpg"
+
+        image_paths = []
 
         # Creating the image files
         for i in range(number_of_images):
-            self.createFile(self.makeFilePath(image_name % i))
+            image_path, info_path = self.createImageInfoPair(self.watched_directories[0], str(i))
+            image_paths.append(image_path)
 
         # Checking that the images added to the queue match what was created
         for i in range(number_of_images):
-            self.assertTrue(os.path.samefile(self.makeFilePath(image_name % i), self.getImageAndAssert().path))
+            self.assertTrue(os.path.samefile(image_paths[i], self.getImageAndAssert().path))
+
+    def testMissingInfo(self):
+        """
+        Tests that an image isn't added to the queue until it's corresponding
+        info file can be included with it.
+        """
+        file_path = self.makeFilePath("1.jpg")
+        self.createFile(file_path, binary=True)
+
+        try:
+            found_image = self.image_watcher.queue.get(True, self.grace_period)
+        except queue_module.Empty:
+            pass
+        else:
+            self.fail("Found %s after creating %s. Shouldn't have found anything since this an image file was created without the corresponding info file." % (found_image.path, file_path))
+
