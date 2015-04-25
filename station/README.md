@@ -20,7 +20,7 @@ Settings
     * Monitor Folder: This specified the directory to be watched for new images. Can be an absolute or relative path. No error checking is done on the path yet.
     * Follow Images: Specified whether new images should be automatically shown in the main display area upon addition.
 
-Thumnail Area
+Thumbnail Area
 -------------
 * Click on an image to select.
 * Use the left and right arrow keys to select the previous or next image.

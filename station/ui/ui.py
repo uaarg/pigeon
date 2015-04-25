@@ -146,6 +146,9 @@ class InfoArea(QtWidgets.QFrame):
 
 
 class MainImageArea(QtWidgets.QWidget):
+    image_clicked = QtCore.pyqtSignal(QtCore.QPoint)
+    image_right_clicked = QtCore.pyqtSignal(QtCore.QPoint)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -178,6 +181,19 @@ class MainImageArea(QtWidgets.QWidget):
     def showImage(self, image):
         self.image = image
         self.image_area.setPixmap(image.pixmap)
+
+    def mouseReleaseEvent(self, event):
+        """
+        Called by Qt when the user clicks on the image.
+
+        Emitting an image_right_clicked event with the point if it was a 
+        right click.
+        """
+        if event.button() == QtCore.Qt.LeftButton:
+            point = QtCore.QPoint(event.x(), event.y())
+            point = self.image_area.pointOnPixmap(point)
+            if point:
+                self.image_right_clicked.emit(point)
 
 
 class MarkerArea(QtWidgets.QFrame):

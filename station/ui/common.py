@@ -7,19 +7,32 @@ class PixmapLabel(QtWidgets.QLabel):
     inserted into it. Keeps the pixmap's aspect ratio constant.
     """
     def __init__(self, *args, **kwargs):
-        self.pixmap = kwargs.pop("pixmap", None)
+        self.original_pixmap = kwargs.pop("pixmap", None)
         super().__init__(*args, **kwargs)
 
     def __resize(self):
-        if self.pixmap:
-            super().setPixmap(self.pixmap.scaled(self.width(), self.height(), QtCore.Qt.KeepAspectRatio))
+        if self.original_pixmap:
+            super().setPixmap(self.original_pixmap.scaled(self.width(), self.height(), QtCore.Qt.KeepAspectRatio))
 
     def setPixmap(self, pixmap):
-        self.pixmap = pixmap
+        self.original_pixmap = pixmap
         self.__resize()
 
     def resizeEvent(self, resize_event):
         self.__resize()
+
+    def pointOnPixmap(self, point):
+        """
+        Given a point on this widget's parent, returns a QPoint 
+        object describing the location on the original pixmap (not 
+        the scaled version) at this point. Returns None if the click 
+        wasn't in the pixmap.
+        """
+        point = self.mapFromParent(point)
+        if point.x() < 0 or point.y() < 0 or point.x() > self.pixmap().width() or point.y() > self.pixmap().height():
+            return None
+        else:
+            return QtCore.QPoint(point.x() / self.pixmap().width() * self.original_pixmap.width(), point.y() / self.pixmap().height() * self.original_pixmap.height())
 
 
 class ScaledListWidget(QtWidgets.QListWidget):
