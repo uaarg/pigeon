@@ -5,6 +5,8 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
+from image import Image
+
 from .common import PixmapLabel, ScaledListWidget, QueueMixin
 
 THUMBNAIL_AREA_START_HEIGHT = 100
@@ -33,6 +35,12 @@ class UI(QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
 
         self.connectQueue(image_queue, self.addImage)
+
+        def print_image_clicked(image, point):
+            print("Point clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y())))
+
+        self.main_window.main_image_area.image_right_clicked.connect(print_image_clicked)
+        self.main_window.main_image_area.image_clicked.connect(print_image_clicked)
 
     def run(self):
         self.main_window.info_area.settings_area.settings_load_requested.emit()
@@ -106,9 +114,13 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def addImage(self, image):
-        image.pixmap = QtGui.QPixmap(image.path)
+        image.pixmap = QtGui.QPixmap(image.path) # Storing the pixmap in the image
         if image.pixmap.isNull():
             raise(ValueError("Failed to load image at %s" % image.path))
+
+        # Recording the width and height of the image for other code to use: 
+        image.width = image.pixmap.width()
+        image.height = image.pixmap.height()
 
         if self.settings_data.get("Follow Images", False) or not self.main_image_area.image:
             self.main_image_area.showImage(image)
@@ -146,8 +158,8 @@ class InfoArea(QtWidgets.QFrame):
 
 
 class MainImageArea(QtWidgets.QWidget):
-    image_clicked = QtCore.pyqtSignal(QtCore.QPoint)
-    image_right_clicked = QtCore.pyqtSignal(QtCore.QPoint)
+    image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
+    image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -189,11 +201,12 @@ class MainImageArea(QtWidgets.QWidget):
         Emitting an image_right_clicked event with the point if it was a 
         right click.
         """
-        if event.button() == QtCore.Qt.LeftButton:
-            point = QtCore.QPoint(event.x(), event.y())
-            point = self.image_area.pointOnPixmap(point)
-            if point:
-                self.image_right_clicked.emit(point)
+        point = QtCore.QPoint(event.x(), event.y())
+        point = self.image_area.pointOnPixmap(point)
+        if event.button() == QtCore.Qt.LeftButton and point:
+            self.image_clicked.emit(self.image, point)
+        if event.button() == QtCore.Qt.RightButton and point:
+            self.image_right_clicked.emit(self.image, point)
 
 
 class MarkerArea(QtWidgets.QFrame):

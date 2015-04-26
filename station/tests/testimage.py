@@ -13,14 +13,16 @@ def delete_file(location):
     except FileNotFoundError as e:
         pass
 
-class BaseWatcherTestCase(unittest.TestCase):
-    grace_period = 0.01 # Time in seconds before the image watcher should have detected a new image
+class BaseTestCase(unittest.TestCase):
     source_path = os.path.join(*["tests", "data", "images"])
     source_name = "1"
     image_extension = "jpg"
     info_extension = "txt"
     source_image = os.path.join(*[source_path, source_name + os.extsep + image_extension])
     source_info = os.path.join(*[source_path, source_name + os.extsep + info_extension])
+
+class BaseWatcherTestCase(BaseTestCase):
+    grace_period = 0.01 # Time in seconds before the image watcher should have detected a new image
 
     def createFile(self, path, binary=True):
         """
@@ -161,3 +163,38 @@ class WatcherTestCase(BaseWatcherTestCase):
         else:
             self.fail("Found %s after creating %s. Shouldn't have found anything since this an image file was created without the corresponding info file." % (found_image.path, file_path))
 
+class ImageTestCase(BaseTestCase):
+    def setUp(self):
+        class MockImage(image.Image):
+            def __init__(self):
+                pass
+
+        self.image = MockImage()
+        self.image.info_path = self.source_info
+
+
+    def testReadImage(self):
+        """
+        Tests that the data in an info file can be read properly.
+        """
+        try:
+            self.image._readInfo()
+        except Exception as e:
+            self.fail(msg="Exception raised while reading info image: %s" % e)
+
+        self.assertEqual(self.image.info_data["phi"], "4.56")
+        self.assertEqual(self.image.info_data["alt"], "610.75")
+        self.assertEqual(self.image.info_data["utm_east"],  "345120")
+
+    def testImageProperties(self):
+        """
+        Tests that the properties of an image can be prepared properly.
+        """
+        self.image._readInfo()
+        try:
+            self.image._prepareProperties()
+        except Exception as e:
+            self.fail(msg="Exception raised while preparing properties: %s" % e)
+
+        self.assertAlmostEqual(self.image.plane_position.alt, 610.75)
+        self.assertAlmostEqual(self.image.plane_orientation.pitch, 4.56)
