@@ -5,8 +5,11 @@ Provides tools for importing images.
 import pyinotify
 import queue
 import os
+import logging
 
 import geo
+
+logger = logging.getLogger(__name__)
 
 supported_image_formats = ["bmp", "gif", "jpg", "jpeg", "png", "pbm", "pgm", "ppm", "xbm", "xpm"]
 supported_info_formats = ["txt"]
@@ -58,7 +61,7 @@ class Image:
         missing_fields = [field for field in field_map.values() if field not in self.info_data.keys()]
 
         if len(missing_fields) != 0:
-            raise(Exception("Missing %s field(s) from info file while importing image %s." % (", ".join(missing_fields), self.name)))
+            raise(KeyError("Missing %s field(s) from info file." % ", ".join(missing_fields)))
 
         easting = float(self.info_data[field_map["easting"]])
         northing = float(self.info_data[field_map["northing"]])
@@ -119,12 +122,19 @@ class Watcher:
                 self.pending_infos = {} # For saving which info files don't have a corresponding image file yet
 
             def _createImage(self, filename, image_pathname, info_pathname):
-                new_image = Image(filename, image_pathname, info_pathname)
-                self.queue.put(new_image)
+                try:
+                    new_image = Image(filename, image_pathname, info_pathname)
+                except Exception as e:
+                    logger.error("Unable to import image %s: %s" % (filename, e))
+                else:
+                    logger.info("Imported image %s" % filename)
+                    self.queue.put(new_image)
 
             def process_IN_CLOSE_WRITE(self, event):
                 filename, extension = os.path.splitext(event.name)
                 extension = extension[1:]
+
+                logger.debug("New file: %s" % event.name)
 
                 # Matching image files with info files. Adding to the queue 
                 # when a match is made.
@@ -139,7 +149,11 @@ class Watcher:
                     if image_pathname:
                         self._createImage(filename, image_pathname, event.pathname)
                     else:
-                        self.pending_infos[filename] = event.pathname          
+                        self.pending_infos[filename] = event.pathname
+
+                if len(self.pending_images) > 1 or len(self.pending_infos) > 1:
+                    logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
+                    logger.debug("Pending image files: %s" % ", ".join(self.pending_images))
 
         handler = EventHandler(self.queue)
         self.notifier = pyinotify.ThreadedNotifier(self.watch_manager, handler)

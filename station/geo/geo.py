@@ -310,10 +310,12 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
 
     easting, northing, zone = float(easting), float(northing), int(zone)
     # Easting and Northing ranges from https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
-    if not (167000 < easting < 833000):
-        raise(ValueError("Easting value is out of bounds."))
-    if not (-9900000 < northing < 9400000):
-        raise(ValueError("Northing value is out of bounds."))
+    min_easting, max_easting = 167000, 833000
+    if not (min_easting < easting < max_easting):
+        raise(ValueError("Easting value of %s is out of bounds (%s to %s)." % (easting, min_easting, max_easting)))
+    min_northing, max_northing = -9900000, 9400000
+    if not (min_northing < northing < max_northing):
+        raise(ValueError("Northing value of %s is out of bounds (%s to %s)." % (northing, min_northing, max_northing)))
 
     if not (1 <= zone <= 60):
         raise(ValueError("Zone value of %s is out of bounds" % zone))
@@ -322,4 +324,3 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
 
     lon, lat = pr(easting, northing, inverse=True)
     return lat, lon
-

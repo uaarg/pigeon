@@ -4,9 +4,12 @@ Provides a way to save and restore user configuration/preferences.
 
 import os
 import json
+import logging
 
 location = os.path.join(*["data", "settings.json"])
 settings_data = {} # Global settings data.
+
+logger = logging.getLogger(__name__)
 
 def _update_global_dict(new_data):
     settings_data.clear()
@@ -25,6 +28,8 @@ def load():
     except FileNotFoundError:
         return None
 
+    logger.debug("Loaded settings.")
+
 def save(settings):
     """
     Saves provided dictionary of settings. Updates the dictionary
@@ -34,3 +39,5 @@ def save(settings):
     with open(location, "w") as settings_file:
         json.dump(settings, settings_file, indent=4)
     _update_global_dict(settings)
+    
+    logger.debug("Saved settings.")

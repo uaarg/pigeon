@@ -163,6 +163,29 @@ class WatcherTestCase(BaseWatcherTestCase):
         else:
             self.fail("Found %s after creating %s. Shouldn't have found anything since this an image file was created without the corresponding info file." % (found_image.path, file_path))
 
+    def testInvalidInfo(self):
+        """
+        Tests that an image isn't added to the queue if it's corresponding
+        info file isn't complete.
+        """
+        file_path = self.makeFilePath("1.jpg")
+        self.createFile(file_path, binary=True)
+
+        info_path = self.makeFilePath("1.txt")
+        with open(info_path, "a") as f:
+            f.write("phi= 12.34")
+            f.write("psi= -4.35")
+            f.write("theta= 87.12")
+                # Missing height field (and likely others)
+        try:
+            found_image = self.image_watcher.queue.get(True, self.grace_period)
+        except queue_module.Empty:
+            pass
+        else:
+            self.fail("Found %s after creating %s. Shouldn't have found anything since the info file didn't have all the required fields." % (found_image.path, file_path))
+
+
+
 class ImageTestCase(BaseTestCase):
     def setUp(self):
         class MockImage(image.Image):

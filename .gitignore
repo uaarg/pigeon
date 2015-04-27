@@ -5,3 +5,6 @@
 # Python
 *.py[cod]
 __pycache__/
+
+# Data
+*.log

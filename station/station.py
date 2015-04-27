@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import logging
+
+import log
 from ui import UI
 import image
 import settings
@@ -41,8 +44,15 @@ class GroundStation:
 
 
 def main():
+    log.initialize()
+    logger = logging.getLogger("station")
+    logger.info('\n')
+    logger.info('Started')
+
     ground_station = GroundStation()
     ground_station.run()
+
+    logger.info('Finished')
 
 if __name__ == '__main__':
     main()

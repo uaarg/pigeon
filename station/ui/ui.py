@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -8,6 +9,8 @@ translate = QtCore.QCoreApplication.translate
 from image import Image
 
 from .common import PixmapLabel, ScaledListWidget, QueueMixin
+
+logger = logging.getLogger(__name__)
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 50
@@ -37,7 +40,9 @@ class UI(QueueMixin):
         self.connectQueue(image_queue, self.addImage)
 
         def print_image_clicked(image, point):
-            print("Point clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y())))
+            string = "Point clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
+            print(string)
+            logger.info(string)
 
         self.main_window.main_image_area.image_right_clicked.connect(print_image_clicked)
         self.main_window.main_image_area.image_clicked.connect(print_image_clicked)
