@@ -54,9 +54,9 @@ class Image:
                      "zone": "utm_zone",
                      "height": "height",
                      "alt": "alt",
-                     "pitch": "phi",
-                     "roll": "psi",
-                     "yaw": "theta"}
+                     "pitch": "theta",
+                     "roll": "phi",
+                     "yaw": "psi"}
 
         missing_fields = [field for field in field_map.values() if field not in self.info_data.keys()]
 
@@ -71,6 +71,9 @@ class Image:
         pitch = float(self.info_data[field_map["pitch"]])
         roll = float(self.info_data[field_map["roll"]])
         yaw = float(self.info_data[field_map["yaw"]])
+
+        YAW_CORRECTION = 90
+        yaw += YAW_CORRECTION
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
