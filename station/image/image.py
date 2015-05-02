@@ -8,6 +8,7 @@ import os
 import logging
 
 import geo
+from exceptions import *
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,8 @@ class Image:
         self._readInfo()
         self._prepareProperties()
 
-        self.width = None # Will be set later
-        self.height = None # Will be set later
+        self.width = None # Automatically set later when image read
+        self.height = None # Automatically set later when  image read
         self.field_of_view_horiz = 30
         self.field_of_view_vert = 20
 
@@ -72,7 +73,15 @@ class Image:
         roll = float(self.info_data[field_map["roll"]])
         yaw = float(self.info_data[field_map["yaw"]])
 
-        YAW_CORRECTION = 90
+        # Check for values within defined ranges
+        if (pitch < -180 or pitch > 180):
+            raise(DataValidationException("Value of pitch from info file is out of range."))
+        if (roll < -180 or roll > 180):
+            raise(DataValidationException("Value of roll from info file is out of range."))
+        if (yaw < 0 or yaw > 360):
+            raise(DataValidationException("Value of yaw from info file is out of range."))
+
+        YAW_CORRECTION = 90 # Accounting for magnetometer offset from paparazzi
         yaw += YAW_CORRECTION
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
@@ -127,7 +136,7 @@ class Watcher:
             def _createImage(self, filename, image_pathname, info_pathname):
                 try:
                     new_image = Image(filename, image_pathname, info_pathname)
-                except Exception as e:
+                except (Exception, DataValidationException) as e:
                     logger.error("Unable to import image %s: %s" % (filename, e))
                 else:
                     logger.info("Imported image %s" % filename)
