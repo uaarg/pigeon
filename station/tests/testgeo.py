@@ -22,9 +22,12 @@ class BaseTestCase(unittest.TestCase):
         around 1/2 of a meter. Ignores altitude. Ignores height unless 
         check_height is specified as True.
         """
-        self.assertLatLonEqual(position1.latLon(), position2.latLon())
-        if check_height:
-            self.assertAlmostEqual(position1.height, position2.height, places=1)
+        if position1 is None or position2 is None:
+            self.assertEqual(position1, position2) # If both positions are None that counts as equal
+        else:
+            self.assertLatLonEqual(position1.latLon(), position2.latLon())
+            if check_height:
+                self.assertAlmostEqual(position1.height, position2.height, places=1)
 
 class UTMToDDTests(BaseTestCase):
     """
@@ -146,6 +149,42 @@ class GeoReferencingTests(BaseTestCase):
         self.correct_position = Position(53.634427, -113.285585)
         self.assertGeoReferencing()
 
+    def testOutOfBoundYaw(self):
+        """
+        Tests out of range yaw values (below 0, above 360, etc...).
+        Yaw value should be automatically adjusted to within range.
+        """
+        for offset in [-2, -1, 0, 1, 2]:
+            yaw = 234 + 360 * offset
+            self.orientation = Orientation(0, -45, yaw)
+            self.correct_position = Position(53.635153, -113.287985)
+            self.assertGeoReferencing()
+
+    def testOutOfBoundRoll(self):
+        """
+        Tests out of range roll values (below -180, above 180, etc...).
+        Roll value should be automatically adjusted to within range.
+        """
+        for offset in [-2, -1, 0, 1, 2]:
+            roll = -45 + 360 * offset
+            self.orientation = Orientation(0, roll, 234)
+            self.correct_position = Position(53.635153, -113.287985)
+            self.assertGeoReferencing()
+
+
+    def testPointInSky(self):
+        """
+        Tests if the roll or pitch value is above 90 degrees. This 
+        would mean the point to be geo-referenced is in the sky. So 
+        should be None.
+        """
+        self.orientation = Orientation(0, 91, 0)
+        self.correct_position = None
+        self.assertGeoReferencing()
+
+        self.orientation = Orientation(-91, 0, 0)
+        self.correct_position = None
+        self.assertGeoReferencing()
 
 
 class GeoReferencingCameraSpecsTests(BaseTestCase):

@@ -43,7 +43,8 @@ class Position:
         return output
 
     def __eq__(self, other):
-        return self.lat == other.lat and self.lon == other.lon and self.height == other.height and self.alt == other.alt
+        # Won't be equal if the other object doesn't have the required attributes.
+        return hasattr(other, "lat") and hasattr(other, "lon") and hasattr(other, "height") and hasattr(other, "alt") and self.lat == other.lat and self.lon == other.lon and self.height == other.height and self.alt == other.alt
 
     def latLon(self):
         return (self.lat, self.lon)
@@ -62,13 +63,20 @@ class Orientation:
         yaw - angle of the nose from true north along the horizontal (psi)
                 plane measured clockwise in degrees
         """
-        self.pitch = pitch
-        self.roll = roll
-        self.yaw = yaw
+        def normalize_angle(angle, mininum=0, maximum=360):
+            while angle >= maximum:
+                angle -= 360
+            while angle < mininum:
+                angle += 360
+            return angle
 
-        self.pitch_rad = radians(pitch)
-        self.roll_rad = radians(roll)
-        self.yaw_rad = radians(yaw)
+        self.pitch = normalize_angle(pitch, mininum=-180, maximum=180)
+        self.roll = normalize_angle(roll, mininum=-180, maximum=180)
+        self.yaw = normalize_angle(yaw)
+
+        self.pitch_rad = radians(self.pitch)
+        self.roll_rad = radians(self.roll)
+        self.yaw_rad = radians(self.yaw)
 
 class CameraSpecs:
     """
@@ -132,6 +140,10 @@ class GeoReference:
         pixel_y - pixel in the image at the point. Measured from bottom 
                 edge. Should be the same dimension as the image_height.
 
+        Returns None if the point is determined to not be on the ground.
+        Ex. if a point in the sky was clicked. This can happen if the 
+        effective pitch or roll is greater than 90 degrees.
+
         Algorithm described here: 
         sftp://uaargarchive@142.244.63.77/Upload/Ground Station Imaging/Geo-referencing Calculations
         https://drive.google.com/a/ualberta.ca/folderview?id=0BxmxpOgS5RpSbU1pWHN5dlBTelk&usp=sharing
@@ -146,6 +158,12 @@ class GeoReference:
         # Step 2: calculating effective pitch and roll
         pitch = orientation.pitch_rad + delta_theta_vert
         roll = orientation.roll_rad + delta_theta_horiz
+
+        positive_90 = radians(90)
+        negative_90 = -positive_90
+
+        if pitch >= positive_90 or pitch <= negative_90 or roll >= positive_90 or roll <= negative_90:
+            return None # Point is in the sky
 
         # Step 3: calculating level distance and angle to pixel
         distance_x = location.height * tan(pitch)

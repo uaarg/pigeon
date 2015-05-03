@@ -4,7 +4,6 @@ import shutil
 import time
 
 import image
-from exceptions import *
 
 import queue as queue_module
 
@@ -222,31 +221,3 @@ class ImageTestCase(BaseTestCase):
 
         self.assertAlmostEqual(self.image.plane_position.alt, 610.75)
         self.assertAlmostEqual(self.image.plane_orientation.pitch, 9.13)
-
-    def testImageDataValidation(self):
-        """
-        Tests that the range validation of the autopilot data is working properly.
-        """
-        source_path = os.path.join(*["tests", "data", "images"])
-        source_name = "27"
-        info_extension = "txt"
-        source_info = os.path.join(*[source_path, source_name + os.extsep + info_extension])
-
-        self.image.info_path = source_info
-
-        self.image._readInfo()
-        self.assertRaises(DataValidationException, self.image._prepareProperties)
-
-        # Now make sure we don't invalidate a good info file
-        source_name = "1"
-        source_info = os.path.join(*[source_path, source_name + os.extsep + info_extension])
-        self.image.info_path = source_info
-        self.image._readInfo()
-        try:
-            self.image._prepareProperties()
-        except Exception as e:
-            self.fail(msg="Exception raised while preparing properties for valid info file: %s" % e)
-
-        # Set file path back for base test case
-        self.image.info_path = self.source_info
-
