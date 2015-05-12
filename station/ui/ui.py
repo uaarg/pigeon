@@ -8,7 +8,7 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 
-from .common import PixmapLabel, ScaledListWidget, QueueMixin
+from .common import PixmapLabel, WidthForHeightPixmapLabel, ScaledListWidget, QueueMixin
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +238,7 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.settings_data = settings_data
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
-        size_policy.setHorizontalStretch(0)
+        size_policy.setHorizontalStretch(10)
         size_policy.setVerticalStretch(10)
         self.setSizePolicy(size_policy)
         self.setMinimumSize(QtCore.QSize(200, THUMBNAIL_AREA_MIN_HEIGHT))
@@ -249,6 +249,9 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.contents = ScaledListWidget()
         self.contents.setFlow(QtWidgets.QListWidget.LeftToRight)
         self.layout.addWidget(self.contents)
+
+        self.recent_image = WidthForHeightPixmapLabel()
+        self.layout.addWidget(self.recent_image)
 
         # self.setFrameShape(QtWidgets.QFrame.NoFrame)
 
@@ -270,6 +273,10 @@ class ThumbnailArea(QtWidgets.QWidget):
         if self.settings_data.get("Follow Images", False):
             item.setSelected(True)
             self.contents.scrollToItem(item)
+
+        self.recent_image.setPixmap(image.pixmap)
+        self.recent_image.image = image
+
 
 
 class SettingsArea(QtWidgets.QWidget):

@@ -1,25 +1,13 @@
 from PyQt5 import QtCore, QtWidgets
 import queue as queue_module
 
-class PixmapLabel(QtWidgets.QLabel):
+class BasePixmapLabel(QtWidgets.QLabel):
     """
-    Provides a QLabel widget which automatically scales a pixmap 
-    inserted into it. Keeps the pixmap's aspect ratio constant.
+    Base class for various Pixmap Label types.
     """
     def __init__(self, *args, **kwargs):
         self.original_pixmap = kwargs.pop("pixmap", None)
         super().__init__(*args, **kwargs)
-
-    def __resize(self):
-        if self.original_pixmap:
-            super().setPixmap(self.original_pixmap.scaled(self.width(), self.height(), QtCore.Qt.KeepAspectRatio))
-
-    def setPixmap(self, pixmap):
-        self.original_pixmap = pixmap
-        self.__resize()
-
-    def resizeEvent(self, resize_event):
-        self.__resize()
 
     def pointOnPixmap(self, point):
         """
@@ -33,6 +21,41 @@ class PixmapLabel(QtWidgets.QLabel):
             return None
         else:
             return QtCore.QPoint(point.x() / self.pixmap().width() * self.original_pixmap.width(), point.y() / self.pixmap().height() * self.original_pixmap.height())
+
+class PixmapLabel(BasePixmapLabel):
+    """
+    Provides a QLabel widget which automatically scales a pixmap 
+    inserted into it. Keeps the pixmap's aspect ratio constant.
+    """
+
+    def _resize(self):
+        if self.original_pixmap:
+            super().setPixmap(self.original_pixmap.scaled(self.width(), self.height(), QtCore.Qt.KeepAspectRatio))
+
+    def setPixmap(self, pixmap):
+        self.original_pixmap = pixmap
+        self._resize()
+
+    def resizeEvent(self, resize_event):
+        self._resize()
+
+class WidthForHeightPixmapLabel(BasePixmapLabel):
+    """
+    Provies a QLabel widget which automatically demands the required 
+    width needed to show it's pixmap at the provided height.
+    """
+    def _resize(self):
+        if self.original_pixmap:
+            pixmap = self.original_pixmap.scaledToHeight(self.height())
+            self.setMinimumWidth(pixmap.width())
+            super().setPixmap(pixmap)
+
+    def resizeEvent(self, resize_event):
+        self._resize()
+
+    def setPixmap(self, pixmap):
+        self.original_pixmap = pixmap
+        self._resize()
 
 
 class ScaledListWidget(QtWidgets.QListWidget):
