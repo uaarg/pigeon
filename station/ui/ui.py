@@ -2,6 +2,7 @@
 
 import sys
 import logging
+import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -9,6 +10,7 @@ translate = QtCore.QCoreApplication.translate
 from image import Image
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, ScaledListWidget, QueueMixin
+from .style import stylesheet
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ class UI(QueueMixin):
         self.settings_data = load_settings()
 
         self.app = QtWidgets.QApplication(sys.argv)
+        self.app.setStyleSheet(stylesheet)
         self.main_window = MainWindow(self.settings_data)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
@@ -61,6 +64,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, settings_data={}):
         super().__init__()
         self.settings_data = settings_data
+
+        # State
+        self.current_image = None
 
         # Defining window properties
         self.setObjectName("main_window")
@@ -100,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
         # Hooking up some inter-component benhaviour
-        self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.main_image_area.showImage(new_item.image)) # Show the image that's selected
+        self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
 
         # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
         # self.menubar = QtWidgets.QMenuBar(self)
@@ -127,12 +133,18 @@ class MainWindow(QtWidgets.QMainWindow):
         image.width = image.pixmap.width()
         image.height = image.pixmap.height()
 
-        if self.settings_data.get("Follow Images", False) or not self.main_image_area.image:
-            self.main_image_area.showImage(image)
+        if self.settings_data.get("Follow Images", False) or not self.current_image:
+            self.showImage(image)
         self.thumbnail_area.addImage(image)
+        self.info_area.addImage(image)
 
     def setSettings(self, settings_data):
         return self.info_area.setSettings(settings_data)
+
+    def showImage(self, image):
+        self.current_image = image
+        self.main_image_area.showImage(image)
+        self.info_area.showImage(image)
 
 class InfoArea(QtWidgets.QFrame):
     def __init__(self, *args, settings_data={}, **kwargs):
@@ -148,18 +160,56 @@ class InfoArea(QtWidgets.QFrame):
         self.setFrameShadow(QtWidgets.QFrame.Raised)
         self.setObjectName("info_area")
 
-        self.title = QtWidgets.QLabel(self)
-        self.title.setText(translate("InfoArea", "Info Area"))
-
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.settings_area = SettingsArea(self)
+        self.image_info_area = ImageInfoArea(self)
+        self.state_area = StateArea(self)
 
-        self.layout.addWidget(self.title)
+        self.layout.addWidget(self.state_area)
+        self.layout.addWidget(self.image_info_area)
         self.layout.addWidget(self.settings_area)
+
+        self.last_image_time = None
+
+        # Starting a timer to update data every second
+        self._updateInfo()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self._updateInfo)
+        self.timer.start(1000)
 
     def setSettings(self, settings_data):
         return self.settings_area.setSettings(settings_data)
+
+    def showImage(self, image):
+        """
+        Updates the info area with data about the image being shown.
+        """
+        data = [("Image Name", image.name),
+                ("Height", image.plane_position.disp_height()),
+                ("Pitch", image.plane_orientation.disp_pitch()),
+                ("Roll", image.plane_orientation.disp_roll()),
+                ("Yaw", image.plane_orientation.disp_yaw()),]
+        self.image_info_area.updateData(data)
+
+    def addImage(self, image):
+        """
+        Just keeping track of when the last image was added.
+        """
+        self.last_image_time = datetime.datetime.now()
+
+    def _updateInfo(self):
+        """
+        Update the state information.
+        """
+        if self.last_image_time:
+            timedelta = datetime.datetime.now() - self.last_image_time
+            last_image_time_ago = "%s s" % int(timedelta.total_seconds())
+        else:
+            last_image_time_ago = "(none received)"
+
+        data = [("Time since last image", last_image_time_ago),]
+        self.state_area.updateData(data)
 
 
 class MainImageArea(QtWidgets.QWidget):
@@ -277,7 +327,74 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.recent_image.setPixmap(image.pixmap)
         self.recent_image.image = image
 
+class BaseListForm(QtWidgets.QWidget):
+    """
+    Provides a simple list of textual information that can be updated
+    programatically.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+        self.setObjectName("state_area")
+
+        title = self._title()
+        if title:
+            self.title = QtWidgets.QLabel(self)
+            self.title.setText(translate(self.__class__.__name__, title))
+        else:
+            self.title = None
+
+        self.layout = QtWidgets.QGridLayout(self)
+
+        self.layout.addWidget(self.title, 0, 0, 1, 2)
+
+        self.fields = None
+
+    def _createFields(self, data):
+        """
+        Creates the UI elements to display the data.
+        """
+        self.fields = {}
+
+        for (i, (field_name, field_value)) in enumerate(data):
+            label = QtWidgets.QLabel(self)
+            label.setText(translate(self.__class__.__name__, field_name))
+
+            value = QtWidgets.QLineEdit(self)
+            value.setReadOnly(True)
+            value.setText(str(field_value))
+
+            self.layout.addWidget(label, i+1, 0, 1, 1)
+            self.layout.addWidget(value, i+1, 1, 1, 1)
+
+            self.fields[field_name] = (label, value)
+
+    def updateData(self, data):
+        """
+        data should be a list of tuples. The first element of tuple
+        will be used as the field name and the second as the field
+        value.
+
+        The fiels names should be unique and the same field names
+        should be provided each time.
+        """
+        if not self.fields:
+            self._createFields(data)
+
+        if not data:
+            return
+
+        for field_name, field_value in data:
+            label, value = self.fields[field_name]
+            value.setText(str(field_value))
+
+class ImageInfoArea(BaseListForm):
+    def _title(self):
+        return "Image:"
+
+class StateArea(BaseListForm):
+    def _title(self):
+        return "State:"
 
 class SettingsArea(QtWidgets.QWidget):
     """

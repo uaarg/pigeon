@@ -6,17 +6,18 @@ as if it were the plane. Provides:
 * Puts images into the monitored folder.
 """
 
+from __future__ import division
+
 import os
 import shutil
 import glob
 import time
+import sys
 
 image_source_location = os.path.join(*["data", "images"])
 image_destination_location = os.path.join(*[os.pardir, "station", "data", "images"])
 image_name_format = "%s.jpg"
 info_name_format = "%s.txt"
-
-image_transmission_rate = 0.5 # Images per second
 
 def image_to_info(image_path):
     """
@@ -30,7 +31,7 @@ class UavImaging():
         self.output_images = []
         self.input_image_index = 0
         self.output_image_index = 1
-    def run(self):
+    def run(self, transmission_rate=0.5):
         try:
             while True:
                 print("Transmitting image %s..." % self.output_image_index)
@@ -46,7 +47,7 @@ class UavImaging():
 
                 self.output_image_index += 1
 
-                time.sleep(1/image_transmission_rate)
+                time.sleep(1/transmission_rate)
 
         except KeyboardInterrupt:
             print("\nCleanup up...")
@@ -58,5 +59,10 @@ class UavImaging():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        transmission_rate = float(sys.argv[1])
+    else:
+        transmission_rate = 0.5
+
     uav_imaging = UavImaging()
-    uav_imaging.run()
+    uav_imaging.run(transmission_rate=transmission_rate)

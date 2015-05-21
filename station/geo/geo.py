@@ -49,6 +49,12 @@ class Position:
     def latLon(self):
         return (self.lat, self.lon)
 
+    def disp_height(self):
+        """
+        Returns the height in a format suitable for display.
+        """
+        return "%s m" % int(self.height)
+
 
 class Orientation:
     """
@@ -77,6 +83,24 @@ class Orientation:
         self.pitch_rad = radians(self.pitch)
         self.roll_rad = radians(self.roll)
         self.yaw_rad = radians(self.yaw)
+
+    def disp_pitch(self):
+        """
+        Returns the pitch in a format suitable for display.
+        """
+        return "%s \N{DEGREE SIGN}" % int(self.pitch)
+
+    def disp_roll(self):
+        """
+        Returns the roll in a format suitable for display.
+        """
+        return "%s \N{DEGREE SIGN}" % int(self.roll)
+
+    def disp_yaw(self):
+        """
+        Returns the yaw in a format suitable for display.
+        """
+        return "%s \N{DEGREE SIGN}" % int(self.yaw)
 
 class CameraSpecs:
     """
