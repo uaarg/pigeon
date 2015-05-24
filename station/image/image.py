@@ -97,12 +97,23 @@ class Image:
     def geoReferencePoint(self, pixel_x, pixel_y):
         """
         Determines the position of the location on the ground visible
-        at pixel
+        at pixel.
         """
         if not self.georeference:
             self._prepareGeo()
 
         return self.georeference.pointInImage(self.plane_position, self.plane_orientation, pixel_x, pixel_y)
+
+    def getPlanePlumbPixel(self):
+        """
+        Returns a tuple of the x and y values of the pixel corresponding
+        to the point in the image that's located directly below the plane.
+
+        Returns None, None if the point isn't in the image.
+        """
+        if not self.georeference:
+            self._prepareGeo()
+        return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
 
 class Watcher:

@@ -9,10 +9,12 @@ Covers:
 from math import *
 from statistics import mean
 import collections
+import copy
 
 import pyproj
 from shapely.geometry import shape, Polygon
 
+geod = pyproj.Geod(ellps="WGS84") # WGS84 is the datum used by GPS
 
 class Position:
     """
@@ -41,6 +43,9 @@ class Position:
             output += " alt=%s" % self.alt
 
         return output
+
+    def __copy__(self):
+        return Position(self.lat, self.lon, self.height, self.alt)
 
     def __eq__(self, other):
         # Won't be equal if the other object doesn't have the required attributes.
@@ -84,23 +89,26 @@ class Orientation:
         self.roll_rad = radians(self.roll)
         self.yaw_rad = radians(self.yaw)
 
+    def __str__(self):
+        return "pitch: %s\N{DEGREE SIGN}, roll: %s\N{DEGREE SIGN}, yaw: %s\N{DEGREE SIGN}" % (self.pitch, self.roll, self.yaw)
+
     def disp_pitch(self):
         """
         Returns the pitch in a format suitable for display.
         """
-        return "%s \N{DEGREE SIGN}" % int(self.pitch)
+        return "%s\N{DEGREE SIGN}" % int(self.pitch)
 
     def disp_roll(self):
         """
         Returns the roll in a format suitable for display.
         """
-        return "%s \N{DEGREE SIGN}" % int(self.roll)
+        return "%s\N{DEGREE SIGN}" % int(self.roll)
 
     def disp_yaw(self):
         """
         Returns the yaw in a format suitable for display.
         """
-        return "%s \N{DEGREE SIGN}" % int(self.yaw)
+        return "%s\N{DEGREE SIGN}" % int(self.yaw)
 
 class CameraSpecs:
     """
@@ -127,6 +135,9 @@ class CameraSpecs:
         # Used repeatedly in calculations so pre-calculating result for speed
         self.tan_angle_div_2_horiz = tan(self.field_of_view_horiz_rad/2)
         self.tan_angle_div_2_vert = tan(self.field_of_view_vert_rad/2)
+
+    def __str__(self):
+        return "%s by %s with %s\N{DEGREE SIGN} by %s\N{DEGREE SIGN}" % (self.image_width, self.image_height, self.field_of_view_horiz, self.field_of_view_vert)
 
 
 class GeoReference:
@@ -173,9 +184,12 @@ class GeoReference:
         https://drive.google.com/a/ualberta.ca/folderview?id=0BxmxpOgS5RpSbU1pWHN5dlBTelk&usp=sharing
         """
 
+        if location.height <= 0:
+            return None # Can't geo-reference if the plane isn't above the ground
+
         camera = self.camera
 
-        # Step 1: claculating angle offsets of pixel selected
+        # Step 1: calculating angle offsets of pixel selected
         delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) * camera.tan_angle_div_2_horiz)
         delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) * camera.tan_angle_div_2_vert)
 
@@ -199,13 +213,68 @@ class GeoReference:
         # Step 4: calculating angle from north to pixel
         forward_azimuth = phi + orientation.yaw_rad
 
-        # Step 5: claculating endpoint using pyproj GIS module
-        geod = pyproj.Geod(ellps="WGS84")
+        # Step 5: calculating endpoint using pyproj GIS module
         pixel_lon, pixel_lat, back_azimuth = geod.fwd(location.lon, location.lat, degrees(forward_azimuth), distance)
 
         # print("pointInImage - distance: %.1f, bearing: %.1f, result: %.6f, %.6f" % (distance, degrees(forward_azimuth), pixel_lat, pixel_lon))
 
         return Position(pixel_lat, pixel_lon)
+
+    def pointBelowPlane(self, plane_location, orientation):
+        """
+        Calculates and returns the position (pixel_x and pixel_y) of
+        the location on the earth directly below the plane.
+        """
+        point_location = copy.copy(plane_location)
+        point_location.height = 0
+        return self.pointOnImage(plane_location, orientation, point_location)
+
+    def pointOnImage(self, plane_location, orientation, point_location):
+        """
+        Calculates and returns the position (pixel_x and pixel_y) in the
+        image of the point at the specified location. The plane location
+        and orientation at the time the image was taken should be 
+        provided as Location and Orientation objects.
+
+        Returns a tuple of two None's if the point is determiend to not be
+        in the image.
+
+        The point's location doesn't have to be on the earth: objects 
+        above the ground can be located in the image too.
+
+        If the point's height is None, it's taken to be 0: on the earth.
+        If the point's height is 0 (or None), then this function is the 
+        inverse of pointInImage().
+        """
+
+        if plane_location.height <= 0:
+            return None, None # Can't geo-reference if the plane isn't above the ground
+
+        camera = self.camera
+
+        forward_azimuth, back_azimuth, distance = geod.inv(plane_location.lon, plane_location.lat, point_location.lon, point_location.lat)
+        forward_azimuth = radians(forward_azimuth)
+        back_azimuth = radians(back_azimuth)
+
+        phi = forward_azimuth - orientation.yaw_rad
+
+        distance_x = distance*cos(phi)
+        distance_y = distance*sin(phi)
+
+        pitch = atan2(distance_x, plane_location.height - (point_location.height or 0))
+        roll = -atan2(distance_y, plane_location.height - (point_location.height or 0))
+
+        delta_theta_vert = pitch - orientation.pitch_rad
+        delta_theta_horiz = roll - orientation.roll_rad
+
+        pixel_x = (tan(delta_theta_horiz) / camera.tan_angle_div_2_horiz + 1) * camera.image_width / 2
+        pixel_y = (tan(delta_theta_vert) / camera.tan_angle_div_2_vert + 1) * camera.image_height / 2
+
+        # print("Internal pixel_x, pixel_y: %s, %s" % (pixel_x, pixel_y))
+        if pixel_x < 0 or pixel_x >= camera.image_width or pixel_y < 0 or pixel_y >= camera.image_height:
+            return None, None
+
+        return pixel_x, pixel_y
 
 
 class PositionCollection:
@@ -270,7 +339,6 @@ class PositionCollection:
             raise(ValueError("Both include_height and include_alt specified. Must pick only one or neither."))
 
         length = 0
-        geod = pyproj.Geod(ellps="WGS84")
         for i, position in enumerate(positions):
             if i == 0:
                 continue

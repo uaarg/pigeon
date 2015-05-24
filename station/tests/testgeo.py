@@ -1,4 +1,5 @@
 import unittest
+import itertools
 
 from geo import utm_to_DD, Position, Orientation, CameraSpecs, GeoReference, PositionCollection
 
@@ -121,12 +122,12 @@ class GeoReferencingTests(BaseTestCase):
 
     def testSimple45Roll(self):
         self.orientation = Orientation(0, 45, 0)
-        self.correct_position = Position(53.634427, -113.288608)
+        self.correct_position = Position(53.634426, -113.288608)
         self.assertGeoReferencing()
 
     def testNegative45Roll(self):
         self.orientation = Orientation(0, -45, 0)
-        self.correct_position = Position(53.634427, -113.285585)
+        self.correct_position = Position(53.634426, -113.285585)
         self.assertGeoReferencing()
 
     def test45Roll234Yaw(self):
@@ -146,7 +147,7 @@ class GeoReferencingTests(BaseTestCase):
 
     def test45Pitch90Yaw(self):
         self.orientation = Orientation(45, 0, 90)
-        self.correct_position = Position(53.634427, -113.285585)
+        self.correct_position = Position(53.634426, -113.285585)
         self.assertGeoReferencing()
 
     def testOutOfBoundYaw(self):
@@ -238,6 +239,54 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
         self.correct_position = Position(53.6359816, -113.287097)
 
         self.assertGeoReferencing()
+
+class InverseGeoreferencingTests(BaseTestCase):
+    """
+    Tests the inverse geo-referencing algorithm (determining the pixel
+    in the image of a location on the earth).
+    """
+
+    def assertAlmostEqual(self, *args, **kwargs):
+        kwargs["places"] = 0 # Don't need sub-pixel accuracy
+        super().assertAlmostEqual(*args, **kwargs)
+
+    def testSimple45Roll(self):
+        """
+        Tests a simple, specific case.
+        """
+        camera = CameraSpecs(1000, 500, 30, 15)
+        plane_position = Position(53.634426, -113.287097, 100)
+        plane_orientation = Orientation(0, 45, 0)
+        point_position = Position(53.634426, -113.288608)
+
+        geo_reference = GeoReference(camera)
+
+        pixel_x, pixel_y = geo_reference.pointOnImage(plane_position, plane_orientation, point_position)
+
+        self.assertAlmostEqual(camera.image_width/2, pixel_x)
+        self.assertAlmostEqual(camera.image_height/2, pixel_y)
+
+    def testInverse(self):
+        """
+        Tests lots of input permutations by ensuring pointOnImage() 
+        is the inverse of pointInImage().
+        """
+        cameras = [CameraSpecs(1000, 500, 30, 15), CameraSpecs(400, 400, 50, 50)]
+        plane_positions = [Position(53.634426, -113.287097, 100), Position(-33.849525, 151.226451, 200), Position(0, 0, 50)]
+        plane_orientations = [Orientation(0, 45, 0), Orientation(10, 10, 0), Orientation(30, 40, 300)]
+
+        for camera, plane_position, plane_orientation in itertools.product(cameras, plane_positions, plane_orientations):
+            geo_reference = GeoReference(camera)
+            for pixel_x, pixel_y in [(5, 10), (camera.image_width*0.1, camera.image_height*0.3), (camera.image_width/2, camera.image_height/2)]:
+                point_position = geo_reference.pointInImage(plane_position, plane_orientation, pixel_x, pixel_y)
+                calculated_pixel_x, calculated_pixel_y = geo_reference.pointOnImage(plane_position, plane_orientation, point_position)
+
+                msg = "For camera=%s, plane_position=%s, plane_orientation=%s, pixel_x=%s, pixel_y=%s. point_position was %s" % (camera, plane_position, plane_orientation, pixel_x, pixel_y, point_position)
+                self.assertNotEqual(calculated_pixel_x, None, msg=msg)
+                self.assertNotEqual(calculated_pixel_y, None, msg=msg)
+                self.assertAlmostEqual(pixel_x, calculated_pixel_x, msg=msg)
+                self.assertAlmostEqual(pixel_y, calculated_pixel_y, msg=msg)
+
 
 class AreaCalculationTests(BaseTestCase):
     """

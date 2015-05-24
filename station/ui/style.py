@@ -15,4 +15,9 @@ ScaledListWidget
     background-color: #F2F1F0;
 }
 
+BoldQLabel
+{
+    font: bold;
+}
+
 """

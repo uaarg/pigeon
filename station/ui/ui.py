@@ -9,7 +9,7 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 
-from .common import PixmapLabel, WidthForHeightPixmapLabel, ScaledListWidget, QueueMixin
+from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, ScaledListWidget, QueueMixin
 from .style import stylesheet
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
-        self.main_image_area = MainImageArea(self.main_horizontal_split)
+        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data)
         self.marker_area = MarkerArea(self.main_horizontal_split)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
@@ -171,6 +171,7 @@ class InfoArea(QtWidgets.QFrame):
         self.layout.addWidget(self.settings_area)
 
         self.last_image_time = None
+        self.image_count = 0
 
         # Starting a timer to update data every second
         self._updateInfo()
@@ -194,9 +195,12 @@ class InfoArea(QtWidgets.QFrame):
 
     def addImage(self, image):
         """
-        Just keeping track of when the last image was added.
+        Keeping track of when the last image was added and updating
+        info as needed.
         """
         self.last_image_time = datetime.datetime.now()
+        self.image_count += 1
+        self._updateInfo()
 
     def _updateInfo(self):
         """
@@ -208,7 +212,8 @@ class InfoArea(QtWidgets.QFrame):
         else:
             last_image_time_ago = "(none received)"
 
-        data = [("Time since last image", last_image_time_ago),]
+        data = [("Image Count", self.image_count),
+                ("Time since last image", last_image_time_ago),]
         self.state_area.updateData(data)
 
 
@@ -216,8 +221,9 @@ class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
+        self.settings_data = settings_data
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
@@ -245,9 +251,34 @@ class MainImageArea(QtWidgets.QWidget):
 
         self.image = None
 
+        # Plumbline marker (showing where directly below the plane is):
+        self.plumbline = None
+
     def showImage(self, image):
         self.image = image
         self.image_area.setPixmap(image.pixmap)
+
+        if self.settings_data.get("Plane Plumbline", True):
+            self._drawPlanePlumb()
+        elif self.plumbline:
+            self.plumbline.hide()
+
+    def _drawPlanePlumb(self):
+        """
+        Draw a little plane icon on the image at the point directly 
+        below the plane.
+        """
+        if not self.plumbline:
+            self.plumbline = PixmapLabelMarker(self, "ui/icons/airplane.svg")
+            self.image_area.addPixmapLabelFeature(self.plumbline)
+
+        pixel_x, pixel_y = self.image.getPlanePlumbPixel()
+        if pixel_x and pixel_y:
+            point = QtCore.QPoint(pixel_x, pixel_y)
+            self.plumbline.moveTo(point)
+            self.plumbline.show()
+        else:
+            self.plumbline.hide()
 
     def mouseReleaseEvent(self, event):
         """
@@ -339,7 +370,7 @@ class BaseListForm(QtWidgets.QWidget):
 
         title = self._title()
         if title:
-            self.title = QtWidgets.QLabel(self)
+            self.title = BoldQLabel(self)
             self.title.setText(translate(self.__class__.__name__, title))
         else:
             self.title = None
@@ -420,7 +451,7 @@ class SettingsArea(QtWidgets.QWidget):
         # self.setFrameShadow(QtWidgets.QFrame.Raised)
         self.setObjectName("settings_area")
 
-        self.title = QtWidgets.QLabel(self)
+        self.title = BoldQLabel(self)
         self.title.setText(translate("SettingsArea", "Settings:"))
 
         self.layout = QtWidgets.QGridLayout(self)
