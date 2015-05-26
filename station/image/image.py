@@ -25,8 +25,8 @@ class Image:
 
         self.width = None # Automatically set later when image read
         self.height = None # Automatically set later when  image read
-        self.field_of_view_horiz = 30
-        self.field_of_view_vert = 20
+        self.field_of_view_horiz = 58.2
+        self.field_of_view_vert = 44.5
 
 
         self.georeference = None

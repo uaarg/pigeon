@@ -74,15 +74,15 @@ class Orientation:
         yaw - angle of the nose from true north along the horizontal (psi)
                 plane measured clockwise in degrees
         """
-        def normalize_angle(angle, mininum=0, maximum=360):
+        def normalize_angle(angle, mininum=-180, maximum=180):
             while angle >= maximum:
                 angle -= 360
             while angle < mininum:
                 angle += 360
             return angle
 
-        self.pitch = normalize_angle(pitch, mininum=-180, maximum=180)
-        self.roll = normalize_angle(roll, mininum=-180, maximum=180)
+        self.pitch = normalize_angle(pitch)
+        self.roll = normalize_angle(roll)
         self.yaw = normalize_angle(yaw)
 
         self.pitch_rad = radians(self.pitch)
