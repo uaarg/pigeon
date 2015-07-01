@@ -6,15 +6,19 @@ import log
 from ui import UI
 import image
 import settings
+import features
 
 class GroundStation:
     def __init__(self):
         super().__init__()
         self.image_watcher = image.Watcher()
 
+        ground_control_points = features.load_ground_control_points()
+
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
-                     image_queue=self.image_watcher.queue)
+                     image_queue=self.image_watcher.queue,
+                     ground_control_points=ground_control_points)
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:

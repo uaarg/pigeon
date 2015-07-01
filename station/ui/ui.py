@@ -11,6 +11,7 @@ from image import Image
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, ScaledListWidget, QueueMixin
 from .style import stylesheet
+from ui import icons
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +30,13 @@ class UI(QueueMixin):
     implemented. Or, more likely: a mock UI instance could be used in
     unit testing for easy testing of the rest of the application.
     """
-    def __init__(self, save_settings, load_settings, image_queue):
+    def __init__(self, save_settings, load_settings, image_queue, ground_control_points=[]):
         super().__init__()
         self.settings_data = load_settings()
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data)
+        self.main_window = MainWindow(self.settings_data, ground_control_points)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
@@ -61,7 +62,7 @@ class UI(QueueMixin):
         
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings_data={}):
+    def __init__(self, settings_data={}, ground_control_points=[]):
         super().__init__()
         self.settings_data = settings_data
 
@@ -101,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
-        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data)
+        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, ground_control_points=ground_control_points)
         self.marker_area = MarkerArea(self.main_horizontal_split)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
@@ -187,10 +188,11 @@ class InfoArea(QtWidgets.QFrame):
         Updates the info area with data about the image being shown.
         """
         data = [("Image Name", image.name),
-                ("Height", image.plane_position.disp_height()),
-                ("Pitch", image.plane_orientation.disp_pitch()),
-                ("Roll", image.plane_orientation.disp_roll()),
-                ("Yaw", image.plane_orientation.disp_yaw()),]
+                ("Height", image.plane_position.dispHeight()),
+                ("Pitch", image.plane_orientation.dispPitch()),
+                ("Roll", image.plane_orientation.dispRoll()),
+                ("Yaw", image.plane_orientation.dispYaw()),
+                ("Plane Position", image.plane_position.dispLatLon()),]
         self.image_info_area.updateData(data)
 
     def addImage(self, image):
@@ -221,9 +223,10 @@ class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
 
-    def __init__(self, *args, settings_data={}, **kwargs):
+    def __init__(self, *args, settings_data={}, ground_control_points=[], **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
+        self.ground_control_points = ground_control_points
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
@@ -254,7 +257,12 @@ class MainImageArea(QtWidgets.QWidget):
         # Plumbline marker (showing where directly below the plane is):
         self.plumbline = None
 
+        # Ground Control Points as drawn:
+        self.ground_control_point_pixmap_label_markers = []
+
     def showImage(self, image):
+        self._clearGroundControlPoints()
+
         self.image = image
         self.image_area.setPixmap(image.pixmap)
 
@@ -263,13 +271,15 @@ class MainImageArea(QtWidgets.QWidget):
         elif self.plumbline:
             self.plumbline.hide()
 
+        self._drawGroundControlPoints()
+
     def _drawPlanePlumb(self):
         """
         Draw a little plane icon on the image at the point directly 
         below the plane.
         """
         if not self.plumbline:
-            self.plumbline = PixmapLabelMarker(self, "ui/icons/airplane.svg")
+            self.plumbline = PixmapLabelMarker(self.image_area, icons.airplane)
             self.image_area.addPixmapLabelFeature(self.plumbline)
 
         pixel_x, pixel_y = self.image.getPlanePlumbPixel()
@@ -280,6 +290,30 @@ class MainImageArea(QtWidgets.QWidget):
         else:
             self.plumbline.hide()
 
+    def _clearGroundControlPoints(self):
+        for pixmap_label_marker in self.ground_control_point_pixmap_label_markers:
+            pixmap_label_marker.deleteLater()
+        self.ground_control_point_pixmap_label_markers = []
+
+    def _drawGroundControlPoints(self):
+        """
+        Draw a little point on the image for all the ground control points
+        that are located in the image.
+        """
+
+        for ground_control_point in self.ground_control_points:
+            pixel_x, pixel_y = self.image.invGeoReferencePoint(ground_control_point.position)
+            if pixel_x and pixel_y:
+                point = QtCore.QPoint(pixel_x, pixel_y)
+                pixmap_label_marker = PixmapLabelMarker(self, icons.ground_control_point, (10, 10))
+                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+                pixmap_label_marker.moveTo(point)
+                pixmap_label_marker.show()
+
+                self.ground_control_point_pixmap_label_markers.append(pixmap_label_marker)
+
+
+
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user clicks on the image.
@@ -288,7 +322,7 @@ class MainImageArea(QtWidgets.QWidget):
         right click.
         """
         point = QtCore.QPoint(event.x(), event.y())
-        point = self.image_area.pointOnPixmap(point)
+        point = self.image_area.pointOnOriginal(point)
         if event.button() == QtCore.Qt.LeftButton and point:
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:

@@ -34,13 +34,13 @@ class Position:
         self.alt = alt
 
     def __str__(self):
-        output = "(%s, %s)" % (self.lat, self.lon)
+        output = "(%.6f, %.6f)" % (self.lat, self.lon)
 
         if self.height != 0:
-            output += " height=%s" % self.height
+            output += " height=%.0f" % self.height
 
         if self.alt is not None:
-            output += " alt=%s" % self.alt
+            output += " alt=%.0f" % self.alt
 
         return output
 
@@ -54,11 +54,18 @@ class Position:
     def latLon(self):
         return (self.lat, self.lon)
 
-    def disp_height(self):
+    def dispHeight(self):
         """
         Returns the height in a format suitable for display.
         """
-        return "%s m" % int(self.height)
+        return "%.0f m" % int(self.height)
+
+    def dispLatLon(self):
+        """
+        Returns the latitude and longitude in a format suitable for 
+        display.
+        """
+        return "%.6f, %.6f" % (self.lat, self.lon)
 
 
 class Orientation:
@@ -83,7 +90,7 @@ class Orientation:
 
         self.pitch = normalize_angle(pitch)
         self.roll = normalize_angle(roll)
-        self.yaw = normalize_angle(yaw)
+        self.yaw = normalize_angle(yaw, 0, 360)
 
         self.pitch_rad = radians(self.pitch)
         self.roll_rad = radians(self.roll)
@@ -92,19 +99,19 @@ class Orientation:
     def __str__(self):
         return "pitch: %s\N{DEGREE SIGN}, roll: %s\N{DEGREE SIGN}, yaw: %s\N{DEGREE SIGN}" % (self.pitch, self.roll, self.yaw)
 
-    def disp_pitch(self):
+    def dispPitch(self):
         """
         Returns the pitch in a format suitable for display.
         """
         return "%s\N{DEGREE SIGN}" % int(self.pitch)
 
-    def disp_roll(self):
+    def dispRoll(self):
         """
         Returns the roll in a format suitable for display.
         """
         return "%s\N{DEGREE SIGN}" % int(self.roll)
 
-    def disp_yaw(self):
+    def dispYaw(self):
         """
         Returns the yaw in a format suitable for display.
         """

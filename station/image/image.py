@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 supported_image_formats = ["bmp", "gif", "jpg", "jpeg", "png", "pbm", "pgm", "ppm", "xbm", "xpm"]
 supported_info_formats = ["txt"]
 
+
 class Image:
     def __init__(self, name, image_path, info_path):
         self.name = name
@@ -93,16 +94,25 @@ class Image:
         self.camera_specs = geo.CameraSpecs(self.width, self.height, self.field_of_view_horiz, self.field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)
 
+    def _requireGeo(self):
+        if not self.georeference:
+            self._prepareGeo()
 
     def geoReferencePoint(self, pixel_x, pixel_y):
         """
         Determines the position of the location on the ground visible
         at pixel.
         """
-        if not self.georeference:
-            self._prepareGeo()
-
+        self._requireGeo()
         return self.georeference.pointInImage(self.plane_position, self.plane_orientation, pixel_x, pixel_y)
+
+    def invGeoReferencePoint(self, position):
+        """
+        Determines the pixel that depicts the location at the provided
+        position.
+        """
+        self._requireGeo()
+        return self.georeference.pointOnImage(self.plane_position, self.plane_orientation, position)
 
     def getPlanePlumbPixel(self):
         """
@@ -111,8 +121,7 @@ class Image:
 
         Returns None, None if the point isn't in the image.
         """
-        if not self.georeference:
-            self._prepareGeo()
+        self._requireGeo()
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
 
