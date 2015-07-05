@@ -40,7 +40,7 @@ Installation
 Pigeon is written in PyQt. It also has a few python module dependencies.
 To install on Ubuntu (tested on 14.04), do:
 
-sudo apt-get install python3 python3-dev qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 python3-shapely python3-pyproj python3-pip && sudo pip3 install pyinotify
+sudo apt-get install python3 python3-dev qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 python3-shapely python3-pip && sudo pip3 install pyinotify pyproj
 
 
 Running the ground station
