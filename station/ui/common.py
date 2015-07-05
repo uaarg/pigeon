@@ -141,6 +141,8 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     def __init__(self, parent, icon, size=(20, 20)):
         super().__init__(parent)
         pixmap = QtGui.QPixmap(icon)
+        if pixmap.isNull():
+            raise ValueError("Unable to load icon at %s." % icon)
         self.setPixmap(pixmap)
         self.setScaledContents(True)
         self.hide()
