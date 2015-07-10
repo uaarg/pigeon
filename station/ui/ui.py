@@ -9,14 +9,15 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 
-from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, ScaledListWidget, QueueMixin
+from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, ListImageItem, ScaledListWidget, QueueMixin
+from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
 
 logger = logging.getLogger(__name__)
 
 THUMBNAIL_AREA_START_HEIGHT = 100
-THUMBNAIL_AREA_MIN_HEIGHT = 50
+THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
 MARKER_AREA_MIN_WIDTH = 250
 
@@ -126,24 +127,27 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def addImage(self, image):
-        image.pixmap = QtGui.QPixmap(image.path) # Storing the pixmap in the image
-        if image.pixmap.isNull():
-            raise(ValueError("Failed to load image at %s" % image.path))
+        image.pixmap_loader = PixmapLoader(image.path)
 
-        # Recording the width and height of the image for other code to use: 
-        image.width = image.pixmap.width()
-        image.height = image.pixmap.height()
-
+        # Recording the width and height of the image for other code to use:
+        image.width = image.pixmap_loader.width()
+        image.height = image.pixmap_loader.height()
+        
         if self.settings_data.get("Follow Images", False) or not self.current_image:
             self.showImage(image)
         self.thumbnail_area.addImage(image)
         self.info_area.addImage(image)
+        image.pixmap_loader.optimizeMemory()
 
     def setSettings(self, settings_data):
         return self.info_area.setSettings(settings_data)
 
     def showImage(self, image):
+        if self.current_image:
+            self.current_image.pixmap_loader.freeOriginal()
+            self.current_image.pixmap_loader.optimizeMemory()
         self.current_image = image
+        self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
 
@@ -264,7 +268,7 @@ class MainImageArea(QtWidgets.QWidget):
         self._clearGroundControlPoints()
 
         self.image = image
-        self.image_area.setPixmap(image.pixmap)
+        self.image_area.setPixmap(image.pixmap_loader)
 
         if self.settings_data.get("Plane Plumbline", True):
             self._drawPlanePlumb()
@@ -380,16 +384,14 @@ class ThumbnailArea(QtWidgets.QWidget):
         if index:
             raise(NotImplementedError())
 
-        icon = QtGui.QIcon(image.pixmap)
-        item = QtWidgets.QListWidgetItem('', self.contents)
-        item.setIcon(icon)
+        item = ListImageItem(image.pixmap_loader, self.contents)
         item.image = image
 
         if self.settings_data.get("Follow Images", False):
             item.setSelected(True)
             self.contents.scrollToItem(item)
 
-        self.recent_image.setPixmap(image.pixmap)
+        self.recent_image.setPixmap(image.pixmap_loader)
         self.recent_image.image = image
 
 class BaseListForm(QtWidgets.QWidget):

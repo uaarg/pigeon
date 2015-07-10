@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 import queue as queue_module
+import sys
 
 class BasePixmapLabel(QtWidgets.QLabel):
     """
@@ -10,8 +11,12 @@ class BasePixmapLabel(QtWidgets.QLabel):
       original pixmap (and back).
     * Adding features to be displayed over the pixmap.
     """
-    def __init__(self, *args, **kwargs):
-        self.original_pixmap = kwargs.pop("pixmap", None)
+    def __init__(self, *args, pixmap_loader=None, **kwargs):
+        self.pixmap_loader = pixmap_loader
+        if self.pixmap_loader:
+            self.original_pixmap_width = pixmap_loader.width()
+            self.original_pixmap_height = pixmap_loader.height()
+
         super().__init__(*args, **kwargs)
 
         self.features = []
@@ -21,6 +26,8 @@ class BasePixmapLabel(QtWidgets.QLabel):
         Maps a point from the displayed pixmap to the original pixmap.
         Returns None if the point wasn't in the displayed pixmap.
         """
+        if not self.pixmap():
+            return None
         border_x = self.width() - self.pixmap().width() # Accounting for 
         # extra space in the QLabel that doesn't have pixmap in it. Assuming
         # that the pixmap is centered horizontally. Not doing the same thing
@@ -30,7 +37,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
         if not self.pixmap() or corrected_x < 0 or point.y() < 0 or corrected_x > self.pixmap().width() or point.y() > self.pixmap().height():
             return None
         else:
-            return QtCore.QPoint(corrected_x / self.pixmap().width() * self.original_pixmap.width(), point.y() / self.pixmap().height() * self.original_pixmap.height())
+            return QtCore.QPoint(corrected_x / self.pixmap().width() * self.original_pixmap_width, point.y() / self.pixmap().height() * self.original_pixmap_height)
 
     def _mapPointToDisplay(self, point):
         """
@@ -41,10 +48,10 @@ class BasePixmapLabel(QtWidgets.QLabel):
         # extra space in the QLabel that doesn't have pixmap in it. Assuming
         # that the pixmap is centered horizontally. Not doing the same thing
         # for y because assuming pixmap is positioned at the top vertically.   
-        if not self.pixmap() or point.x() < 0 or point.y() < 0 or point.x() > self.original_pixmap.width() or point.y() > self.original_pixmap.height():
+        if not self.pixmap() or point.x() < 0 or point.y() < 0 or point.x() > self.original_pixmap_width or point.y() > self.original_pixmap_height:
             return None
         else:
-            return QtCore.QPoint(point.x() * self.pixmap().width() / self.original_pixmap.width() + border_x/2, point.y() * self.pixmap().height() / self.original_pixmap.height())
+            return QtCore.QPoint(point.x() * self.pixmap().width() / self.original_pixmap_width + border_x/2, point.y() * self.pixmap().height() / self.original_pixmap_height)
 
     def pointOnOriginal(self, point):
         """
@@ -61,8 +68,16 @@ class BasePixmapLabel(QtWidgets.QLabel):
         """
         return self.mapToParent(self._mapPointToDisplay(point))
 
-
-
+    def getPixmapForSize(self, size):
+        """
+        Mostly just a wrapper around PixmapLoader.getPixmapForSize().
+        This method exists thought to avoid using the PixmapLoader
+        if just a shrink is needed.
+        """
+        if not self.pixmap() or (size.width() > self.pixmap().width() or size.height() > self.pixmap().height()):
+            return self.pixmap_loader.getPixmapForSize(size) # Need a bigger pixmap than the one we already have
+        else:
+            return self.pixmap().scaled(size, QtCore.Qt.KeepAspectRatio) # Just need to shrink our existing pixmap
 
     def _resize(self):
         self._positionFeatures()
@@ -103,12 +118,14 @@ class PixmapLabel(BasePixmapLabel):
     inserted into it. Keeps the pixmap's aspect ratio constant.
     """
     def _resize(self):
-        if self.original_pixmap:
-            super().setPixmap(self.original_pixmap.scaled(self.width(), self.height(), QtCore.Qt.KeepAspectRatio))
+        if self.pixmap_loader:
+            super().setPixmap(self.getPixmapForSize(self.size()))
         super()._resize()
 
-    def setPixmap(self, pixmap):
-        self.original_pixmap = pixmap
+    def setPixmap(self, pixmap_loader):
+        self.pixmap_loader = pixmap_loader
+        self.original_pixmap_width = self.pixmap_loader.width()
+        self.original_pixmap_height = self.pixmap_loader.height()
         self._resize()
 
     def resizeEvent(self, resize_event):
@@ -120,14 +137,16 @@ class WidthForHeightPixmapLabel(BasePixmapLabel):
     width needed to show it's pixmap at the provided height.
     """
     def _resize(self):
-        if self.original_pixmap:
-            pixmap = self.original_pixmap.scaledToHeight(self.height())
+        if self.pixmap_loader:
+            pixmap = self.getPixmapForSize(QtCore.QSize(sys.maxsize, self.height())) # The large width value is a hack for infinity to get scale-to-height functionality
             self.setMinimumWidth(pixmap.width())
             super().setPixmap(pixmap)
         super()._resize()
 
-    def setPixmap(self, pixmap):
-        self.original_pixmap = pixmap
+    def setPixmap(self, pixmap_loader):
+        self.pixmap_loader = pixmap_loader
+        self.original_pixmap_width = self.pixmap_loader.width()
+        self.original_pixmap_height = self.pixmap_loader.height()
         self._resize()
 
     def resizeEvent(self, resize_event):
@@ -185,16 +204,68 @@ class ScaledListWidget(QtWidgets.QListWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
-        
+
+        def on_scroll(*args, **kwargs):
+            self._updateIconSizes()
+        self.horizontalScrollBar().valueChanged.connect(on_scroll)
+
+    def iterItems(self):
+        for i in range(self.count()):
+            yield self.item(i)
+
+    def likelyVisibleItems(self):
+        """
+        Iterator for items which are probably visible.
+        Analyses the scrolbar position and assumes that each item 
+        takes the same amount of space: not necessarily valid
+        but should be close.
+        """
+
+        scrollbar = self.horizontalScrollBar()
+
+        scrollbar_size = scrollbar.maximum() - scrollbar.minimum() + scrollbar.pageStep()
+        if scrollbar_size:
+            item_start = scrollbar.value() / scrollbar_size * self.count()
+            item_end = (scrollbar.value() + scrollbar.pageStep()) / scrollbar_size * self.count()
+        else:
+            item_start = 0
+            item_end = float("inf")
+
+        for i in range(self.count()):
+            if i >= item_start and i <= item_end:
+                yield self.item(i)
+
+    def _updateIconSizes(self):
+        for item in self.likelyVisibleItems():
+            item.updateIconSize()
+            item.pixmap_loader.optimizeMemory()
+
     def resizeEvent(self, resize_event):
+        size = self.calculateIconSize()
+        self.setIconSize(size)
+
+        self._updateIconSizes()
+
+
+    def calculateIconSize(self):
         if self.Flow() == QtWidgets.QListWidget.LeftToRight:
             size = self.height()
         elif self.Flow() == QtWidgets.QListWidget.TopToBottom:
             size = self.width()
         else:
             raise(Exception("Unexpected flow encountered: %s. Expected %s or %s." % (self.Flow(), QtWidgets.QListWidget.LeftToRight, QtWidgets.QListWidget.TopToBottom)))
-            
-        self.setIconSize(QtCore.QSize(size, size))
+        return QtCore.QSize(size, size)
+
+class ListImageItem(QtWidgets.QListWidgetItem):
+    def __init__(self, pixmap_loader, list_widget):
+        self.pixmap_loader = pixmap_loader
+        icon = QtGui.QIcon(self.pixmap_loader.getPixmapForSize(list_widget.calculateIconSize()))
+        super().__init__("", list_widget)
+        self.setIcon(icon)
+
+    def updateIconSize(self):
+        icon = QtGui.QIcon(self.pixmap_loader.getPixmapForSize(self.listWidget().calculateIconSize()))
+        self.setIcon(icon)
 
 
 class QueueMixin:

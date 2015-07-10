@@ -10,7 +10,7 @@ Screen layout
     * Info and settings are shown on the left.
     * The image currently being viewed is shown in the middle.
     * Markers are listed on the right (not implemented yet)
-* You can resize all of these panes by dragging the handles that exist in between them. If made too small, the pane will disappear: that's OK and potentially desired. Just drag the pane back out again to restore it.
+* You can resize all of these panes by dragging the handles that exist in between them. If made too small, the pane will disappear: that's OK and potentially desired. Just drag the pane back out again to restore it. Note that resizing the thumnail area potentially has a performance impact: when increasing it's size, a large amount of disk activity might be triggered to load large images and more memory will be used. Resizing this area before any images are loaded is best since that avoids the disk activity and potentially reduces memory usage (if the area is shrunk).
 
 Settings
 --------
@@ -23,6 +23,7 @@ Settings
 
 Thumbnail Area
 --------------
+* The most recently received image is always shown on the very right.
 * Click on an image to select.
 * Use the left and right arrow keys to select the previous or next image.
 * Selecting an image causes it to be displayed in the main image viewer.
@@ -34,12 +35,3 @@ Info Area
 Main Image Area
 ---------------
 * Click on the image to geo-reference that particular point. The results are printed in the terminal for now.
-
-Development Notes
-=================
-
-Conventions
------------
-* A method called run implies it doesn't return, but rather loops
-  forever. A method called start will return immediately, putting
-  it's looping logic into a separate thread as necessary to do so.
