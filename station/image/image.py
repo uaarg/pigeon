@@ -27,7 +27,7 @@ class Image:
         self.width = None # Automatically set later when image read
         self.height = None # Automatically set later when  image read
         self.field_of_view_horiz = 58.2
-        self.field_of_view_vert = 44.5
+        self.field_of_view_vert = 44.5 #Change Line 243 in testimage when this changes
 
 
         self.georeference = None
@@ -123,7 +123,17 @@ class Image:
         """
         self._requireGeo()
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
-
+        
+    def getDist2Points(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):
+        """
+        Returns the distance between two points as clicked in image. 
+        Uses  geoReferencePointo geo reference and PositionCollection 
+        for distance calculation. 
+        """  
+        positions = [self.geoReferencePoint(pixelA_x, pixelA_y),
+                     self.geoReferencePoint(pixelB_x, pixelB_y)]
+        self.positioncollection= geo.PositionCollection(positions, None)
+        return self.positioncollection.length(0,0)
 
 class Watcher:
     """
@@ -207,4 +217,3 @@ class Watcher:
         destroys it.
         """
         self.notifier.stop()
-

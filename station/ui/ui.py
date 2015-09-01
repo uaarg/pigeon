@@ -346,6 +346,55 @@ class MarkerArea(QtWidgets.QFrame):
         self.title = QtWidgets.QLabel(self)
         self.title.setText(translate("MarkerArea", "Marker List"))
 
+        markPoint = QtWidgets.QPushButton("Add", self)
+        markPoint.clicked.connect(self.addPoint)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(0,0)
+
+        markPoint = QtWidgets.QPushButton("Remove", self)
+        markPoint.clicked.connect(self.removePoint)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(120,0)
+
+        markPoint = QtWidgets.QPushButton("Calc Dist", self)
+        markPoint.clicked.connect(self.calcDist)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(0,50)
+
+        markPoint = QtWidgets.QPushButton("Calc Area", self)
+        markPoint.clicked.connect(self.calcArea)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(120,50)
+
+        markPoint = QtWidgets.QPushButton("Export", self)
+        markPoint.clicked.connect(self.exportText)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(0,100)
+
+        markPoint = QtWidgets.QPushButton("Clear", self)
+        markPoint.clicked.connect(self.clearMarker)
+        markPoint.resize(markPoint.minimumSizeHint())
+        markPoint.move(120,100)
+
+
+    def addPoint(self):
+        print("Dummy Function {add Last Point to Marker!}")
+
+    def removePoint(self):
+        print("Dummy Function {remove Last Point to Marker!}")
+
+    def calcDist(self):
+        print("Dummy Function {refresh Distance calc!}")
+
+    def calcArea(self):
+        print("Dummy Function {refresh Area calc!}")
+
+    def exportText(self):
+        print("Dummy Function {Export Functionality!}")
+
+    def clearMarker(self):
+        print("Dummy Function {Clear Marker!}")
+
 
 class ThumbnailArea(QtWidgets.QWidget):
     def __init__(self, *args, settings_data={}, **kwargs):
