@@ -9,7 +9,7 @@ Screen layout
     * All images are shown on the bottom as thumbnails in a scroll list.
     * Info and settings are shown on the left.
     * The image currently being viewed is shown in the middle.
-    * Markers are listed on the right (not implemented yet)
+    * Markers are listed on the right
 * You can resize all of these panes by dragging the handles that exist in between them. If made too small, the pane will disappear: that's OK and potentially desired. Just drag the pane back out again to restore it. Note that resizing the thumnail area potentially has a performance impact: when increasing it's size, a large amount of disk activity might be triggered to load large images and more memory will be used. Resizing this area before any images are loaded is best since that avoids the disk activity and potentially reduces memory usage (if the area is shrunk).
 
 Settings
@@ -34,4 +34,14 @@ Info Area
 
 Main Image Area
 ---------------
-* Click on the image to geo-reference that particular point. The results are printed in the terminal for now.
+* Right click on the image to geo-reference that particular point and have the results printed in the terminal.
+* Left click to create a marker which will be added to the Marker List on the right.
+
+Marker Area
+----------------
+* Select a marker from the list to have it's details be shown in the Marker Detail Area below the list.
+* Make changes to any of the editable fields in the Marker Detail Area to store this information on the marker (no need to save)
+* Markers in the list will appear as "(unnamed)" until a name is set for that marker.
+* Markers in the list have a little image icon associated with them: this isn't finished yet and is just a taste of what's to come (that image crop will be editable and bigger)
+* The Marker Detail Area also shows some information you can't edit, such as the image number the marker was created in and the geo-referenced position of the marker
+* Just like ground control points, markers are plotted in all images using inverse geo-referencing.

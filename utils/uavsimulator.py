@@ -3,7 +3,7 @@
 Simulates the onboard imaging code: interfaces with the ground station
 as if it were the plane. Provides:
 
-* Puts images into the monitored folder.
+* Puts images and info files into the monitored folder.
 """
 
 from __future__ import division

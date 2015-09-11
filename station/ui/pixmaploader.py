@@ -42,7 +42,10 @@ class PixmapLoader:
         May or may not have to load or re-load the image file 
         depending on whether optimizeMemory() has been called
         and it's behaviour.
+        If the provided size is None, returns the original pixmap.
         """
+        if not size:
+            size = QtCore.QSize(self.image_width, self.image_height)
         self._requireLoad()
         if not self.pixmap or ((size.width() > self.pixmap.width() and size.height() > self.pixmap.height()) and (self.pixmap.width() < self.image_width or self.pixmap.height() < self.image_height)):
             logger.debug("Performing load to get bigger pixmap (have: %s need: %s, %s)" % ("%s, %s" % (self.pixmap.width(), self.pixmap.height()) if self.pixmap else None, size.width(), size.height()))

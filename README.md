@@ -13,6 +13,13 @@ Implemented Features:
 * Settings area for specifying and saving settings
 * Displays program state and currently viewed image info in an 
   information area
+* Plots pre-set ground control points in images by doing inverse
+  geo-referencing
+* Right click on the main image to have the lat/lon printed in the
+  terminal
+* Left click on the main image to create a new marker
+* Created markers are shown in a list on the right and can be edited
+  in the marker detail area below this list
 
 Future Features:
 ----------------
@@ -31,6 +38,7 @@ Input
   * Take a look at Image._prepareProperties() in image/image.py for the 
     list of required fields.
 * Data entered into UI by human operator (ex. Marker locations)
+* (optional) Ground Control Points in data/ground_control_points.json
 
 Output
 ------

@@ -159,6 +159,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     """
     def __init__(self, parent, icon, size=(20, 20)):
         super().__init__(parent)
+
         pixmap = QtGui.QPixmap(icon)
         if pixmap.isNull():
             raise ValueError("Unable to load icon at %s." % icon)
@@ -172,7 +173,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.mapPoint = None # mapPoint is to be a function for mapping
         # a point on the PixmapLabel's original pixmap to the window.
         # It's set by the PixmapLabel that this PixmapLabelMarker is added
-        # to becaues only the PixmapLabel knows how to do that mapping.
+        # to because only the PixmapLabel knows how to do that mapping.
 
     def position(self):
         """
@@ -197,7 +198,12 @@ class BoldQLabel(QtWidgets.QLabel):
     Bolding defined in the stylesheet.
     """
 
-class ScaledListWidget(QtWidgets.QListWidget):
+class BaseQListWidget(QtWidgets.QListWidget):
+    def iterItems(self):
+        for i in range(self.count()):
+            yield self.item(i)
+
+class ScaledListWidget(BaseQListWidget):
     """
     Provides a QListWidget which automatically scales...
     """
@@ -208,10 +214,6 @@ class ScaledListWidget(QtWidgets.QListWidget):
         def on_scroll(*args, **kwargs):
             self._updateIconSizes()
         self.horizontalScrollBar().valueChanged.connect(on_scroll)
-
-    def iterItems(self):
-        for i in range(self.count()):
-            yield self.item(i)
 
     def likelyVisibleItems(self):
         """
@@ -266,7 +268,6 @@ class ListImageItem(QtWidgets.QListWidgetItem):
     def updateIconSize(self):
         icon = QtGui.QIcon(self.pixmap_loader.getPixmapForSize(self.listWidget().calculateIconSize()))
         self.setIcon(icon)
-
 
 class QueueMixin:
     """
