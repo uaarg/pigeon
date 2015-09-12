@@ -14,8 +14,6 @@ from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
 
-logger = logging.getLogger(__name__)
-
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
@@ -35,6 +33,7 @@ class UI(QtCore.QObject, QueueMixin):
 
     def __init__(self, save_settings, load_settings, image_queue, ground_control_points=[]):
         super().__init__()
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
 
@@ -52,7 +51,7 @@ class UI(QtCore.QObject, QueueMixin):
         def print_image_clicked(image, point):
             string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
             print(string)
-            logger.info(string)
+            self.logger.info(string)
 
         def create_new_marker(image, point):
             position = image.geoReferencePoint(point.x(), point.y())
@@ -492,6 +491,7 @@ class FeatureArea(QtWidgets.QFrame):
 class ThumbnailArea(QtWidgets.QWidget):
     def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = settings_data
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
@@ -529,6 +529,7 @@ class ThumbnailArea(QtWidgets.QWidget):
             item.setSelected(True)
             self.contents.scrollToItem(item)
 
+        self.logger.debug("Setting recent image pixmap")
         self.recent_image.setPixmap(image.pixmap_loader)
         self.recent_image.image = image
 

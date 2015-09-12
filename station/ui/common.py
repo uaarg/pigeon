@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 import queue as queue_module
 import sys
+import logging
 
 class BasePixmapLabel(QtWidgets.QLabel):
     """
@@ -12,6 +13,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
     * Adding features to be displayed over the pixmap.
     """
     def __init__(self, *args, pixmap_loader=None, **kwargs):
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.pixmap_loader = pixmap_loader
         if self.pixmap_loader:
             self.original_pixmap_width = pixmap_loader.width()
@@ -136,14 +138,24 @@ class WidthForHeightPixmapLabel(BasePixmapLabel):
     Provies a QLabel widget which automatically demands the required 
     width needed to show it's pixmap at the provided height.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+
     def _resize(self):
         if self.pixmap_loader:
+            self.logger.debug("_resize()")
+            self.logger.debug("  widget size: %s, %s" % (self.width(), self.height()))
+            self.logger.debug("  sys.maxsize = %s, self.height() = %s" % (sys.maxsize, self.height()))
             pixmap = self.getPixmapForSize(QtCore.QSize(sys.maxsize, self.height())) # The large width value is a hack for infinity to get scale-to-height functionality
+            self.logger.debug("  new pixmap size: %s, %s" % (pixmap.width(), pixmap.height()))
             self.setMinimumWidth(pixmap.width())
             super().setPixmap(pixmap)
+            self.logger.debug("  widget size: %s, %s" % (self.width(), self.height()))
         super()._resize()
 
     def setPixmap(self, pixmap_loader):
+        self.logger.debug("setPixmap()")
         self.pixmap_loader = pixmap_loader
         self.original_pixmap_width = self.pixmap_loader.width()
         self.original_pixmap_height = self.pixmap_loader.height()
