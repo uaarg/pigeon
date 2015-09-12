@@ -11,6 +11,15 @@ Implemented Features:
 * Displays a scrollable list of images
 * Displays a main image as selected from the scrollable list
 * Settings area for specifying and saving settings
+* Displays program state and currently viewed image info in an 
+  information area
+* Plots pre-set ground control points in images by doing inverse
+  geo-referencing
+* Right click on the main image to have the lat/lon printed in the
+  terminal
+* Left click on the main image to create a new marker
+* Created markers are shown in a list on the right and can be edited
+  in the marker detail area below this list
 
 Future Features:
 ----------------
@@ -26,8 +35,10 @@ Input
   There should be an info file for each image: the two will be imported 
   together. 
   Info file fields:
-  * (to be added later)
+  * Take a look at Image._prepareProperties() in image/image.py for the 
+    list of required fields.
 * Data entered into UI by human operator (ex. Marker locations)
+* (optional) Ground Control Points in data/ground_control_points.json
 
 Output
 ------
@@ -50,8 +61,11 @@ python3 station.py
 
 See the README in the station directory for usage notes.
 
-uavsimulator.py in the utils directory is useful for creating images periodically
-instead of running the onboard software. 
+uavsimulator.py in the utils directory is useful for creating images 
+periodically instead of running the onboard software. Note that station
+now requires images to exist during it's entire operation so use
+uavsimulator with the --wait argument or don't stop it until station 
+is closed.
 
 
 Run the tests
@@ -67,6 +81,14 @@ A few notes about contributing:
 * Please feel free to ask any question at any time.
 * Please feel free to ask for help.
 * Please follow pep8 for style: https://www.python.org/dev/peps/pep-0008/
-* Please run the tests and make sure they pass before commiting anything:
-  if the tests don't pass, it means you broke something somehow (or, someone 
-  else commited a break, in which case find who and get them to fix it).
+* Please run the tests and make sure they pass before commiting 
+  anything: if the tests don't pass, it means you broke something 
+  somehow (or, someone else commited a break, in which case find who 
+  and get them to fix it).
+
+
+Code conventions
+----------------
+* A method called run implies it doesn't return, but rather loops
+  forever. A method called start will return immediately, putting
+  it's looping logic into a separate thread as necessary to do so.

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import logging
 import datetime
@@ -8,19 +6,22 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from image import Image
+from features import Marker, Feature
 
-from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, ScaledListWidget, QueueMixin
+from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin
+from .commonwidgets import EditableBaseListForm
+from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
 
 logger = logging.getLogger(__name__)
 
 THUMBNAIL_AREA_START_HEIGHT = 100
-THUMBNAIL_AREA_MIN_HEIGHT = 50
+THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
-MARKER_AREA_MIN_WIDTH = 250
+FEATURE_AREA_MIN_WIDTH = 250
 
-class UI(QueueMixin):
+class UI(QtCore.QObject, QueueMixin):
     """
     Class for the rest of the application to interface with the UI. 
 
@@ -30,26 +31,41 @@ class UI(QueueMixin):
     implemented. Or, more likely: a mock UI instance could be used in
     unit testing for easy testing of the rest of the application.
     """
+    settings_changed = QtCore.pyqtSignal()
+
     def __init__(self, save_settings, load_settings, image_queue, ground_control_points=[]):
         super().__init__()
         self.settings_data = load_settings()
+        self.features = ground_control_points # For all features, not just GCP's
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, ground_control_points)
+        self.main_window = MainWindow(self.settings_data, self.features)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
+        self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.settings_changed.emit())
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
+        self.main_window.info_area.settings_area.settings_save_requested.connect(lambda: self.settings_changed.emit())
 
         self.connectQueue(image_queue, self.addImage)
 
         def print_image_clicked(image, point):
-            string = "Point clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
+            string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
             print(string)
             logger.info(string)
 
+        def create_new_marker(image, point):
+            position = image.geoReferencePoint(point.x(), point.y())
+            marker = Marker(position)
+
+            cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
+            marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
+            self.addFeature(image, marker)
+
+        # Hooking up some inter-component behaviour
+        self.main_window.main_image_area.image_clicked.connect(create_new_marker)
         self.main_window.main_image_area.image_right_clicked.connect(print_image_clicked)
-        self.main_window.main_image_area.image_clicked.connect(print_image_clicked)
+        self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
     def run(self):
         self.main_window.info_area.settings_area.settings_load_requested.emit()
@@ -59,10 +75,16 @@ class UI(QueueMixin):
 
     def addImage(self, image):
         self.main_window.addImage(image)
-        
+
+    def addFeature(self, image, feature):
+        feature.image = image
+        self.features.append(feature)
+        self.main_window.addFeature(feature)
+
+
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings_data={}, ground_control_points=[]):
+    def __init__(self, settings_data={}, features=[]):
         super().__init__()
         self.settings_data = settings_data
 
@@ -102,12 +124,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
-        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, ground_control_points=ground_control_points)
-        self.marker_area = MarkerArea(self.main_horizontal_split)
+        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
+        self.feature_area = FeatureArea(self.main_horizontal_split)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
+        self.feature_area.feature_list.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature)) # Show feature details for the selected feature
+        self.feature_area.feature_detail_area.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list when it's details are changed
+
 
         # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
         # self.menubar = QtWidgets.QMenuBar(self)
@@ -126,26 +151,33 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def addImage(self, image):
-        image.pixmap = QtGui.QPixmap(image.path) # Storing the pixmap in the image
-        if image.pixmap.isNull():
-            raise(ValueError("Failed to load image at %s" % image.path))
+        image.pixmap_loader = PixmapLoader(image.path)
 
-        # Recording the width and height of the image for other code to use: 
-        image.width = image.pixmap.width()
-        image.height = image.pixmap.height()
-
+        # Recording the width and height of the image for other code to use:
+        image.width = image.pixmap_loader.width()
+        image.height = image.pixmap_loader.height()
+        
         if self.settings_data.get("Follow Images", False) or not self.current_image:
             self.showImage(image)
         self.thumbnail_area.addImage(image)
         self.info_area.addImage(image)
+        image.pixmap_loader.optimizeMemory()
 
     def setSettings(self, settings_data):
         return self.info_area.setSettings(settings_data)
 
     def showImage(self, image):
+        if self.current_image:
+            self.current_image.pixmap_loader.freeOriginal()
+            self.current_image.pixmap_loader.optimizeMemory()
         self.current_image = image
+        self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
+
+    def addFeature(self, feature):
+        self.feature_area.addFeature(feature)
+        self.main_image_area.addFeature(feature)
 
 class InfoArea(QtWidgets.QFrame):
     def __init__(self, *args, settings_data={}, **kwargs):
@@ -164,8 +196,8 @@ class InfoArea(QtWidgets.QFrame):
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.settings_area = SettingsArea(self)
-        self.image_info_area = ImageInfoArea(self)
-        self.state_area = StateArea(self)
+        self.image_info_area = ImageInfoArea(self, editable=False)
+        self.state_area = StateArea(self, editable=False)
 
         self.layout.addWidget(self.state_area)
         self.layout.addWidget(self.image_info_area)
@@ -181,7 +213,7 @@ class InfoArea(QtWidgets.QFrame):
         self.timer.start(1000)
 
     def setSettings(self, settings_data):
-        return self.settings_area.setSettings(settings_data)
+        return self.settings_area.setData(settings_data)
 
     def showImage(self, image):
         """
@@ -193,7 +225,7 @@ class InfoArea(QtWidgets.QFrame):
                 ("Roll", image.plane_orientation.dispRoll()),
                 ("Yaw", image.plane_orientation.dispYaw()),
                 ("Plane Position", image.plane_position.dispLatLon()),]
-        self.image_info_area.updateData(data)
+        self.image_info_area.setData(data)
 
     def addImage(self, image):
         """
@@ -214,19 +246,19 @@ class InfoArea(QtWidgets.QFrame):
         else:
             last_image_time_ago = "(none received)"
 
-        data = [("Image Count", self.image_count),
-                ("Time since last image", last_image_time_ago),]
-        self.state_area.updateData(data)
+        data = [("Image Count", str(self.image_count)),
+                ("Time since last image", str(last_image_time_ago)),]
+        self.state_area.setData(data)
 
 
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
 
-    def __init__(self, *args, settings_data={}, ground_control_points=[], **kwargs):
+    def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
-        self.ground_control_points = ground_control_points
+        self.features = features
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
@@ -257,62 +289,65 @@ class MainImageArea(QtWidgets.QWidget):
         # Plumbline marker (showing where directly below the plane is):
         self.plumbline = None
 
-        # Ground Control Points as drawn:
-        self.ground_control_point_pixmap_label_markers = []
+        # Features as drawn:
+        self.feature_pixmap_label_markers = []
 
     def showImage(self, image):
-        self._clearGroundControlPoints()
+        self._clearFeatures()
 
         self.image = image
-        self.image_area.setPixmap(image.pixmap)
+        self.image_area.setPixmap(image.pixmap_loader)
 
-        if self.settings_data.get("Plane Plumbline", True):
-            self._drawPlanePlumb()
-        elif self.plumbline:
-            self.plumbline.hide()
-
-        self._drawGroundControlPoints()
+        self._drawPlanePlumb()
+        self._drawFeatures()
 
     def _drawPlanePlumb(self):
         """
         Draw a little plane icon on the image at the point directly 
-        below the plane.
+        below the plane. But only if this behaviour is enabled in the
+        settings.
         """
-        if not self.plumbline:
-            self.plumbline = PixmapLabelMarker(self.image_area, icons.airplane)
-            self.image_area.addPixmapLabelFeature(self.plumbline)
+        if not self.image:
+            return
 
-        pixel_x, pixel_y = self.image.getPlanePlumbPixel()
-        if pixel_x and pixel_y:
-            point = QtCore.QPoint(pixel_x, pixel_y)
-            self.plumbline.moveTo(point)
-            self.plumbline.show()
-        else:
-            self.plumbline.hide()
+        if self.settings_data.get("Plane Plumbline", True):
+            if not self.plumbline:
+                self.plumbline = PixmapLabelMarker(self.image_area, icons.airplane)
+                self.image_area.addPixmapLabelFeature(self.plumbline)
 
-    def _clearGroundControlPoints(self):
-        for pixmap_label_marker in self.ground_control_point_pixmap_label_markers:
-            pixmap_label_marker.deleteLater()
-        self.ground_control_point_pixmap_label_markers = []
-
-    def _drawGroundControlPoints(self):
-        """
-        Draw a little point on the image for all the ground control points
-        that are located in the image.
-        """
-
-        for ground_control_point in self.ground_control_points:
-            pixel_x, pixel_y = self.image.invGeoReferencePoint(ground_control_point.position)
+            pixel_x, pixel_y = self.image.getPlanePlumbPixel()
             if pixel_x and pixel_y:
                 point = QtCore.QPoint(pixel_x, pixel_y)
-                pixmap_label_marker = PixmapLabelMarker(self, icons.ground_control_point, (10, 10))
-                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
-                pixmap_label_marker.moveTo(point)
-                pixmap_label_marker.show()
+                self.plumbline.moveTo(point)
+                self.plumbline.show()
+            else:
+                self.plumbline.hide()
 
-                self.ground_control_point_pixmap_label_markers.append(pixmap_label_marker)
+        elif self.plumbline:
+            self.plumbline.hide()
 
+    def _clearFeatures(self):
+        for pixmap_label_marker in self.feature_pixmap_label_markers:
+            pixmap_label_marker.deleteLater()
+        self.feature_pixmap_label_markers = []
 
+    def _drawFeature(self, feature):
+        pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
+        if pixel_x and pixel_y:
+            point = QtCore.QPoint(pixel_x, pixel_y)
+            pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
+            self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+            pixmap_label_marker.moveTo(point)
+            pixmap_label_marker.show()
+
+            self.feature_pixmap_label_markers.append(pixmap_label_marker)
+
+    def _drawFeatures(self):
+        for feature in self.features:
+            self._drawFeature(feature)
+
+    def addFeature(self, feature):
+        self._drawFeature(feature)
 
     def mouseReleaseEvent(self, event):
         """
@@ -329,7 +364,33 @@ class MainImageArea(QtWidgets.QWidget):
             self.image_right_clicked.emit(self.image, point)
 
 
-class MarkerArea(QtWidgets.QFrame):
+class FeatureDetailArea(EditableBaseListForm):
+    featureChanged = QtCore.pyqtSignal(Feature)
+    def __init__(self):
+        super().__init__()
+        self.feature = None
+        self.dataEdited.connect(lambda data: self._editFeatureData(data))
+
+    def _title(self):
+        return "Feature Detail:"
+
+    def _editFeatureData(self, data):
+        for i, (field_name, field_value) in enumerate(self.feature.data):
+            for data_name, data_value in data:
+                if field_name == data_name:
+                    self.feature.data[i] = (field_name, data_value)
+                    break
+        self.featureChanged.emit(self.feature)
+
+    def showFeature(self, feature):
+        self.feature = feature
+        data = feature.data.copy()
+        data.append(("Position", feature.position.dispLatLon(), False))
+        data.append(("Image Name", str(feature.image.name), False))
+        self.setData(data)
+
+
+class FeatureArea(QtWidgets.QFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -337,14 +398,46 @@ class MarkerArea(QtWidgets.QFrame):
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
         self.setSizePolicy(size_policy)
-        self.setMinimumSize(QtCore.QSize(MARKER_AREA_MIN_WIDTH, 200))
+        self.setMinimumSize(QtCore.QSize(FEATURE_AREA_MIN_WIDTH, 200))
 
         self.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.setObjectName("marker_area")
+        self.setObjectName("feature_area")
 
-        self.title = QtWidgets.QLabel(self)
-        self.title.setText(translate("MarkerArea", "Marker List"))
+        self.title = BoldQLabel(self)
+        self.title.setText(translate("FeatureArea", "Marker List:"))
+
+        self.layout = QtWidgets.QGridLayout(self)
+
+        self.layout.addWidget(self.title, 0, 0, 1, 1)
+
+        self.feature_list = BaseQListWidget(self)
+        self.feature_list.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.feature_list.setFlow(QtWidgets.QListWidget.TopToBottom)
+        self.layout.addWidget(self.feature_list, 1, 0, 1, 1)
+
+        self.feature_detail_area = FeatureDetailArea()
+        self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
+
+    def addFeature(self, feature):
+        item = QtWidgets.QListWidgetItem("", self.feature_list)
+        item.setText(str(feature))
+        item.feature = feature
+        feature.feature_area_item = item
+        if feature.picture:
+            icon = QtGui.QIcon(feature.picture)
+            item.setIcon(icon)
+        self.showFeature(feature)
+
+    def showFeature(self, feature):
+        self.feature_detail_area.showFeature(feature)
+        self.feature_list.setCurrentItem(feature.feature_area_item)
+
+    def updateFeature(self, feature):
+        for item in self.feature_list.iterItems():
+            if item.feature == feature:
+                item.setText(str(feature))
+                break
 
         markPoint = QtWidgets.QPushButton("Add", self)
         markPoint.clicked.connect(self.addPoint)
@@ -429,84 +522,21 @@ class ThumbnailArea(QtWidgets.QWidget):
         if index:
             raise(NotImplementedError())
 
-        icon = QtGui.QIcon(image.pixmap)
-        item = QtWidgets.QListWidgetItem('', self.contents)
-        item.setIcon(icon)
+        item = ListImageItem(image.pixmap_loader, self.contents)
         item.image = image
 
         if self.settings_data.get("Follow Images", False):
             item.setSelected(True)
             self.contents.scrollToItem(item)
 
-        self.recent_image.setPixmap(image.pixmap)
+        self.recent_image.setPixmap(image.pixmap_loader)
         self.recent_image.image = image
 
-class BaseListForm(QtWidgets.QWidget):
-    """
-    Provides a simple list of textual information that can be updated
-    programatically.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.setObjectName("state_area")
-
-        title = self._title()
-        if title:
-            self.title = BoldQLabel(self)
-            self.title.setText(translate(self.__class__.__name__, title))
-        else:
-            self.title = None
-
-        self.layout = QtWidgets.QGridLayout(self)
-
-        self.layout.addWidget(self.title, 0, 0, 1, 2)
-
-        self.fields = None
-
-    def _createFields(self, data):
-        """
-        Creates the UI elements to display the data.
-        """
-        self.fields = {}
-
-        for (i, (field_name, field_value)) in enumerate(data):
-            label = QtWidgets.QLabel(self)
-            label.setText(translate(self.__class__.__name__, field_name))
-
-            value = QtWidgets.QLineEdit(self)
-            value.setReadOnly(True)
-            value.setText(str(field_value))
-
-            self.layout.addWidget(label, i+1, 0, 1, 1)
-            self.layout.addWidget(value, i+1, 1, 1, 1)
-
-            self.fields[field_name] = (label, value)
-
-    def updateData(self, data):
-        """
-        data should be a list of tuples. The first element of tuple
-        will be used as the field name and the second as the field
-        value.
-
-        The fiels names should be unique and the same field names
-        should be provided each time.
-        """
-        if not self.fields:
-            self._createFields(data)
-
-        if not data:
-            return
-
-        for field_name, field_value in data:
-            label, value = self.fields[field_name]
-            value.setText(str(field_value))
-
-class ImageInfoArea(BaseListForm):
+class ImageInfoArea(EditableBaseListForm):
     def _title(self):
         return "Image:"
 
-class StateArea(BaseListForm):
+class StateArea(EditableBaseListForm):
     def _title(self):
         return "State:"
 
@@ -521,107 +551,39 @@ class SettingsArea(QtWidgets.QWidget):
     settings_save_requested = QtCore.pyqtSignal(dict)
     settings_load_requested = QtCore.pyqtSignal()
 
-    def __init__(self, *args, settings_data={}, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        # size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
-        # size_policy.setHorizontalStretch(0)
-        # size_policy.setVerticalStretch(0)
-        # self.setSizePolicy(size_policy)
-        # self.setMinimumSize(QtCore.QSize(0, 400))
+    def __init__(self, *args, **kwargs):
+        super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
 
-        # self.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        # self.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.setObjectName("settings_area")
+        self.layout = QtWidgets.QVBoxLayout()
 
         self.title = BoldQLabel(self)
         self.title.setText(translate("SettingsArea", "Settings:"))
+        self.layout.addWidget(self.title)
 
-        self.layout = QtWidgets.QGridLayout(self)
+        self.edit_form = EditableBaseListForm(self)
+        self.layout.addWidget(self.edit_form)
 
-        self.settings_layout = QtWidgets.QGridLayout()
-        self.buttons_layout = QtWidgets.QGridLayout()
+        self.setLayout(self.layout)
 
-        self.layout.addLayout(self.settings_layout, 0, 0)
-        self.layout.addLayout(self.buttons_layout, 1, 0)
-
-        self.settings_layout.addWidget(self.title, 0, 0, 1, 2)
-
-        self.fields = None
-
-    def _createFields(self, settings_data):
-        """
-        Creates the UI elements to display the settings.
-        """
-        self.fields = {}
-
-        if not settings_data:
-            return
-
-        # Creating the widgets
-        for (i, (field_name, field_value)) in enumerate(settings_data.items()):
-            setting_label = QtWidgets.QLabel(self)
-            setting_label.setText(translate("SettingsArea", field_name))
-
-            if isinstance(field_value, bool):
-                edit_widget = QtWidgets.QCheckBox(self)
-                edit_widget.setChecked(field_value)
-            elif isinstance(field_value, str):
-                edit_widget = QtWidgets.QLineEdit(self)
-                edit_widget.setText(field_value)
-            else:
-                raise(ValueError("Only string and boolean settings supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
-
-            self.settings_layout.addWidget(setting_label, i+1, 0, 1, 1)
-            self.settings_layout.addWidget(edit_widget, i+1, 1, 1, 1)
-
-            self.fields[field_name] = (setting_label, edit_widget)
+        self.buttons_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.buttons_layout)
 
         self.load_button = QtWidgets.QPushButton(translate("SettingsArea", "Load"), self)
-        self.buttons_layout.addWidget(self.load_button, i+1, 0, 1, 1)
         self.save_button = QtWidgets.QPushButton(translate("SettingsArea", "Save"), self)
-        self.buttons_layout.addWidget(self.save_button, i+1, 1, 1, 1)
+        self.buttons_layout.addWidget(self.load_button)
+        self.buttons_layout.addWidget(self.save_button)
 
         self.load_button.clicked.connect(self.settings_load_requested)
         self.save_button.clicked.connect(lambda: self.settings_save_requested.emit(self.getSettings()))
 
 
     def setSettings(self, settings_data):
-        """
-        Update the displayed settings to match the values in settings_data.
-        This dict must have the same keys each time this method is called.
-        """
-        if not self.fields:
-            self._createFields(settings_data)
-
-        if not settings_data:
-            return
-
-        for field_name, field_value in settings_data.items():
-            setting_label, edit_widget = self.fields[field_name]
-
-            if isinstance(field_value, bool):
-                edit_widget.setChecked(field_value)
-            elif isinstance(field_value, str):
-                edit_widget.setText(field_value)
-            else:
-                raise(ValueError())
+        data = [(field_name, field_value) for field_name, field_value in settings_data.items()]
+            # Converting the dictinary to a list of tuples because this is what the EditableBaseListForm needs
+        self.edit_form.setData(data)
 
     def getSettings(self):
-        """
-        Return a dictionary of the settings, potentially updated by the user.
-        """
-        if not self.fields:
-            return None
-        output = {}
-        for (field_name, (setting_label, edit_widget)) in self.fields.items():
-            if isinstance(edit_widget, QtWidgets.QCheckBox):
-                field_value = bool(edit_widget.checkState())
-            elif isinstance(edit_widget, QtWidgets.QLineEdit):
-                field_value = edit_widget.text()
-            else:
-                raise(ValueError())
-
-            output[field_name] = field_value
-
-        return output
+        data = self.edit_form.getData()
+        settings_data = {row[0]:row[1] for row in data}
+        return settings_data
