@@ -79,7 +79,10 @@ class BasePixmapLabel(QtWidgets.QLabel):
         if not self.pixmap() or (size.width() > self.pixmap().width() or size.height() > self.pixmap().height()):
             return self.pixmap_loader.getPixmapForSize(size) # Need a bigger pixmap than the one we already have
         else:
-            return self.pixmap().scaled(size, QtCore.Qt.KeepAspectRatio) # Just need to shrink our existing pixmap
+            pixmap = self.pixmap().scaled(size, QtCore.Qt.KeepAspectRatio) # Just need to shrink our existing pixmap
+            if pixmap.isNull():
+                raise(Exception("Failed to scale pixmap to size %s, %s" % (size.width(), size.height())))
+            return pixmap
 
     def _resize(self):
         self._positionFeatures()
@@ -146,8 +149,9 @@ class WidthForHeightPixmapLabel(BasePixmapLabel):
         if self.pixmap_loader:
             self.logger.debug("_resize()")
             self.logger.debug("  widget size: %s, %s" % (self.width(), self.height()))
-            self.logger.debug("  sys.maxsize = %s, self.height() = %s" % (sys.maxsize, self.height()))
-            pixmap = self.getPixmapForSize(QtCore.QSize(sys.maxsize, self.height())) # The large width value is a hack for infinity to get scale-to-height functionality
+            large_width = 50000
+            self.logger.debug("  large_width = %s, self.height() = %s" % (large_width, self.height()))
+            pixmap = self.getPixmapForSize(QtCore.QSize(large_width, self.height())) # The large width value is a hack for infinity to get scale-to-height functionality
             self.logger.debug("  new pixmap size: %s, %s" % (pixmap.width(), pixmap.height()))
             self.setMinimumWidth(pixmap.width())
             super().setPixmap(pixmap)
