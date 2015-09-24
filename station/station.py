@@ -40,6 +40,8 @@ class GroundStation:
         self.loadSettings()
         self.checkMandatorySettings()
 
+        if self.settings_data["Load Existing Images"] == True:
+            self.image_watcher.loadExistingImages(self.settings_data["Monitor Folder"])
         self.image_watcher.setDirectory(self.settings_data["Monitor Folder"])
         self.image_watcher.start()
 

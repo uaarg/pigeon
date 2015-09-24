@@ -1,5 +1,6 @@
 {
-    "Follow Images": true,
+    "Load Existing Images": true,
     "Plane Plumbline": true,
-    "Monitor Folder": "data/images"
+    "Monitor Folder": "data/images",
+    "Follow Images": true
 }

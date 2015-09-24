@@ -47,8 +47,8 @@ class Image:
         Groups the raw data into Position and Orientation objects.
         """
 
-        # Going through some extra effort to be able to surface a 
-        # list of missing fields, not just the first missing one 
+        # Going through some extra effort to be able to surface a
+        # list of missing fields, not just the first missing one
         # for a more user-friendly error message.
         field_map = {"easting": "utm_east",
                      "northing": "utm_north",
@@ -73,16 +73,13 @@ class Image:
         roll = float(self.info_data[field_map["roll"]])
         yaw = float(self.info_data[field_map["yaw"]])
 
-        YAW_CORRECTION = 90 # Accounting for magnetometer offset from paparazzi
-        yaw += YAW_CORRECTION
-
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
         self.plane_orientation = geo.Orientation(pitch, roll, yaw)
 
     def _prepareGeo(self):
         """
-        Prepares all the data needed to perform geo-referencing on 
+        Prepares all the data needed to perform geo-referencing on
         this image into a georeference object. Will raise an Exception
         if anything important is missing (ex. image width or height).
         """
@@ -123,13 +120,13 @@ class Image:
         """
         self._requireGeo()
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
-        
+
     def getDist2Points(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):
         """
-        Returns the distance between two points as clicked in image. 
-        Uses  geoReferencePointo geo reference and PositionCollection 
-        for distance calculation. 
-        """  
+        Returns the distance between two points as clicked in image.
+        Uses  geoReferencePointo geo reference and PositionCollection
+        for distance calculation.
+        """
         positions = [self.geoReferencePoint(pixelA_x, pixelA_y),
                      self.geoReferencePoint(pixelB_x, pixelB_y)]
         self.positioncollection= geo.PositionCollection(positions, None)
@@ -137,11 +134,15 @@ class Image:
 
 class Watcher:
     """
-    Watches a directory for new images (and associated info files). 
+    Watches a directory for new images (and associated info files).
     Adds them to it's queue.
+    If the "Load Existing Images" setting is on,
+    existing images in the directory will also be added to the queue.
     """
     def __init__(self):
         self.queue = queue.Queue()
+        self.pending_images = {} # For saving which image files don't have a corresponding info file yet
+        self.pending_infos = {} # For saving which info files don't have a corresponding image file yet
 
         self.watch_manager = pyinotify.WatchManager()
 
@@ -149,19 +150,11 @@ class Watcher:
                                              # Here we want to know AFTER a file has been written (new or existing)
 
         class EventHandler(pyinotify.ProcessEvent):
-            def __init__(self, queue):
+            def __init__(self, queue, pending_images, pending_infos, createImage):
                 self.queue = queue
-                self.pending_images = {} # For saving which image files don't have a corresponding info file yet
-                self.pending_infos = {} # For saving which info files don't have a corresponding image file yet
-
-            def _createImage(self, filename, image_pathname, info_pathname):
-                try:
-                    new_image = Image(filename, image_pathname, info_pathname)
-                except Exception as e:
-                    logger.error("Unable to import image %s: %s" % (filename, e))
-                else:
-                    logger.info("Imported image %s" % filename)
-                    self.queue.put(new_image)
+                self.pending_images = pending_images
+                self.pending_infos = pending_infos
+                self._createImage = createImage
 
             def process_IN_CLOSE_WRITE(self, event):
                 filename, extension = os.path.splitext(event.name)
@@ -169,7 +162,7 @@ class Watcher:
 
                 logger.debug("New file: %s" % event.name)
 
-                # Matching image files with info files. Adding to the queue 
+                # Matching image files with info files. Adding to the queue
                 # when a match is made.
                 if extension.lower() in supported_image_formats:
                     info_pathname = self.pending_infos.pop(filename, False)
@@ -188,14 +181,68 @@ class Watcher:
                     logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
                     logger.debug("Pending image files: %s" % ", ".join(self.pending_images))
 
-        handler = EventHandler(self.queue)
+        handler = EventHandler(self.queue, self.pending_images, self.pending_infos, self.createImage)
         self.notifier = pyinotify.ThreadedNotifier(self.watch_manager, handler)
 
         self.watches = None
 
+    def createImage(self, filename, image_pathname, info_pathname):
+        try:
+            new_image = Image(filename, image_pathname, info_pathname)
+        except Exception as e:
+            logger.error("Unable to import image %s: %s" % (filename, e))
+        else:
+            logger.info("Imported image %s" % filename)
+            self.queue.put(new_image)
+
+    def loadExistingImages(self, path):
+        """
+        Loads existing images and associated info files from a directory.
+        Adds them to the Watcher queue.
+        """
+        files = os.listdir(path)
+
+        def natural_sort(list):
+            """
+            Sorts a list of filenames alphanumerically / "naturally".
+            eg. ['100.txt', '2.txt', '10.txt']
+            sorts to ['2.txt', '10.txt', '100.txt']
+            See http://stackoverflow.com/questions/2545532/python-analog-of-natsort-function-sort-a-list-using-a-natural-order-algorithm
+            """
+            import re
+            def natural_key(str): # function to generate the key by which sorted() sorts on
+                return [int(s) if s.isdigit() else s for s in re.split('(\d+)', str)]
+            return sorted(list, key=natural_key)
+
+        files = natural_sort(files)
+        for f in files:
+            fullpath = os.path.join(path, f)
+            filename, extension = os.path.splitext(f)
+            extension = extension[1:]
+            logger.debug("Loaded existing file: %s" % fullpath)
+
+            # Matching image files with info files. Adding to the queue
+            # when a match is made.
+            if extension.lower() in supported_image_formats:
+                info_pathname = self.pending_infos.pop(filename, False)
+                if info_pathname:
+                    self.createImage(filename, fullpath, info_pathname)
+                else:
+                    self.pending_images[filename] = fullpath
+            elif extension.lower() in supported_info_formats:
+                image_pathname = self.pending_images.pop(filename, False)
+                if image_pathname:
+                    self.createImage(filename, image_pathname, fullpath)
+                else:
+                    self.pending_infos[filename] = fullpath
+
+        if len(self.pending_images) > 1 or len(self.pending_infos) > 1:
+            logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
+            logger.debug("Pending image files: %s" % ", ".join(self.pending_images))
+
     def setDirectory(self, path):
         """
-        Sets the directory to be watched. Can be called even after the
+        Sets the directory to be watched for new files. Can be called even after the
         watcher has been started to change the directory being watched.
         """
         if self.watches is not None:
@@ -206,7 +253,7 @@ class Watcher:
 
     def start(self):
         """
-        Starts watching the directory. Creates a second thread to 
+        Starts watching the directory. Creates a second thread to
         start the loop in.
         """
         self.notifier.start()
