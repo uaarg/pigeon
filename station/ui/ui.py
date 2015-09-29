@@ -21,11 +21,11 @@ FEATURE_AREA_MIN_WIDTH = 250
 
 class UI(QtCore.QObject, QueueMixin):
     """
-    Class for the rest of the application to interface with the UI. 
+    Class for the rest of the application to interface with the UI.
 
     This implementation of the class uses PyQt5 to provide the UI but
-    theoretically, other frameworks could be used without the rest of 
-    the application caring, as long as this class's API is 
+    theoretically, other frameworks could be used without the rest of
+    the application caring, as long as this class's API is
     implemented. Or, more likely: a mock UI instance could be used in
     unit testing for easy testing of the rest of the application.
     """
@@ -102,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Defining the page layout
         self.central_widget = QtWidgets.QWidget(self)
-        self.central_widget.setObjectName("central_widget")        
+        self.central_widget.setObjectName("central_widget")
         self.setCentralWidget(self.central_widget)
         self.grid_layout = QtWidgets.QGridLayout(self.central_widget)
         self.grid_layout.setObjectName("grid_layout")
@@ -131,6 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
         self.feature_area.feature_list.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature)) # Show feature details for the selected feature
         self.feature_area.feature_detail_area.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list when it's details are changed
+        self.feature_area.feature_detail_area.featureChanged.connect(self.main_image_area._drawFeature) # Re-draw the feature when its details are changed (including re-setting its tooltip)
 
 
         # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
@@ -155,7 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Recording the width and height of the image for other code to use:
         image.width = image.pixmap_loader.width()
         image.height = image.pixmap_loader.height()
-        
+
         if self.settings_data.get("Follow Images", False) or not self.current_image:
             self.showImage(image)
         self.thumbnail_area.addImage(image)
@@ -302,7 +303,7 @@ class MainImageArea(QtWidgets.QWidget):
 
     def _drawPlanePlumb(self):
         """
-        Draw a little plane icon on the image at the point directly 
+        Draw a little plane icon on the image at the point directly
         below the plane. But only if this behaviour is enabled in the
         settings.
         """
@@ -337,6 +338,7 @@ class MainImageArea(QtWidgets.QWidget):
             pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
             self.image_area.addPixmapLabelFeature(pixmap_label_marker)
             pixmap_label_marker.moveTo(point)
+            pixmap_label_marker.setToolTip(str(feature))
             pixmap_label_marker.show()
 
             self.feature_pixmap_label_markers.append(pixmap_label_marker)
@@ -352,7 +354,7 @@ class MainImageArea(QtWidgets.QWidget):
         """
         Called by Qt when the user clicks on the image.
 
-        Emitting an image_right_clicked event with the point if it was a 
+        Emitting an image_right_clicked event with the point if it was a
         right click.
         """
         point = QtCore.QPoint(event.x(), event.y())
@@ -545,7 +547,7 @@ class SettingsArea(QtWidgets.QWidget):
     """
     Provides a simple form for displaying and editing settings.
     The settings should be provided in settings_data, a dictionary of
-    strings and bools (only supported types at the moment). The 
+    strings and bools (only supported types at the moment). The
     dictionary keys should be strings and as the setting label.
     """
 
