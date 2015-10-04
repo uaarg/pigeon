@@ -47,6 +47,9 @@ class Position:
     def __copy__(self):
         return Position(self.lat, self.lon, self.height, self.alt)
 
+    def copy(self):
+        return self.__copy__()
+
     def __eq__(self, other):
         # Won't be equal if the other object doesn't have the required attributes.
         return hasattr(other, "lat") and hasattr(other, "lon") and hasattr(other, "height") and hasattr(other, "alt") and self.lat == other.lat and self.lon == other.lon and self.height == other.height and self.alt == other.alt
@@ -197,8 +200,9 @@ class GeoReference:
         camera = self.camera
 
         # Step 1: calculating angle offsets of pixel selected
-        delta_theta_horiz = atan((2*pixel_x/camera.image_width - 1) * camera.tan_angle_div_2_horiz)
+        delta_theta_horiz = atan((1 - 2*pixel_x/camera.image_width) * camera.tan_angle_div_2_horiz)
         delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) * camera.tan_angle_div_2_vert)
+
 
         # Step 2: calculating effective pitch and roll
         pitch = orientation.pitch_rad + delta_theta_vert
@@ -274,7 +278,7 @@ class GeoReference:
         delta_theta_vert = pitch - orientation.pitch_rad
         delta_theta_horiz = roll - orientation.roll_rad
 
-        pixel_x = (tan(delta_theta_horiz) / camera.tan_angle_div_2_horiz + 1) * camera.image_width / 2
+        pixel_x = (1 - tan(delta_theta_horiz) / camera.tan_angle_div_2_horiz) * camera.image_width / 2
         pixel_y = (tan(delta_theta_vert) / camera.tan_angle_div_2_vert + 1) * camera.image_height / 2
 
         # print("Internal pixel_x, pixel_y: %s, %s" % (pixel_x, pixel_y))
@@ -339,7 +343,7 @@ class PositionCollection:
         """
         For internal use to keep things DRY.
 
-        If include_height or include_alt is specified, factors is the
+        If include_height or include_alt is specified, factors in the
         vertical change between positions as part of the length.
         """
         if include_height and include_alt:
@@ -373,6 +377,18 @@ class PositionCollection:
             length += distance
         return length
 
+    def getPerimeterPositions(self, close=True):
+        """
+        Returns the list of positions that describe the perimter. If
+        close is true, the last position will always be the same as
+        the first.
+        """
+        if close and self.positions[0] != self.positions[-1]:
+            positions = self.positions + [self.positions[0]]
+        else:
+            positions = self.positions
+        return positions
+
     def perimeter(self, include_height=False, include_alt=False):
         """
         Returns the length around the outside of the polygon plus the 
@@ -384,10 +400,7 @@ class PositionCollection:
         or altitude changes in the distance calculations (otherwise
         treats all positions as if on the surface of the earth).
         """
-        if self.positions[0] != self.positions[-1]:
-            positions = self.positions + [self.positions[0]]
-        else:
-            positions = self.positions
+        positions = self.getPerimeterPositions()
 
         length = 0
 
@@ -410,6 +423,13 @@ class PositionCollection:
         treats all positions as if on the surface of the earth).
         """
         return self._segment_length(self.positions, include_height=include_height, include_alt=include_alt)
+
+    def boundingBox(self, include_rotation=False):
+        north = max([position.lat for position in self.positions])
+        south = min([position.lat for position in self.positions])
+        east = max([position.lon for position in self.positions])
+        west = min([position.lon for position in self.positions])
+        return (north, south, east, west)
     
     
 def utm_to_DD(easting, northing, zone, hemisphere="northern"):

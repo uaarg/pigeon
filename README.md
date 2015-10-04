@@ -7,7 +7,8 @@ information about points of interest found on the ground.
 
 Implemented Features:
 ---------------------
-* Monitors a folder for images added to it
+* Imports images that exist in the target folder on startup
+* Monitors the folder for new images added to it
 * Displays a scrollable list of images
 * Displays a main image as selected from the scrollable list
 * Settings area for specifying and saving settings
@@ -51,7 +52,7 @@ Installation
 Pigeon is written in PyQt. It also has a few python module dependencies.
 To install on Ubuntu (tested on 14.04), do:
 
-sudo apt-get install python3 python3-dev qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 python3-shapely python3-pip && sudo pip3 install pyinotify pyproj
+sudo apt-get install python3 python3-dev qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 python3-shapely python3-pip && sudo pip3 install pyinotify pyproj pykml
 
 
 Running the ground station
@@ -61,17 +62,27 @@ python3 station.py
 
 See the README in the station directory for usage notes.
 
-uavsimulator.py in the utils directory is useful for creating images 
-periodically instead of running the onboard software. Note that station
-now requires images to exist during it's entire operation so use
-uavsimulator with the --wait argument or don't stop it until station 
-is closed.
-
 
 Run the tests
 -------------
 From the station directory, do:
 python3 test.py
+
+
+Utilities
+---------
+Various utility programs exist in the utils directory. They are 
+summarized here. They each take command line arguments for specifying
+options. Call each program with --help argument to get usage info
+and see all the options.
+* uavsimulator.py: useful for creating images periodically instead 
+  of running the onboard software. Note that station now requires 
+  images to exist during it's entire operation so use uavsimulator 
+  with the --wait argument or don't stop it until station is closed.
+* images2kml.py: useful for visualizing images and metadata in 
+  Google Earth. Creates a KML file for one or more input images that
+  plots the plane location, image outline, image overlay, field of 
+  view, etc... (use command line arguements to specify what you want). 
 
 
 Contributing
@@ -92,3 +103,8 @@ Code conventions
 * A method called run implies it doesn't return, but rather loops
   forever. A method called start will return immediately, putting
   it's looping logic into a separate thread as necessary to do so.
+* Utilities can import the station module to leverage existing code
+  and avoid repetition. So When writting utilities, feel free to 
+  make enhancements to classes in station when it makes sense, even
+  if they are only used by your utility for now (ex. addding a new
+  method to Image to return the area of ground it can see).

@@ -240,6 +240,16 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
 
         self.assertGeoReferencing()
 
+    def testLevelLeftOfImage45Up(self):
+        self.camera = CameraSpecs(1000, 500, 90, 30)
+
+        self.x = 0
+        self.y = self.camera.image_height/2
+
+        self.correct_position = Position(53.634426, -113.288608)
+
+        self.assertGeoReferencing()
+
 class InverseGeoreferencingTests(BaseTestCase):
     """
     Tests the inverse geo-referencing algorithm (determining the pixel

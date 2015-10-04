@@ -132,6 +132,16 @@ class Image:
         self.positioncollection= geo.PositionCollection(positions, None)
         return self.positioncollection.length(0,0)
 
+    def getImageOutline(self):
+        """
+        Returns a PositionCollection that describes the area of the 
+        ground that the picture covers.
+        """
+        positions = []
+        for x, y in [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)]: # All corners of the image
+            positions.append(self.geoReferencePoint(x, y))
+        return geo.PositionCollection(positions)
+
 class Watcher:
     """
     Watches a directory for new images (and associated info files).

@@ -8,6 +8,8 @@ import image
 import settings
 import features
 
+__version__ = "0.1"
+
 class GroundStation:
     def __init__(self):
         super().__init__()
