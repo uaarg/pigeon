@@ -1,0 +1,14 @@
+time= 1440533865
+datetime= 2000-01-01 01:19:01
+phi= 9.41
+psi= -136.41
+theta= -22.52
+z= 696.35
+z_dot= -1.44
+alt= 691.33
+course= 267.00
+speed= 22.00
+utm_east= 348977
+utm_north= 5945860
+utm_zone= 12
+height= 81.68

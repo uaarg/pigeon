@@ -3,8 +3,8 @@
 *.sw*
 
 # Python
-*.pyc
+*.py[cod]
 __pycache__/
 
-# Generated files
-reports/
+# Data
+*.log

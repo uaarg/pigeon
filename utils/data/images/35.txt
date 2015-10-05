@@ -1,0 +1,21 @@
+time= 1434717739
+datetime= 2000-01-01 01:18:56
+phi= -46.48
+psi= -18.43
+theta= 12.15
+z= 706.52
+z_dot= 0.30
+alt= 704.06
+course= 21.94
+speed= 21.00
+utm_east= 349067
+utm_north= 5945800
+utm_zone= 12
+height= 94.40
+Target: (585,3309) other
+Target: (855,2967) other
+Target: (870,2781) other
+Target: (903,3372) other
+Target: (1896,2679) square
+Target: (2340,2985) other
+Target: (2343,3213) other
