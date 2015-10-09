@@ -9,6 +9,7 @@ import sys
 import image
 
 import queue as queue_module
+import geo
 
 def delete_file(location):
     try:
@@ -226,38 +227,16 @@ class ImageTestCase(BaseTestCase):
         self.assertAlmostEqual(self.image.plane_orientation.pitch, 9.13)
 
 class ImageTestCase2(BaseTestCase):
-    def setUp(self): # Hard-Codeing this image for below test
-        self.image = image.Image("S", None, self.source_info)
-        self.image.info_data["phi"]= 0 # Level Flight 
-        self.image.info_data["psi"]= 0
-        self.image.info_data["theta"]= 0      
-        self.image.plane_position.height = 1 # Change this     
+    def setUp(self):
+        self.image = image.Image("1", None, self.source_info)
+
+        self.image.plane_orientation = geo.Orientation(0, 0, 0) # Overriding info file data to have level flight
+
+        self.image.plane_position.height = 100
         self.image.width = 1000
         self.image.height = 1000
+        self.image.field_of_view_horiz = 90
 
-    def testDist2pointsHoriz(self):  
-        """
-        Test the function getDist2Points in image.py. 
-        Test consists of calling function with simple plane_orientation
-        setting and check to see if function returns same result. 
-        """
-        testDist_Horiz= 2*self.image.plane_position.height*math.tan(0.01745329252*self.image.field_of_view_horiz/2)
-        self.assertAlmostEqual(self.image.getDist2Points(0,500,1000,500), testDist_Horiz)
-
-    def testDist2pointsVert(self):  
-        """
-        Test the function getDist2Points in image.py. 
-        Test consists of calling function with simple plane_orientation
-        setting and check to see if function returns same result. 
-        """
-        testDist_Vert= 2*self.image.plane_position.height*math.tan(0.01745329252*self.image.field_of_view_vert/2)
-        self.assertAlmostEqual(self.image.getDist2Points(0,500,500,1000), testDist_Vert)
-
-    def testDist2pointsDiagonal(self): 
-        """
-        Tests both of the effects of the above for robustness. 
-        """
-        tanVert= math.tan(0.01745329252*self.image.field_of_view_vert/2)
-        tanHoriz= math.tan(0.01745329252*self.image.field_of_view_horiz/2)
-        testDist= 2*(self.image.plane_position.height*(tanVert**2+tanHoriz**2)**(0.5))
-        self.assertAlmostEqual(self.image.getDist2Points(0,0,1000,1000), testDist)
+    def testDistance(self):
+        calculated_distance = self.image.distance(0, 500, 1000, 500)
+        self.assertAlmostEqual(calculated_distance, 200)

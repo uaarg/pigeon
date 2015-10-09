@@ -121,16 +121,14 @@ class Image:
         self._requireGeo()
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
-    def getDist2Points(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):
+    def distance(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):
         """
-        Returns the distance between two points as clicked in image.
-        Uses  geoReferencePointo geo reference and PositionCollection
-        for distance calculation.
+        Returns the distance between the two points on the ground
+        refered to by the provided pixel locations.
         """
         positions = [self.geoReferencePoint(pixelA_x, pixelA_y),
                      self.geoReferencePoint(pixelB_x, pixelB_y)]
-        self.positioncollection= geo.PositionCollection(positions, None)
-        return self.positioncollection.length(0,0)
+        return geo.PositionCollection(positions).length()
 
     def getImageOutline(self):
         """
