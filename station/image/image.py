@@ -8,6 +8,7 @@ import os
 import logging
 
 import geo
+from math import *
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,10 @@ class Image:
                      "alt": "alt",
                      "pitch": "theta",
                      "roll": "phi",
-                     "yaw": "psi"}
+                     "yaw": "psi",
+		     "mx": "mx",
+                     "my": "my",
+                     "mz": "mz"}
 
         missing_fields = [field for field in field_map.values() if field not in self.info_data.keys()]
 
@@ -72,6 +76,16 @@ class Image:
         pitch = float(self.info_data[field_map["pitch"]])
         roll = float(self.info_data[field_map["roll"]])
         yaw = float(self.info_data[field_map["yaw"]])
+        mx = float(self.info_data[field_map["my"]])
+        mx=-mx
+        my = float(self.info_data[field_map["mx"]])
+        mz = float(self.info_data[field_map["mz"]])
+        mz=-mz
+        print(mx)
+        print(my)
+        print(mz)
+
+        yaw = self.calcmagheading(mx, my ,mz, pitch, roll)
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
@@ -139,6 +153,29 @@ class Image:
         for x, y in [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)]: # All corners of the image
             positions.append(self.geoReferencePoint(x, y))
         return geo.PositionCollection(positions)
+
+    def calcmagheading(self, magx, magy, magz, roll, pitch):
+        newpitch=radians(pitch)
+        newroll=radians(roll)
+        magX = magx*cos(newpitch) + magy*sin(newroll)*cos(newpitch) - magz*cos(newroll)*sin(newpitch)
+        magY = magy*cos(newroll) + magz*sin(newroll)
+        magYX = magY/magX
+
+        if magx<0:
+            return 180 - degrees(atan(magYX)) - 14
+        elif magx>0:
+            if magy<0:
+                return - degrees(atan(magYX)) - 14
+            else:
+                return 360 - degrees(atan(magYX)) - 14
+        elif magx==0:
+            if magy<0:
+                return 90 - 14
+            else:
+                return 270 - 14
+        else:
+            return 0
+
 
 class Watcher:
     """
