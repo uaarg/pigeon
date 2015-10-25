@@ -332,16 +332,17 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = []
 
     def _drawFeature(self, feature):
-        pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
-        if pixel_x and pixel_y:
-            point = QtCore.QPoint(pixel_x, pixel_y)
-            pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
-            self.image_area.addPixmapLabelFeature(pixmap_label_marker)
-            pixmap_label_marker.moveTo(point)
-            pixmap_label_marker.setToolTip(str(feature))
-            pixmap_label_marker.show()
+        if feature.position:
+            pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
+            if pixel_x and pixel_y:
+                point = QtCore.QPoint(pixel_x, pixel_y)
+                pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
+                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+                pixmap_label_marker.moveTo(point)
+                pixmap_label_marker.setToolTip(str(feature))
+                pixmap_label_marker.show()
 
-            self.feature_pixmap_label_markers.append(pixmap_label_marker)
+                self.feature_pixmap_label_markers.append(pixmap_label_marker)
 
     def _drawFeatures(self):
         for feature in self.features:
@@ -386,7 +387,7 @@ class FeatureDetailArea(EditableBaseListForm):
     def showFeature(self, feature):
         self.feature = feature
         data = feature.data.copy()
-        data.append(("Position", feature.position.dispLatLon(), False))
+        data.append(("Position", feature.dispLatLon(), False))
         data.append(("Image Name", str(feature.image.name), False))
         self.setData(data)
 
