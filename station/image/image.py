@@ -27,8 +27,8 @@ class Image:
 
         self.width = None # Automatically set later when image read
         self.height = None # Automatically set later when  image read
-        self.field_of_view_horiz = 58.2
-        self.field_of_view_vert = 44.5 #Change Line 243 in testimage when this changes
+        self.field_of_view_horiz = 63.3
+        self.field_of_view_vert = 48.9 #Change Line 243 in testimage when this changes
 
 
         self.georeference = None
@@ -59,7 +59,7 @@ class Image:
                      "pitch": "theta",
                      "roll": "phi",
                      "yaw": "psi",
-		     "mx": "mx",
+                     "mx": "mx",
                      "my": "my",
                      "mz": "mz"}
 
@@ -76,20 +76,70 @@ class Image:
         pitch = float(self.info_data[field_map["pitch"]])
         roll = float(self.info_data[field_map["roll"]])
         yaw = float(self.info_data[field_map["yaw"]])
-        mx = float(self.info_data[field_map["my"]])
-        mx=-mx
-        my = float(self.info_data[field_map["mx"]])
-        mz = float(self.info_data[field_map["mz"]])
-        mz=-mz
-        print(mx)
-        print(my)
-        print(mz)
 
-        yaw = self.calcmagheading(mx, my ,mz, pitch, roll)
+        # Raw magnetometer values
+        magx = float(self.info_data[field_map["mx"]])
+        magy = float(self.info_data[field_map["my"]])
+        magz = float(self.info_data[field_map["mz"]])
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
         self.plane_orientation = geo.Orientation(pitch, roll, yaw)
+
+        self.magCorrection(magx, magy, magz)
+
+    def magCorrection(self, magx, magy, magz):
+        """
+        Uses the raw magnetometer data from Waldo to calculate aircraft yaw (psi)
+        To be used when the filtered data from the autopilot cannot be trusted.
+        Returns the calculated psi value in radians.
+        """
+        from math import sqrt, pow, sin, cos, atan, degrees
+        MAGNETIC_DECLINATION = 14.614 # Bremner field on 2015-09-12
+        MAGNETIC_OFFSET = 0
+
+        # Normalize
+        magn = sqrt(pow(magx,2) + pow(magy,2) + pow(magz,2))
+        magx = magx/magn;
+        magy = magy/magn;
+        magz = magz/magn;
+
+        roll = self.plane_orientation.roll_rad
+        pitch = self.plane_orientation.pitch_rad
+
+        magX = magx*cos(pitch) + magy*sin(roll)*sin(pitch) - magz*cos(roll)*sin(pitch);
+        magY = magy*cos(roll) + magz*sin(roll);
+        magYX = magY/magX;
+
+        if magx < 0:
+            psi = 180 - degrees(atan(magYX)) - MAGNETIC_DECLINATION + MAGNETIC_OFFSET;
+
+        elif magx > 0:
+            if magy < 0:
+                psi = - degrees(atan(magYX)) - MAGNETIC_DECLINATION + MAGNETIC_OFFSET;
+            else:
+                psi = 360 - degrees(atan(magYX)) - MAGNETIC_DECLINATION + MAGNETIC_OFFSET;
+
+        elif magx == 0:
+            if magy < 0:
+                psi = 90 - MAGNETIC_DECLINATION + MAGNETIC_OFFSET;
+            else:
+                psi = 270 - MAGNETIC_DECLINATION + MAGNETIC_OFFSET;
+
+        def normalize_angle(angle, mininum=0, maximum=360):
+            while angle >= maximum:
+                angle -= 360
+            while angle < mininum:
+                angle += 360
+            return angle
+
+        self.raw_mag_psi = normalize_angle(psi)
+
+    def dispRawMagPsi(self):
+        """
+        Returns the raw magnetometer value in a format suitable for display.
+        """
+        return "%s\N{DEGREE SIGN}" % int(self.raw_mag_psi)
 
     def _prepareGeo(self):
         """
@@ -146,7 +196,7 @@ class Image:
 
     def getImageOutline(self):
         """
-        Returns a PositionCollection that describes the area of the 
+        Returns a PositionCollection that describes the area of the
         ground that the picture covers.
         """
         positions = []

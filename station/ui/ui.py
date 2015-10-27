@@ -224,7 +224,8 @@ class InfoArea(QtWidgets.QFrame):
                 ("Pitch", image.plane_orientation.dispPitch()),
                 ("Roll", image.plane_orientation.dispRoll()),
                 ("Yaw", image.plane_orientation.dispYaw()),
-                ("Plane Position", image.plane_position.dispLatLon()),]
+                ("Raw Mag Yaw", image.dispRawMagPsi()),
+                ("Plane Position", image.plane_position.dispLatLon())]
         self.image_info_area.setData(data)
 
     def addImage(self, image):
