@@ -1,6 +1,7 @@
 import sys
 import logging
 import datetime
+import math
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -52,6 +53,9 @@ class UI(QtCore.QObject, QueueMixin):
             string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
             print(string)
             self.logger.info(string)
+
+
+
 
         def create_new_marker(image, point):
             position = image.geoReferencePoint(point.x(), point.y())
@@ -255,6 +259,7 @@ class InfoArea(QtWidgets.QFrame):
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
+    rightmousepresspoint = 0;
 
     def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
@@ -360,10 +365,29 @@ class MainImageArea(QtWidgets.QWidget):
         """
         point = QtCore.QPoint(event.x(), event.y())
         point = self.image_area.pointOnOriginal(point)
+	
         if event.button() == QtCore.Qt.LeftButton and point:
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
+            self.printangle(self.rightmousepresspoint,point)
             self.image_right_clicked.emit(self.image, point)
+
+
+    def mousePressEvent(self, event):
+        point = QtCore.QPoint(event.x(), event.y())
+        point = self.image_area.pointOnOriginal(point)
+        if event.buttons() == QtCore.Qt.RightButton:
+            self.rightmousepresspoint = point
+ 
+    def printangle(self, basepoint, endpoint):
+        delx = endpoint.x() - basepoint.x()
+        dely = endpoint.y() - basepoint.y()
+	
+        northangle = math.atan2(delx,dely)
+        print(math.degrees(northangle)+180)
+
+        
+        
 
 
 class FeatureDetailArea(EditableBaseListForm):
