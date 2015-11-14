@@ -124,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
         self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
-        self.feature_area = FeatureArea(self.main_horizontal_split)
+        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
         # Hooking up some inter-component benhaviour
@@ -393,8 +393,9 @@ class FeatureDetailArea(EditableBaseListForm):
 
 
 class FeatureArea(QtWidgets.QFrame):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
+        self.settings_data = settings_data
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
@@ -420,6 +421,15 @@ class FeatureArea(QtWidgets.QFrame):
 
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
+
+        self.export_button = QtWidgets.QPushButton("Export Features", self)
+        self.export_button.clicked.connect(
+            lambda: self.exportFeatures(
+                self.settings_data.get("Feature Export Path")
+            )
+        )
+        self.export_button.resize(self.export_button.minimumSizeHint())
+        self.layout.addWidget(self.export_button)
 
     def addFeature(self, feature):
         item = QtWidgets.QListWidgetItem("", self.feature_list)
@@ -461,11 +471,6 @@ class FeatureArea(QtWidgets.QFrame):
         markPoint.resize(markPoint.minimumSizeHint())
         markPoint.move(120,50)
 
-        markPoint = QtWidgets.QPushButton("Export", self)
-        markPoint.clicked.connect(self.exportText)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(0,100)
-
         markPoint = QtWidgets.QPushButton("Clear", self)
         markPoint.clicked.connect(self.clearMarker)
         markPoint.resize(markPoint.minimumSizeHint())
@@ -484,8 +489,46 @@ class FeatureArea(QtWidgets.QFrame):
     def calcArea(self):
         print("Dummy Function {refresh Area calc!}")
 
-    def exportText(self):
-        print("Dummy Function {Export Functionality!}")
+    def exportFeatures(self, output_path="data/features.kml"):
+        """
+        Exports all features with the 'Export' property active.
+        """
+        from pykml.factory import KML_ElementMaker as KML
+        from lxml import etree
+
+        doc = KML.kml(
+            KML.Document(
+                KML.name(datetime.datetime.now())
+            )
+        )
+
+        for item in self.feature_list.iterItems():
+            feature_export = False
+            feature_full_desc = ''
+            if item.feature.position:
+                for field, value in item.feature.data:
+                    if field == "Export" and value == True: feature_export = True
+                    # use the str representation of the feature rather than what's in the name field
+                    # this is done just to exclude the Name from the full description
+                    elif field == "Name": feature_name = str(item.feature)
+                    else:
+                        feature_full_desc += "%s: %s\n" % (field, str(value))
+
+                if feature_export == True:
+                    pos = item.feature.position
+                    placemark = KML.Placemark(
+                                KML.name(feature_name),
+                                KML.Point(
+                                    KML.coordinates("%s,%s,%s" % (pos.lon, pos.lat, pos.alt or 0))
+                                ),
+                                KML.description(feature_full_desc)
+                            )
+                    if pos.alt:
+                        placemark.Point.append(KML.altitudeMode("absolute"))
+                    doc.Document.append(placemark)
+
+        with open(output_path, "wb") as outfile:
+            outfile.write(etree.tostring(doc, pretty_print=True))
 
     def clearMarker(self):
         print("Dummy Function {Clear Marker!}")
@@ -583,7 +626,9 @@ class SettingsArea(QtWidgets.QWidget):
 
 
     def setSettings(self, settings_data):
-        data = [(field_name, field_value) for field_name, field_value in settings_data.items()]
+        # Sorting for consistency in the UI between sessions
+        sorted_settings_data = sorted(settings_data.items())
+        data = [(field_name, field_value) for field_name, field_value in sorted_settings_data]
             # Converting the dictinary to a list of tuples because this is what the EditableBaseListForm needs
         self.edit_form.setData(data)
 
