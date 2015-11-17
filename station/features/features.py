@@ -28,6 +28,12 @@ class Feature():
                         return value
         return "(unnamed)"
 
+    def dispLatLon(self):
+        if self.position:
+            return self.position.dispLatLon()
+        else:
+            return "(not on earth)"
+
 class Point(Feature):
     def __init__(self, position, *args, **kwargs):
         super().__init__(*args, **kwargs)
