@@ -500,7 +500,7 @@ class FeatureArea(QtWidgets.QFrame):
         for item in self.feature_list.iterItems():
             for field, value in item.feature.data:
                 if field == "Export" and value == True:
-                    kml_exporter.doc.append(
+                    kml_exporter.doc.Document.append(
                             kml_exporter.classToKML(item.feature)
                     )
 
