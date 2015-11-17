@@ -69,9 +69,9 @@ class Image:
         zone = int(self.info_data[field_map["zone"]])
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
-        pitch = float(self.info_data[field_map["pitch"]])
-        roll = float(self.info_data[field_map["roll"]])
-        yaw = float(self.info_data[field_map["yaw"]])
+        pitch = float(self.info_data[field_map["pitch"]]) # * -1
+        roll = float(self.info_data[field_map["roll"]]) # * -1
+        yaw = float(self.info_data[field_map["yaw"]]) # + 180 # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)

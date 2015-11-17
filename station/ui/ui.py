@@ -7,6 +7,7 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 from features import Marker, Feature
+from exporter import KMLExporter
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin
 from .commonwidgets import EditableBaseListForm
@@ -254,6 +255,7 @@ class InfoArea(QtWidgets.QFrame):
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
+    rightmousepresspoint = 0;
 
     def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
@@ -493,42 +495,16 @@ class FeatureArea(QtWidgets.QFrame):
         """
         Exports all features with the 'Export' property active.
         """
-        from pykml.factory import KML_ElementMaker as KML
-        from lxml import etree
-
-        doc = KML.kml(
-            KML.Document(
-                KML.name(datetime.datetime.now())
-            )
-        )
+        kml_exporter = KMLExporter()
 
         for item in self.feature_list.iterItems():
-            feature_export = False
-            feature_full_desc = ''
-            if item.feature.position:
-                for field, value in item.feature.data:
-                    if field == "Export" and value == True: feature_export = True
-                    # use the str representation of the feature rather than what's in the name field
-                    # this is done just to exclude the Name from the full description
-                    elif field == "Name": feature_name = str(item.feature)
-                    else:
-                        feature_full_desc += "%s: %s\n" % (field, str(value))
+            for field, value in item.feature.data:
+                if field == "Export" and value == True:
+                    kml_exporter.doc.append(
+                            kml_exporter.classToKML(item.feature)
+                    )
 
-                if feature_export == True:
-                    pos = item.feature.position
-                    placemark = KML.Placemark(
-                                KML.name(feature_name),
-                                KML.Point(
-                                    KML.coordinates("%s,%s,%s" % (pos.lon, pos.lat, pos.alt or 0))
-                                ),
-                                KML.description(feature_full_desc)
-                            )
-                    if pos.alt:
-                        placemark.Point.append(KML.altitudeMode("absolute"))
-                    doc.Document.append(placemark)
-
-        with open(output_path, "wb") as outfile:
-            outfile.write(etree.tostring(doc, pretty_print=True))
+        kml_exporter.writeKML(output_path)
 
     def clearMarker(self):
         print("Dummy Function {Clear Marker!}")
