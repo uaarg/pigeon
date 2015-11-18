@@ -8,7 +8,7 @@ class BaseTestCase(unittest.TestCase):
         """
         Handy method for asserting that both latitude and longitude
         are equal. Provide two tuples of (lat, lon).
-        Uses assertAlmostEqual to 5 decimal places in attempt to 
+        Uses assertAlmostEqual to 5 decimal places in attempt to
         test precision within 1 meter but not within 1/2 of a meter.
 
         http://en.wikipedia.org/wiki/Decimal_degrees#Precision
@@ -20,7 +20,7 @@ class BaseTestCase(unittest.TestCase):
     def assertPositionsEqual(self, position1, position2, check_height=False):
         """
         Asserts that the two provided positions are equal to within
-        around 1/2 of a meter. Ignores altitude. Ignores height unless 
+        around 1/2 of a meter. Ignores altitude. Ignores height unless
         check_height is specified as True.
         """
         if position1 is None or position2 is None:
@@ -49,7 +49,7 @@ class UTMToDDTests(BaseTestCase):
     def testMaryland(self):
         calculated_latlon = utm_to_DD(378449.42, 4224578.88, 18)
         self.assertLatLonEqual(calculated_latlon, (38.160918, -76.387450))
-    
+
     def testSydney(self):
         calculated_latlon = utm_to_DD(335918.34, 6253113.37 - 10000000, 56)
         self.assertLatLonEqual(calculated_latlon, (-33.849525, 151.226451))
@@ -175,8 +175,8 @@ class GeoReferencingTests(BaseTestCase):
 
     def testPointInSky(self):
         """
-        Tests if the roll or pitch value is above 90 degrees. This 
-        would mean the point to be geo-referenced is in the sky. So 
+        Tests if the roll or pitch value is above 90 degrees. This
+        would mean the point to be geo-referenced is in the sky. So
         should be None.
         """
         self.orientation = Orientation(0, 91, 0)
@@ -191,7 +191,7 @@ class GeoReferencingTests(BaseTestCase):
 class GeoReferencingCameraSpecsTests(BaseTestCase):
     """
     Tests geo-referencing algorithms: determining the latitude and
-    longitude of features on the earth in an image that was taken 
+    longitude of features on the earth in an image that was taken
     from a plane.
 
     Distance from point calculations for correct positions done using:
@@ -199,7 +199,7 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
     """
     def setUp(self):
         self.plane_position = Position(53.634426, -113.287097, 100)
-        self.orientation = Orientation(0, 0, 0)        
+        self.orientation = Orientation(0, 0, 0)
 
     def assertGeoReferencing(self):
         """
@@ -214,7 +214,7 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
         self.camera = CameraSpecs(1000, 500, 30, 60)
 
         self.x = self.camera.image_width/2
-        self.y = self.camera.image_height
+        self.y = 0
 
         self.correct_position = Position(53.634945, -113.287097)
 
@@ -224,7 +224,7 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
         self.camera = CameraSpecs(1000, 500, 30, 90)
 
         self.x = self.camera.image_width/2
-        self.y = self.camera.image_height
+        self.y = 0
 
         self.correct_position = Position(53.635325, -113.287097)
 
@@ -234,7 +234,7 @@ class GeoReferencingCameraSpecsTests(BaseTestCase):
         self.camera = CameraSpecs(1000, 500, 30, 120)
 
         self.x = self.camera.image_width/2
-        self.y = self.camera.image_height
+        self.y = 0
 
         self.correct_position = Position(53.6359816, -113.287097)
 
@@ -278,7 +278,7 @@ class InverseGeoreferencingTests(BaseTestCase):
 
     def testInverse(self):
         """
-        Tests lots of input permutations by ensuring pointOnImage() 
+        Tests lots of input permutations by ensuring pointOnImage()
         is the inverse of pointInImage().
         """
         cameras = [CameraSpecs(1000, 500, 30, 15), CameraSpecs(400, 400, 50, 50)]

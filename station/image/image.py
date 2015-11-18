@@ -69,9 +69,10 @@ class Image:
         zone = int(self.info_data[field_map["zone"]])
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
-        pitch = float(self.info_data[field_map["pitch"]]) # * -1
-        roll = float(self.info_data[field_map["roll"]]) # * -1
-        yaw = float(self.info_data[field_map["yaw"]]) # + 180 # yaw is absolute comparison to north, can't just flip
+        pitch = float(self.info_data[field_map["pitch"]]) * -1 # top of camera pointing towards plane tail
+        roll = float(self.info_data[field_map["roll"]]) * -1 # top of camera pointing towards plane tail
+        yaw = float(self.info_data[field_map["yaw"]]) + 180 # top of camera pointing towards plane tail;
+        # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
@@ -132,11 +133,11 @@ class Image:
 
     def getImageOutline(self):
         """
-        Returns a PositionCollection that describes the area of the 
+        Returns a PositionCollection that describes the area of the
         ground that the picture covers.
         """
         positions = []
-        for x, y in [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)]: # All corners of the image
+        for x, y in [(0, self.height), (self.width, self.height), (self.width, 0), (0, 0)]: # All corners of the image
             positions.append(self.geoReferencePoint(x, y))
         return geo.PositionCollection(positions)
 
