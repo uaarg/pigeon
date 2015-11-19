@@ -23,7 +23,7 @@ class KMLExporter:
     locations.
     """
 
-    def __init__(self):
+    def __init__(self, output_options=None):
         # Initialize KML doc
         self.doc = KML.kml(
                 KML.Document(
@@ -31,17 +31,30 @@ class KMLExporter:
                 )
             )
 
-    def processImage(self, image, output_options):
+        self.output_options = output_options
+
+        # Creating necessary styles:
+        if self.output_options and self.output_options.get("Output Field of View"):
+            self.doc.Document.append(
+                KML.Style(
+                    KML.PolyStyle(
+                        KML.color("00ffffff")
+                    ),
+                    id="outline_only_polygon"
+                )
+            )
+
+    def processImage(self, image):
         """
         Creates a KML folder for a single image
         and populates it with KML elements from image properties.
         """
         # Define which objects to export
-        self.output_plane_plumb = output_options["Output Plane Plumb"]
-        self.output_plane_position = output_options["Output Plane Position"]
-        self.output_image_outline = output_options["Output Image Outline"]
-        self.output_image_overlay = output_options["Output Image Overlay"]
-        self.output_field_of_view = output_options["Output Field of View"]
+        self.output_plane_plumb = self.output_options["Output Plane Plumb"]
+        self.output_plane_position = self.output_options["Output Plane Position"]
+        self.output_image_outline = self.output_options["Output Image Outline"]
+        self.output_image_overlay = self.output_options["Output Image Overlay"]
+        self.output_field_of_view = self.output_options["Output Field of View"]
 
         folder = KML.Folder(KML.name(image.name))
         self.doc.Document.append(folder)
@@ -131,7 +144,8 @@ class KMLExporter:
                                         KML.coordinates(coordinates)
                                     )
                                 )
-                            )
+                            ),
+                            KML.styleUrl("#outline_only_polygon")
                         )
 
         elif isinstance(arg, Image):

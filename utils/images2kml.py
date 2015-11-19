@@ -44,14 +44,14 @@ class ImageToKML:
         else:
             print("Processing %s images..." % len(input_images))
 
-        kml_exporter = KMLExporter()
+        kml_exporter = KMLExporter(output_options)
 
         for input_image in input_images:
             directory, whole_filename = os.path.split(input_image)
             filename, extension = os.path.splitext(whole_filename)
 
             image = Image(filename, input_image, image_to_info(input_image))
-            kml_exporter.processImage(image, output_options)
+            kml_exporter.processImage(image)
 
         kml_exporter.writeKML(destination_location, validate)
         print("done.")
