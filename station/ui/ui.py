@@ -55,9 +55,6 @@ class UI(QtCore.QObject, QueueMixin):
             print(string)
             self.logger.info(string)
 
-
-
-
         def create_new_marker(image, point):
             position = image.geoReferencePoint(point.x(), point.y())
             marker = Marker(position)
@@ -138,6 +135,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.feature_area.feature_detail_area.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list when it's details are changed
         self.feature_area.feature_detail_area.featureChanged.connect(self.main_image_area._drawFeature) # Re-draw the feature when its details are changed (including re-setting its tooltip)
 
+        # update data in info area when visually measuring yaw
+        self.main_image_area.image_angle_measured.connect(self.info_area.showImage)
 
         # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
         # self.menubar = QtWidgets.QMenuBar(self)
@@ -229,7 +228,8 @@ class InfoArea(QtWidgets.QFrame):
                 ("Pitch", image.plane_orientation.dispPitch()),
                 ("Roll", image.plane_orientation.dispRoll()),
                 ("Yaw", image.plane_orientation.dispYaw()),
-                ("Raw Mag Yaw", image.dispRawMagPsi()),
+                ("Raw Mag Heading", image.dispRawMagPsi()),
+                ("Visually Measured Heading", image.dispVisualHeading()),
                 ("Plane Position", image.plane_position.dispLatLon())]
         self.image_info_area.setData(data)
 
@@ -261,6 +261,7 @@ class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     rightmousepresspoint = 0;
+    image_angle_measured = QtCore.pyqtSignal(Image)
 
     def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
@@ -367,30 +368,48 @@ class MainImageArea(QtWidgets.QWidget):
         """
         point = QtCore.QPoint(event.x(), event.y())
         point = self.image_area.pointOnOriginal(point)
-	
+
         if event.button() == QtCore.Qt.LeftButton and point:
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
-            self.printangle(self.rightmousepresspoint,point)
             self.image_right_clicked.emit(self.image, point)
-
+            # Visually measure the heading
+            angle = self.angleInImage(self.rightmousepresspoint, point)
+            self.image.visualHeadingCorrection(angle, 0) # Assuming reference feature is pointing north
+            self.image_angle_measured.emit(self.image)
 
     def mousePressEvent(self, event):
         point = QtCore.QPoint(event.x(), event.y())
         point = self.image_area.pointOnOriginal(point)
         if event.buttons() == QtCore.Qt.RightButton:
             self.rightmousepresspoint = point
- 
-    def printangle(self, basepoint, endpoint):
+
+    def angleInImage(self, basepoint, endpoint):
+        """
+        Returns the angle of the vector between two points in an image.
+        Angle is in degrees clockwise from the vertical vector pointing
+        towards the top of the image.
+
+        This can be used to visually verify the heading of the aircraft
+        when an image was taken.
+        """
+        from math import atan2, degrees
+
         delx = endpoint.x() - basepoint.x()
-        dely = endpoint.y() - basepoint.y()
-	
-        northangle = math.atan2(delx,dely)
-        print(math.degrees(northangle)+180)
+        dely = -(endpoint.y() - basepoint.y()) # QT coordinates are flipped
 
-        
-        
+        def normalize_angle(angle, mininum=-180, maximum=180):
+            while angle >= maximum:
+                angle -= 360
+            while angle < mininum:
+                angle += 360
+            return angle
 
+        angle = degrees(atan2(dely, delx))
+        angle = -1 * angle + 90 # translate from coordinate system used by atan2
+        angle = normalize_angle(angle, 0, 360)
+
+        return angle
 
 class FeatureDetailArea(EditableBaseListForm):
     featureChanged = QtCore.pyqtSignal(Feature)

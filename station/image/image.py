@@ -28,7 +28,7 @@ class Image:
         self.width = None # Automatically set later when image read
         self.height = None # Automatically set later when  image read
         self.field_of_view_horiz = 63.3
-        self.field_of_view_vert = 48.9 #Change Line 243 in testimage when this changes
+        self.field_of_view_vert = 48.9
 
 
         self.georeference = None
@@ -82,6 +82,9 @@ class Image:
         magx = float(self.info_data[field_map["mx"]])
         magy = float(self.info_data[field_map["my"]])
         magz = float(self.info_data[field_map["mz"]])
+
+        # Visual yaw correction
+        self.visually_measured_yaw = None
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
         self.plane_position = geo.Position(lat, lon, height, alt)
@@ -141,6 +144,35 @@ class Image:
         Returns the raw magnetometer value in a format suitable for display.
         """
         return "%s\N{DEGREE SIGN}" % int(self.raw_mag_psi)
+
+    def visualHeadingCorrection(self, visual_angle, reference_angle):
+        """
+        Sets a visually measured heading for the image,
+        based on getting the angle in an image of some feature whose angle
+        is known, eg. a fence running north-south.
+
+        visual_angle should be stated in degrees clockwise from the vertical
+        vector pointing towards the top of the image.
+        reference_angle should be stated in degrees clockwise from north.
+        """
+        yaw_angle = reference_angle - visual_angle
+
+        def normalize_angle(angle, mininum=0, maximum=360):
+            while angle >= maximum:
+                angle -= 360
+            while angle < mininum:
+                angle += 360
+            return angle
+
+        self.visually_measured_yaw = normalize_angle(yaw_angle, 0, 360)
+
+    def dispVisualHeading(self):
+        """
+        Returns the visually measured heading in a format suitable for display.
+        """
+        if not self.visually_measured_yaw:
+            return "N/A"
+        return "%s\N{DEGREE SIGN}" % int(self.visually_measured_yaw)
 
     def _prepareGeo(self):
         """
