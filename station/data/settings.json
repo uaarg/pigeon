@@ -1,7 +1,7 @@
 {
-    "Monitor Folder": "/home/cindy/uaarg/test-results/20151107_bremner_test/images/flight-2",
-    "Follow Images": false,
+    "Follow Images": true,
     "Load Existing Images": true,
+    "Feature Export Path": "data/features.kml",
     "Plane Plumbline": true,
-    "Feature Export Path": "data/features.kml"
+    "Monitor Folder": "data/images"
 }

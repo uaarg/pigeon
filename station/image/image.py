@@ -73,9 +73,10 @@ class Image:
         zone = int(self.info_data[field_map["zone"]])
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
-        pitch = float(self.info_data[field_map["pitch"]])
-        roll = float(self.info_data[field_map["roll"]])
-        yaw = float(self.info_data[field_map["yaw"]])
+        pitch = float(self.info_data[field_map["pitch"]]) * -1 # top of camera pointing towards plane tail
+        roll = float(self.info_data[field_map["roll"]]) * -1 # top of camera pointing towards plane tail
+        yaw = float(self.info_data[field_map["yaw"]]) + 180 # top of camera pointing towards plane tail;
+        # yaw is absolute comparison to north, can't just flip
 
         # Raw magnetometer values
         magx = float(self.info_data[field_map["mx"]])
@@ -200,7 +201,7 @@ class Image:
         ground that the picture covers.
         """
         positions = []
-        for x, y in [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)]: # All corners of the image
+        for x, y in [(0, self.height), (self.width, self.height), (self.width, 0), (0, 0)]: # All corners of the image
             positions.append(self.geoReferencePoint(x, y))
         return geo.PositionCollection(positions)
 

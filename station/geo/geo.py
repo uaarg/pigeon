@@ -65,7 +65,7 @@ class Position:
 
     def dispLatLon(self):
         """
-        Returns the latitude and longitude in a format suitable for 
+        Returns the latitude and longitude in a format suitable for
         display.
         """
         return "%.6f, %.6f" % (self.lat, self.lon)
@@ -128,7 +128,7 @@ class CameraSpecs:
         """
         image_width - the horizontal size of the image in pixels.
         image_height - the vertical size of the image in pixels.
-        field_of_view_horiz - the angle between the camera and 
+        field_of_view_horiz - the angle between the camera and
                 the left and right edges of the image. In degrees.
         field_of_view_vert - the angle between the camera and
                 the top and bottom edges of the image. In degrees.
@@ -153,7 +153,7 @@ class CameraSpecs:
 class GeoReference:
     """
     Class for geo-referencing. Create an instance with the relatively
-    contstant variables of the system. Then use the methods to perform 
+    contstant variables of the system. Then use the methods to perform
     the desired type of geo-referencing.
     """
     def __init__(self, camera_specs):
@@ -165,31 +165,31 @@ class GeoReference:
     def centerOfImage(self, location, orientation):
         """
         Calculates and returns the position of the centre of the image.
-        The plane location and orientation at the time 
-        the image was taken should be provided 
+        The plane location and orientation at the time
+        the image was taken should be provided
         as Location and Orientation objects.
         """
         return self.pointInImage(location, orientation, self.camera.image_width/2, self.camera.image_height/2)
 
     def pointInImage(self, location, orientation, pixel_x, pixel_y):
         """
-        Calculates and returns the position of the point located at 
-        pixel_x, pixel_y in the image. The plane location and 
-        orientation at the time the image was taken should be provided 
+        Calculates and returns the position of the point located at
+        pixel_x, pixel_y in the image. The plane location and
+        orientation at the time the image was taken should be provided
         as Location and Orientation objects.
 
         location - plane location
         orientation - plane orientation
-        pixel_x - pixel in the image at the point. Measured from left 
+        pixel_x - pixel in the image at the point. Measured from left
                 edge. Should be the same dimension as the image_width.
-        pixel_y - pixel in the image at the point. Measured from bottom 
+        pixel_y - pixel in the image at the point. Measured from bottom
                 edge. Should be the same dimension as the image_height.
 
         Returns None if the point is determined to not be on the ground.
-        Ex. if a point in the sky was clicked. This can happen if the 
+        Ex. if a point in the sky was clicked. This can happen if the
         effective pitch or roll is greater than 90 degrees.
 
-        Algorithm described here: 
+        Algorithm described here:
         sftp://uaargarchive@142.244.63.77/Upload/Ground Station Imaging/Geo-referencing Calculations
         https://drive.google.com/a/ualberta.ca/folderview?id=0BxmxpOgS5RpSbU1pWHN5dlBTelk&usp=sharing
         """
@@ -201,7 +201,7 @@ class GeoReference:
 
         # Step 1: calculating angle offsets of pixel selected
         delta_theta_horiz = atan((1 - 2*pixel_x/camera.image_width) * camera.tan_angle_div_2_horiz)
-        delta_theta_vert = atan((2*pixel_y/camera.image_height - 1) * camera.tan_angle_div_2_vert)
+        delta_theta_vert = atan((1 - 2*pixel_y/camera.image_height) * camera.tan_angle_div_2_vert)
 
 
         # Step 2: calculating effective pitch and roll
@@ -215,10 +215,10 @@ class GeoReference:
             return None # Point is in the sky
 
         # Step 3: calculating level distance and angle to pixel
-        distance_x = location.height * tan(pitch)
-        distance_y = location.height * tan(-roll)
+        distance_y = location.height * tan(pitch)
+        distance_x = location.height * tan(-roll)
         distance = sqrt(pow(distance_x, 2) + pow(distance_y, 2))
-        phi = atan2(distance_y, distance_x) # atan2 used to provide 
+        phi = atan2(distance_x, distance_y) # atan2 used to provide
                 # angle properly for any quadrant
 
         # Step 4: calculating angle from north to pixel
@@ -244,17 +244,17 @@ class GeoReference:
         """
         Calculates and returns the position (pixel_x and pixel_y) in the
         image of the point at the specified location. The plane location
-        and orientation at the time the image was taken should be 
+        and orientation at the time the image was taken should be
         provided as Location and Orientation objects.
 
         Returns a tuple of two None's if the point is determiend to not be
         in the image.
 
-        The point's location doesn't have to be on the earth: objects 
+        The point's location doesn't have to be on the earth: objects
         above the ground can be located in the image too.
 
         If the point's height is None, it's taken to be 0: on the earth.
-        If the point's height is 0 (or None), then this function is the 
+        If the point's height is 0 (or None), then this function is the
         inverse of pointInImage().
         """
 
@@ -269,17 +269,17 @@ class GeoReference:
 
         phi = forward_azimuth - orientation.yaw_rad
 
-        distance_x = distance*cos(phi)
-        distance_y = distance*sin(phi)
+        distance_x = distance*sin(phi)
+        distance_y = distance*cos(phi)
 
-        pitch = atan2(distance_x, plane_location.height - (point_location.height or 0))
-        roll = -atan2(distance_y, plane_location.height - (point_location.height or 0))
+        pitch = atan2(distance_y, plane_location.height - (point_location.height or 0))
+        roll = -atan2(distance_x, plane_location.height - (point_location.height or 0))
 
         delta_theta_vert = pitch - orientation.pitch_rad
         delta_theta_horiz = roll - orientation.roll_rad
 
         pixel_x = (1 - tan(delta_theta_horiz) / camera.tan_angle_div_2_horiz) * camera.image_width / 2
-        pixel_y = (tan(delta_theta_vert) / camera.tan_angle_div_2_vert + 1) * camera.image_height / 2
+        pixel_y = (1 - tan(delta_theta_vert) / camera.tan_angle_div_2_vert) * camera.image_height / 2
 
         # print("Internal pixel_x, pixel_y: %s, %s" % (pixel_x, pixel_y))
         if pixel_x < 0 or pixel_x >= camera.image_width or pixel_y < 0 or pixel_y >= camera.image_height:
@@ -293,10 +293,10 @@ class PositionCollection:
         """
         Class for calculating properties of an ordered series of positions.
 
-        A list of interior positions can be provided to define 
+        A list of interior positions can be provided to define
         holes in the polygon for area calculations or to be included in
-        the perimeter for perimeter calculations. Note that this is a 
-        list of lists of positions unlike the positions argument which 
+        the perimeter for perimeter calculations. Note that this is a
+        list of lists of positions unlike the positions argument which
         is just a list of positions.
         """
         self.positions = positions
@@ -304,7 +304,7 @@ class PositionCollection:
 
     def area(self):
         """
-        Calculates the area of polygon defined by the sequence of 
+        Calculates the area of polygon defined by the sequence of
         positions (and optional holes defined by interior_positions_list).
         """
         if len(self.positions) < 4:
@@ -391,7 +391,7 @@ class PositionCollection:
 
     def perimeter(self, include_height=False, include_alt=False):
         """
-        Returns the length around the outside of the polygon plus the 
+        Returns the length around the outside of the polygon plus the
         length around each hole (if interior_positions provided).
         Connects the last point to the first point if not already
         explicitely done.
@@ -430,8 +430,8 @@ class PositionCollection:
         east = max([position.lon for position in self.positions])
         west = min([position.lon for position in self.positions])
         return (north, south, east, west)
-    
-    
+
+
 def utm_to_DD(easting, northing, zone, hemisphere="northern"):
     """
     Converts a set of UTM GPS coordinates to WGS84 Decimal Degree GPS coordinates.
