@@ -1,7 +1,8 @@
 {
-    "Follow Images": true,
-    "Load Existing Images": true,
     "Feature Export Path": "data/features.kml",
+    "Load Existing Images": true,
+    "UAV Network": "127:2010",
     "Plane Plumbline": true,
-    "Monitor Folder": "data/images"
+    "Monitor Folder": "data/images",
+    "Follow Images": true
 }

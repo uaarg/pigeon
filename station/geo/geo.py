@@ -85,10 +85,17 @@ class Orientation:
                 plane measured clockwise in degrees
         """
         def normalize_angle(angle, mininum=-180, maximum=180):
+            i = 0
             while angle >= maximum:
+                i += 1
                 angle -= 360
+                if i > 10:
+                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
             while angle < mininum:
+                i += 1
                 angle += 360
+                if i > 10:
+                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
             return angle
 
         self.pitch = normalize_angle(pitch)

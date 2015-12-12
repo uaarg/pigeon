@@ -63,6 +63,13 @@ class Image:
 
         if len(missing_fields) != 0:
             raise(KeyError("Missing %s field(s) from info file." % ", ".join(missing_fields)))
+        
+        # Ensuring we don't let in any infinities or Nan's (both are valid for floats, but not integers):
+        for field in field_map.values():
+            try:
+                int(float(self.info_data[field]))
+            except (ValueError, OverflowError) as e:
+                raise(ValueError("%s for field '%s'" % (e, field)))
 
         easting = float(self.info_data[field_map["easting"]])
         northing = float(self.info_data[field_map["northing"]])
@@ -120,6 +127,7 @@ class Image:
         Returns None, None if the point isn't in the image.
         """
         self._requireGeo()
+
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
     def distance(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):

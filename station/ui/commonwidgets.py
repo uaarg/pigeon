@@ -129,3 +129,8 @@ class EditableBaseListForm(QtWidgets.QWidget):
             output.append((field_name, field_value, field_editable))
 
         return output
+
+class NonEditableBaseListForm(EditableBaseListForm):
+    def __init__(self, *args, **kwargs):
+        kwargs["editable"] = False
+        super().__init__(*args, **kwargs)

@@ -1,6 +1,7 @@
 import sys
 import logging
 import datetime
+import types
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -10,7 +11,7 @@ from features import Marker, Feature
 from exporter import KMLExporter
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin
-from .commonwidgets import EditableBaseListForm
+from .commonwidgets import EditableBaseListForm, NonEditableBaseListForm
 from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
@@ -32,11 +33,12 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
-    def __init__(self, save_settings, load_settings, image_queue, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
+        self.uav = uav
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
@@ -46,6 +48,11 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.settings_changed.emit())
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(lambda: self.settings_changed.emit())
+
+        self.uav.addCommandAckedCb(lambda command, value: self.main_window.info_area.controls_area.receive_command_ack.emit(command, value))
+        self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
+
+        self.uav.addUAVConnectedChangedCb(lambda connected: self.main_window.info_area.controls_area.uav_connection_changed.emit(connected))
 
         self.connectQueue(image_queue, self.addImage)
 
@@ -80,7 +87,6 @@ class UI(QtCore.QObject, QueueMixin):
         feature.image = image
         self.features.append(feature)
         self.main_window.addFeature(feature)
-
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -196,10 +202,12 @@ class InfoArea(QtWidgets.QFrame):
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        self.settings_area = SettingsArea(self)
-        self.image_info_area = ImageInfoArea(self, editable=False)
+        self.controls_area = ControlsArea(self)
         self.state_area = StateArea(self, editable=False)
+        self.image_info_area = ImageInfoArea(self, editable=False)
+        self.settings_area = SettingsArea(self)
 
+        self.layout.addWidget(self.controls_area)
         self.layout.addWidget(self.state_area)
         self.layout.addWidget(self.image_info_area)
         self.layout.addWidget(self.settings_area)
@@ -555,13 +563,111 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.recent_image.setPixmap(image.pixmap_loader)
         self.recent_image.image = image
 
-class ImageInfoArea(EditableBaseListForm):
+class ImageInfoArea(NonEditableBaseListForm):
     def _title(self):
         return "Image:"
 
-class StateArea(EditableBaseListForm):
+class StateArea(NonEditableBaseListForm):
     def _title(self):
         return "State:"
+
+class ControlsArea(QtWidgets.QWidget):
+    send_command = QtCore.pyqtSignal(str, str)
+    receive_command_ack = QtCore.pyqtSignal(str, str)
+
+    uav_connection_changed = QtCore.pyqtSignal(bool)
+
+    RUN_STOP = "0"
+    RUN_PAUSE = "1"
+    RUN_PLAY = "2"
+
+    RUN_CHOICES = ((RUN_STOP, "Stopped"),
+                   (RUN_PAUSE, "Paused"),
+                   (RUN_PLAY, "Running"))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.layout = QtWidgets.QGridLayout(self)
+
+        self.title = BoldQLabel(self)
+        self.title.setText(translate("ControlsArea", "ControlsArea"))
+        self.layout.addWidget(self.title, 0, 0, 1, 2)
+
+        label = QtWidgets.QLabel()
+        label.setText(translate("ControlsArea", "Connection Status"))
+        self.layout.addWidget(label, 1, 0, 1, 1)
+
+        self.uav_connected_label = QtWidgets.QLineEdit()
+        self.uav_connected_label.setText("Not Connected")
+        self.uav_connected_label.setReadOnly(True)
+        self.layout.addWidget(self.uav_connected_label, 1, 1, 1, 1)
+
+        run_buttons_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(run_buttons_layout, 2, 0, 1, 2)
+
+        self.run_value = self.RUN_STOP
+        self.play_icon = QtGui.QIcon(icons.play)
+        self.pause_icon = QtGui.QIcon(icons.pause)
+
+        self.stop_button = QtWidgets.QPushButton(QtGui.QIcon(icons.stop), "", self)
+        self.stop_button.clicked.connect(self.stop_button_clicked)
+        run_buttons_layout.addWidget(self.stop_button)
+
+        self.play_pause_button = QtWidgets.QPushButton(self.play_icon, "", self)
+        self.play_pause_button.clicked.connect(self.play_pause_button_clicked)
+        run_buttons_layout.addWidget(self.play_pause_button)
+
+        self.run_value_label = QtWidgets.QLabel()
+        run_buttons_layout.addWidget(self.run_value_label)
+
+        self.receive_command_ack.connect(self.receiveCommandAck)
+        self.uav_connection_changed.connect(self.updateUAVConnection)
+
+    def stop_button_clicked(self):
+        self.send_command.emit("RUN", self.RUN_STOP)
+
+    def play_pause_button_clicked(self):
+        new_value = self._getToggledRunValue()
+        self.send_command.emit("RUN", new_value)
+
+    def _updateRunValue(self, value):
+        if value != self.RUN_PLAY:
+            self.play_pause_button.setIcon(self.play_icon)
+        else:
+            self.play_pause_button.setIcon(self.pause_icon)
+
+        if value == self.RUN_STOP:
+            self.stop_button.setEnabled(False)
+        else:
+            self.stop_button.setEnabled(True)
+
+        self.run_value = value
+
+        self.run_value_label.setText(self.get_RUN_display())
+
+    def _getToggledRunValue(self):
+        if self.run_value == self.RUN_PLAY:
+            return self.RUN_PAUSE
+        else:
+            return self.RUN_PLAY
+
+    def get_RUN_display(self):
+        return dict(self.RUN_CHOICES).get(self.run_value)
+
+    def receiveCommandAck(self, command, value):
+        if command == "RUN":
+            self._updateRunValue(value)
+
+    def updateUAVConnection(self, connected):
+        if connected:
+            text = "Connected"
+        else:
+            text = "Not Connected"
+
+        self.uav_connected_label.setText(text)
+
+
 
 class SettingsArea(QtWidgets.QWidget):
     """
@@ -576,7 +682,7 @@ class SettingsArea(QtWidgets.QWidget):
 
 
     def __init__(self, *args, **kwargs):
-        super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.layout = QtWidgets.QVBoxLayout()
 
