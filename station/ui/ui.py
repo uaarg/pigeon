@@ -8,7 +8,6 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 from features import Marker, Feature
-from exporter import KMLExporter
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin
 from .commonwidgets import EditableBaseListForm, NonEditableBaseListForm
@@ -33,7 +32,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
-    def __init__(self, save_settings, load_settings, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, export_features, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -48,6 +47,8 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.settings_changed.emit())
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(lambda: self.settings_changed.emit())
+
+        self.main_window.feature_area.feature_export_requested.connect(export_features)
 
         self.uav.addCommandAckedCb(lambda command, value: self.main_window.info_area.controls_area.receive_command_ack.emit(command, value))
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -403,6 +404,9 @@ class FeatureDetailArea(EditableBaseListForm):
 
 
 class FeatureArea(QtWidgets.QFrame):
+
+    feature_export_requested = QtCore.pyqtSignal(list)
+
     def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
@@ -433,13 +437,13 @@ class FeatureArea(QtWidgets.QFrame):
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
         self.export_button = QtWidgets.QPushButton("Export Features", self)
-        self.export_button.clicked.connect(
-            lambda: self.exportFeatures(
-                self.settings_data.get("Feature Export Path")
-            )
-        )
         self.export_button.resize(self.export_button.minimumSizeHint())
         self.layout.addWidget(self.export_button)
+
+        self.export_button.clicked.connect(lambda: self.feature_export_requested.emit(self.getFeatureList()))
+
+    def getFeatureList(self):
+        return [feature for feature in self.feature_list.iterItems()]
 
     def addFeature(self, feature):
         item = QtWidgets.QListWidgetItem("", self.feature_list)
@@ -498,21 +502,6 @@ class FeatureArea(QtWidgets.QFrame):
 
     def calcArea(self):
         print("Dummy Function {refresh Area calc!}")
-
-    def exportFeatures(self, output_path="data/features.kml"):
-        """
-        Exports all features with the 'Export' property active.
-        """
-        kml_exporter = KMLExporter()
-
-        for item in self.feature_list.iterItems():
-            for field, value in item.feature.data:
-                if field == "Export" and value == True:
-                    kml_exporter.doc.Document.append(
-                            kml_exporter.classToKML(item.feature)
-                    )
-
-        kml_exporter.writeKML(output_path)
 
     def clearMarker(self):
         print("Dummy Function {Clear Marker!}")

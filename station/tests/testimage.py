@@ -41,7 +41,7 @@ class BaseWatcherTestCase(BaseTestCase):
 
     def createImageInfoPair(self, path, name):
         """
-        Creates an image and associated text file at the specified path 
+        Creates an image and associated text file at the specified path
         with the specified name (name excludes exension).
         """
         image_path = os.path.join(*[path, name + os.extsep + self.image_extension])
@@ -55,7 +55,7 @@ class WatcherTestCase(BaseWatcherTestCase):
 
     def setUp(self):
         self.base_directory = os.path.join(*["data", "test"])
-        self.watched_directories = [os.path.join(*[self.base_directory, "watched_dir_1"]), 
+        self.watched_directories = [os.path.join(*[self.base_directory, "watched_dir_1"]),
                                     os.path.join(*[self.base_directory, "watched_dir_2"])]
 
         for watched_directory in self.watched_directories:
@@ -83,7 +83,7 @@ class WatcherTestCase(BaseWatcherTestCase):
 
     def testImageAdded(self):
         """
-        Tests that an image added to the watched_directory is put in 
+        Tests that an image added to the watched_directory is put in
         the queue.
         """
         self.assertTrue(self.image_watcher.queue.empty(), msg="Queue should be empty before any images are added.")
@@ -136,7 +136,7 @@ class WatcherTestCase(BaseWatcherTestCase):
 
     def testMultipleImagesAdded(self):
         """
-        Tests that things still work even if lots of images are 
+        Tests that things still work even if lots of images are
         added in a short amount of time.
         """
         number_of_images = 500
@@ -224,7 +224,7 @@ class ImageTestCase(BaseTestCase):
             self.fail(msg="Exception raised while preparing properties: %s" % e)
 
         self.assertAlmostEqual(self.image.plane_position.alt, 610.75)
-        self.assertAlmostEqual(self.image.plane_orientation.pitch, 9.13)
+        self.assertAlmostEqual(self.image.plane_orientation.pitch, -9.13) # negative of what is in the file due to top of camera being mounted towards rear of aircraft
 
 class ImageTestCase2(BaseTestCase):
     def setUp(self):
