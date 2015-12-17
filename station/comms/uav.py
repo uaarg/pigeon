@@ -11,8 +11,6 @@ def noop():
 
 def configure_ivy_logging():
     ivylogger.handlers = [] # Wipping out the existing handlers since we don't want anything going to them (ex. one might be stdout)
-    for handler in log.handlers:
-        ivylogger.addHandler(handler)
 
 
 class Command:
@@ -35,7 +33,13 @@ class UAV:
     Handles interfacing with the UAV by creating an ivybus connection
     and communicating over it.
     """
+    command_name_regex = "[^ ]+"
+    command_value_regex = "[^ ]+"
     command_format = "UAV-{command_type} {command_name} {command_value}" # for use with Python's str.format()
+
+    command_response_regex = "^UAV-(ACK|UNKN) (%s) (%s)$" % (command_name_regex, command_value_regex)
+    command_summary_regex = "^UAV-CMD ((?:%s %s ?)+)$" % (command_name_regex, command_value_regex)
+
     uav_name = "uavImaging"
 
     def __init__(self, bus=None):
@@ -47,8 +51,8 @@ class UAV:
 
         configure_ivy_logging()
         self.ivy_server = IvyServer("pigeon", "", self._onConnectionChange)
-        command_response_regex = "^%s$" % self.command_format.format(command_type="(ACK|UNKN)", command_name="([^ ]*)", command_value="(.*)")
-        self.ivy_server.bind_msg(self._handleCommandResponse, command_response_regex)
+        self._bindMsg(self._handleCommandResponse, self.command_response_regex)
+        self._bindMsg(self._handleCommandSummary, self.command_summary_regex)
 
     def setBus(self, bus):
         old_bus = self.bus
@@ -101,6 +105,10 @@ class UAV:
         """
         self.command_ack_cbs.append(cb)
 
+    def _bindMsg(self, cb, regex):
+        logger.debug("Listening on ivybus for regex: %s" % regex)
+        self.ivy_server.bind_msg(cb, regex)
+
     def _callUAVConnectedChangedCbs(self):
         for cb in self.on_uav_connected_changed_cbs:
             cb(self.uav_connected)
@@ -133,6 +141,31 @@ class UAV:
             logger.warning("UAV doesn't recognize %s command." % name)
         else:
             raise(Exception("Unexpected UAV response type: %s" % response_type))
+
+    def _handleCommandSummary(self, agent, data):
+        commands = self._commandSummaryDataToDict(data)
+        for command_name, command_value in commands.items():
+            self._callCommandAckCbs(command_name, command_value)
+
+    def _commandSummaryDataToDict(self, data):
+        """
+        Parses the data portion of the UAV-CMD message and returns a
+        dictionary of command_name:command_value pairs.
+
+        Example:
+            In: "RUN 2 SHUTTER_SPEED 45"
+            Out: {"RUN": 2, "SHUTTER_SPEED": 45}
+
+        Raises ValueError on invalid input data.
+        """
+        out = {}
+        parts = data.split(" ")
+        for i in range(0, len(parts), 2):
+            try:
+                out[parts[i]] = parts[i+1]
+            except IndexError:
+                raise ValueError("Unable to convert '%s' data to dict." % (data))
+        return out
 
     def _sendCommand(self, command):
         return self.ivy_server.send_msg(self.command_format.format(command_type="DO", command_name=command.name, command_value=command.value)) and self.uav_connected
