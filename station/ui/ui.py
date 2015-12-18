@@ -9,7 +9,7 @@ translate = QtCore.QCoreApplication.translate
 from image import Image
 from features import Marker, Feature
 
-from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin
+from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin, format_duration_for_display
 from .commonwidgets import EditableBaseListForm, NonEditableBaseListForm
 from .pixmaploader import PixmapLoader
 from .style import stylesheet
@@ -44,16 +44,17 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window = MainWindow(self.settings_data, self.features)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
-        self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.settings_changed.emit())
+        self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
-        self.main_window.info_area.settings_area.settings_save_requested.connect(lambda: self.settings_changed.emit())
+        self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
         self.main_window.feature_area.feature_export_requested.connect(export_features)
 
-        self.uav.addCommandAckedCb(lambda command, value: self.main_window.info_area.controls_area.receive_command_ack.emit(command, value))
+        self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
 
-        self.uav.addUAVConnectedChangedCb(lambda connected: self.main_window.info_area.controls_area.uav_connection_changed.emit(connected))
+        self.uav.addUAVConnectedChangedCb(self.main_window.info_area.controls_area.uav_connection_changed.emit)
+        self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
         self.connectQueue(image_queue, self.addImage)
 
@@ -252,12 +253,12 @@ class InfoArea(QtWidgets.QFrame):
         """
         if self.last_image_time:
             timedelta = datetime.datetime.now() - self.last_image_time
-            last_image_time_ago = "%s s" % int(timedelta.total_seconds())
+            last_image_time_ago = format_duration_for_display(timedelta)
         else:
             last_image_time_ago = "(none received)"
 
         data = [("Image Count", str(self.image_count)),
-                ("Time since last image", str(last_image_time_ago)),]
+                ("Time since last image", last_image_time_ago),]
         self.state_area.setData(data)
 
 
@@ -560,9 +561,22 @@ class StateArea(NonEditableBaseListForm):
     def _title(self):
         return "State:"
 
+
+def markMessageReceived(func=None):
+    """
+    Marks that a message has been received from the UAV. Function
+    decorator for methods who's class has a last_message_received_time
+    attribute.
+    """
+    def new_func(*args, **kwargs):
+        args[0].last_message_received_time = datetime.datetime.now()
+        func(*args, **kwargs)
+    return new_func
+
 class ControlsArea(QtWidgets.QWidget):
     send_command = QtCore.pyqtSignal(str, str)
     receive_command_ack = QtCore.pyqtSignal(str, str)
+    receive_status_message = QtCore.pyqtSignal(dict)
 
     uav_connection_changed = QtCore.pyqtSignal(bool)
 
@@ -577,23 +591,22 @@ class ControlsArea(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.layout = QtWidgets.QGridLayout(self)
+        self.layout = QtWidgets.QVBoxLayout(self)
 
         self.title = BoldQLabel(self)
-        self.title.setText(translate("ControlsArea", "ControlsArea"))
-        self.layout.addWidget(self.title, 0, 0, 1, 2)
+        self.title.setText(translate("ControlsArea", "UAV:"))
+        self.layout.addWidget(self.title)
 
-        label = QtWidgets.QLabel()
-        label.setText(translate("ControlsArea", "Connection Status"))
-        self.layout.addWidget(label, 1, 0, 1, 1)
+        self.uav_status_form = NonEditableBaseListForm()
+        self.layout.addWidget(self.uav_status_form)
 
-        self.uav_connected_label = QtWidgets.QLineEdit()
-        self.uav_connected_label.setText("Not Connected")
-        self.uav_connected_label.setReadOnly(True)
-        self.layout.addWidget(self.uav_connected_label, 1, 1, 1, 1)
+        self.uav_connected = "No"
+        self.last_message_received_time = None
+        self.uav_pictures_taken = ""
+        self.uav_pictures_transmitted = ""
 
         run_buttons_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(run_buttons_layout, 2, 0, 1, 2)
+        self.layout.addLayout(run_buttons_layout)
 
         self.run_value = self.RUN_STOP
         self.play_icon = QtGui.QIcon(icons.play)
@@ -612,6 +625,11 @@ class ControlsArea(QtWidgets.QWidget):
 
         self.receive_command_ack.connect(self.receiveCommandAck)
         self.uav_connection_changed.connect(self.updateUAVConnection)
+        self.receive_status_message.connect(self.receiveStatusMessage)
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self._updateDisplayedInfo)
+        self.timer.start(1000)
 
     def stop_button_clicked(self):
         self.send_command.emit("RUN", self.RUN_STOP)
@@ -644,17 +662,35 @@ class ControlsArea(QtWidgets.QWidget):
     def get_RUN_display(self):
         return dict(self.RUN_CHOICES).get(self.run_value)
 
+    @markMessageReceived
     def receiveCommandAck(self, command, value):
         if command == "RUN":
             self._updateRunValue(value)
 
+    def _updateDisplayedInfo(self):
+        if self.last_message_received_time:
+            time_since_last_message = format_duration_for_display(datetime.datetime.now() - self.last_message_received_time)
+        else:
+            time_since_last_message = "(never)"
+        data = [("UAV Connected", self.uav_connected),
+                ("Time since last message", time_since_last_message),
+                ("Pictures captured", self.uav_pictures_taken),
+                ("Pictures transmitted", self.uav_pictures_transmitted),
+               ]
+        self.uav_status_form.setData(data)
+
     def updateUAVConnection(self, connected):
         if connected:
-            text = "Connected"
+            self.uav_connected = "Yes"
         else:
-            text = "Not Connected"
+            self.uav_connected = "No"
+        self._updateDisplayedInfo()
 
-        self.uav_connected_label.setText(text)
+    @markMessageReceived
+    def receiveStatusMessage(self, status_dict):
+        self._updateDisplayedInfo()
+        self.uav_pictures_taken = status_dict.get("TAKEN", "")
+        self.uav_pictures_transmitted = status_dict.get("TRANS", "")
 
 
 

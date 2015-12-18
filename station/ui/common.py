@@ -8,7 +8,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
     Base class for various Pixmap Label types. Features include:
 
     * Resizing the pixmap for display (in subclasses).
-    * Mapping points on the displayed pixmap to points on the 
+    * Mapping points on the displayed pixmap to points on the
       original pixmap (and back).
     * Adding features to be displayed over the pixmap.
     """
@@ -30,11 +30,11 @@ class BasePixmapLabel(QtWidgets.QLabel):
         """
         if not self.pixmap():
             return None
-        border_x = self.width() - self.pixmap().width() # Accounting for 
+        border_x = self.width() - self.pixmap().width() # Accounting for
         # extra space in the QLabel that doesn't have pixmap in it. Assuming
         # that the pixmap is centered horizontally. Not doing the same thing
         # for y because assuming pixmap is positioned at the top vertically.
-       
+
         corrected_x = point.x() - border_x/2
         if not self.pixmap() or corrected_x < 0 or point.y() < 0 or corrected_x > self.pixmap().width() or point.y() > self.pixmap().height():
             return None
@@ -46,10 +46,10 @@ class BasePixmapLabel(QtWidgets.QLabel):
         Maps a point from the original pixmap to the displayed pixmap.
         Returns None if the point wasn't in the original pixmap.
         """
-        border_x = self.width() - self.pixmap().width() # Accounting for 
+        border_x = self.width() - self.pixmap().width() # Accounting for
         # extra space in the QLabel that doesn't have pixmap in it. Assuming
         # that the pixmap is centered horizontally. Not doing the same thing
-        # for y because assuming pixmap is positioned at the top vertically.   
+        # for y because assuming pixmap is positioned at the top vertically.
         if not self.pixmap() or point.x() < 0 or point.y() < 0 or point.x() > self.original_pixmap_width or point.y() > self.original_pixmap_height:
             return None
         else:
@@ -57,8 +57,8 @@ class BasePixmapLabel(QtWidgets.QLabel):
 
     def pointOnOriginal(self, point):
         """
-        Given a point on this widget's parent, returns a QPoint 
-        object describing the location on the original pixmap (not 
+        Given a point on this widget's parent, returns a QPoint
+        object describing the location on the original pixmap (not
         the scaled version) at this point.
         """
         return self._mapPointToOriginal(self.mapFromParent(point))
@@ -106,7 +106,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
         """
         Add the provided PixmapLabelFeature to this PixmapLabel.
         """
-        # Giving the feature a function (not a method) that allows 
+        # Giving the feature a function (not a method) that allows
         # it to map a point on the original pixmap to the displayed
         # pixmap:
         def mapPoint(point):
@@ -119,7 +119,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
 
 class PixmapLabel(BasePixmapLabel):
     """
-    Provides a QLabel widget which automatically scales a pixmap 
+    Provides a QLabel widget which automatically scales a pixmap
     inserted into it. Keeps the pixmap's aspect ratio constant.
     """
     def _resize(self):
@@ -138,7 +138,7 @@ class PixmapLabel(BasePixmapLabel):
 
 class WidthForHeightPixmapLabel(BasePixmapLabel):
     """
-    Provies a QLabel widget which automatically demands the required 
+    Provies a QLabel widget which automatically demands the required
     width needed to show it's pixmap at the provided height.
     """
     def __init__(self, *args, **kwargs):
@@ -228,7 +228,7 @@ class ScaledListWidget(BaseQListWidget):
     def likelyVisibleItems(self):
         """
         Iterator for items which are probably visible.
-        Analyses the scrolbar position and assumes that each item 
+        Analyses the scrolbar position and assumes that each item
         takes the same amount of space: not necessarily valid
         but should be close.
         """
@@ -308,3 +308,9 @@ class QueueMixin:
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._checkConnectedQueues)
         self.timer.start(100) # Time in milliseconds
+
+def format_duration_for_display(duration):
+    if duration:
+        return "%.0f s" % duration.total_seconds()
+    else:
+        return None

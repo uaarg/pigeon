@@ -35,10 +35,13 @@ class UAV:
     """
     command_name_regex = "[^ ]+"
     command_value_regex = "[^ ]+"
+    status_name_regex = "[^ ]+"
+    status_value_regex = "[^ ]+"
     command_format = "UAV-{command_type} {command_name} {command_value}" # for use with Python's str.format()
 
     command_response_regex = "^UAV-(ACK|UNKN) (%s) (%s)$" % (command_name_regex, command_value_regex)
     command_summary_regex = "^UAV-CMD ((?:%s %s ?)+)$" % (command_name_regex, command_value_regex)
+    uav_status_regex = "^UAV-STATUS ((?:%s %s ?)+)$" % (status_name_regex, status_value_regex)
 
     uav_name = "uavImaging"
 
@@ -48,11 +51,13 @@ class UAV:
         self.uav_connected = False
         self.on_uav_connected_changed_cbs = []
         self.command_ack_cbs = []
+        self.uav_status_cbs = []
 
         configure_ivy_logging()
         self.ivy_server = IvyServer("pigeon", "", self._onConnectionChange)
         self._bindMsg(self._handleCommandResponse, self.command_response_regex)
         self._bindMsg(self._handleCommandSummary, self.command_summary_regex)
+        self._bindMsg(self._handleUAVStatus, self.uav_status_regex)
 
     def setBus(self, bus):
         old_bus = self.bus
@@ -105,6 +110,13 @@ class UAV:
         """
         self.command_ack_cbs.append(cb)
 
+    def addUAVStatusCb(self, cb):
+        """
+        Add a function to be called when the UAV sends a status message.
+        Will be called with a dictionary of the fields and values.
+        """
+        self.uav_status_cbs.append(cb)
+
     def _bindMsg(self, cb, regex):
         logger.debug("Listening on ivybus for regex: %s" % regex)
         self.ivy_server.bind_msg(cb, regex)
@@ -126,6 +138,10 @@ class UAV:
         for cb in self.command_ack_cbs:
             cb(command_name, command_value)
 
+    def _callUAVStatusCbs(self, status):
+        for cb in self.uav_status_cbs:
+            cb(status)
+
     def _handleCommandResponse(self, agent, response_type, name, value):
         logger.info("Received from UAV: %s" % self.command_format.format(command_type=response_type, command_name=name, command_value=value))
         try:
@@ -143,14 +159,18 @@ class UAV:
             raise(Exception("Unexpected UAV response type: %s" % response_type))
 
     def _handleCommandSummary(self, agent, data):
-        commands = self._commandSummaryDataToDict(data)
+        commands = self._dataFieldsToDict(data)
         for command_name, command_value in commands.items():
             self._callCommandAckCbs(command_name, command_value)
 
-    def _commandSummaryDataToDict(self, data):
+    def _handleUAVStatus(self, agent, data):
+        status = self._dataFieldsToDict(data)
+        self._callUAVStatusCbs(status)
+
+    def _dataFieldsToDict(self, data):
         """
-        Parses the data portion of the UAV-CMD message and returns a
-        dictionary of command_name:command_value pairs.
+        Parses the data portion of the UAV-CMD and UAV-STATUS messages
+        and returns a dictionary of name:value pairs.
 
         Example:
             In: "RUN 2 SHUTTER_SPEED 45"
