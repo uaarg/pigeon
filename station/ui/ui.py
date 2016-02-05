@@ -32,7 +32,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
-    def __init__(self, save_settings, load_settings, export_features, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, export_kml, export_csv, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -48,7 +48,8 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
-        self.main_window.feature_area.feature_export_requested.connect(export_features)
+        self.main_window.feature_area.feature_KMLexport_requested.connect(export_kml)
+        self.main_window.feature_area.feature_CSVexport_requested.connect(export_csv)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -406,7 +407,8 @@ class FeatureDetailArea(EditableBaseListForm):
 
 class FeatureArea(QtWidgets.QFrame):
 
-    feature_export_requested = QtCore.pyqtSignal(list)
+    feature_KMLexport_requested = QtCore.pyqtSignal(list)
+    feature_CSVexport_requested = QtCore.pyqtSignal(list)
 
     def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
@@ -437,11 +439,17 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-        self.export_button = QtWidgets.QPushButton("Export Features", self)
-        self.export_button.resize(self.export_button.minimumSizeHint())
-        self.layout.addWidget(self.export_button)
+        self.KMLexport_button = QtWidgets.QPushButton("Export Features (KML)", self)
+        self.KMLexport_button.resize(self.KMLexport_button.minimumSizeHint())
+        self.layout.addWidget(self.KMLexport_button)
 
-        self.export_button.clicked.connect(lambda: self.feature_export_requested.emit(self.getFeatureList()))
+        self.KMLexport_button.clicked.connect(lambda: self.feature_KMLexport_requested.emit(self.getFeatureList()))
+
+        self.CSVexport_button = QtWidgets.QPushButton("Export Markers (CSV)", self)
+        self.CSVexport_button.resize(self.CSVexport_button.minimumSizeHint())
+        self.layout.addWidget(self.CSVexport_button)
+
+        self.CSVexport_button.clicked.connect(lambda: self.feature_CSVexport_requested.emit(self.getFeatureList()))
 
     def getFeatureList(self):
         return [feature for feature in self.feature_list.iterItems()]

@@ -11,6 +11,7 @@ import settings
 import features
 from comms.uav import UAV
 from exporter import KMLExporter
+from exporter import CSVExporter
 
 __version__ = "0.2"
 
@@ -20,12 +21,14 @@ class GroundStation:
         self.image_watcher = image.Watcher()
         self.uav = UAV(uav_ivybus)
         self.kml_exporter = KMLExporter()
+        self.csv_exporter = CSVExporter()
 
         ground_control_points = features.load_ground_control_points()
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
-                     export_features=self.exportFeatures,
+                     export_kml=self.exportKMLfeatures,
+                     export_csv=self.exportCSVfeatures,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
                      ground_control_points=ground_control_points)
@@ -56,17 +59,26 @@ class GroundStation:
         if self.settings_data.get("UAV Network"):
             self.uav.setBus(self.settings_data["UAV Network"])
 
-    def exportFeatures(self, feature_list, output_path=None):
+    def exportKMLfeatures(self, feature_list, output_path=None ):
+
+        if not output_path:
+            output_path = self.settings_data["Feature Export Path"]
+            for item in feature_list:
+                for field, value in item.feature.data:
+                    if field == "Export" and value == True:
+                        self.kml_exporter.doc.Document.append(
+                                self.kml_exporter.classToKML(item.feature)
+                        )
+
+            self.kml_exporter.writeKML(output_path)
+
+    def exportCSVfeatures(self, feature_list, output_path=None ):
+
         if not output_path:
             output_path = self.settings_data["Feature Export Path"]
         for item in feature_list:
-            for field, value in item.feature.data:
-                if field == "Export" and value == True:
-                    self.kml_exporter.doc.Document.append(
-                            self.kml_exporter.classToKML(item.feature)
-                    )
+            self.csv_exporter.WriteCSV(item.feature)
 
-        self.kml_exporter.writeKML(output_path)
 
     def run(self):
         self.loadSettings()

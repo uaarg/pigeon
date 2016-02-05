@@ -14,6 +14,7 @@ from image import Image
 from geo import Position, PositionCollection
 from features import Marker
 
+import csv as CSV # For CSV Exporter
 from PyQt5 import QtGui
 
 class KMLExporter:
@@ -237,3 +238,24 @@ class KMLExporter:
             altitude_mode = "clampToGround"
 
         return coordinates, altitude_mode
+# NOT READY YET
+class CSVExporter:
+    """
+    Provides methods for creating a CSV document populated
+    with objects from Pigeon, including marker properties
+
+    Include CDN and US comp output styles
+    """
+
+    def __init__(self, output_options=None):
+        #Created File Object for csv file
+        self.CSVFileObject = open("exported.csv", 'w+')
+        # Note : w+ for writing and initialize if the file DNE
+
+    def WriteCSV(self, FeatureList):
+        # Writing to CSV
+        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
+        for field, value in item.feature.data: #Go through each field in feature.data
+            spamWriter.writerow(field, value) # Write it
+        
+        #spamWriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
