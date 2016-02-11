@@ -252,10 +252,23 @@ class CSVExporter:
         self.CSVFileObject = open("exported.csv", 'w+')
         # Note : w+ for writing and initialize if the file DNE
 
-    def WriteCSV(self, FeatureList):
+    def openCSV(self):
+        self.CSVFileObject = open("exported.csv", 'w+')
+
+    def writeCSV(self, FeatureList):
         # Writing to CSV
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        for field, value in item.feature.data: #Go through each field in feature.data
-            spamWriter.writerow(field, value) # Write it
-        
-        #spamWriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
+        #for field, value in item.feature.data: #Go through each field in feature.data
+            #spamWriter.writerow(field, value) # Write it
+        spamWriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
+        valueList = []
+        for item in FeatureList:
+                #if field == "Export" and value == True: #Need to know why this isint working
+                    for field, value in item.feature.data: 
+                        valueList.append(value)
+
+                    spamWriter.writerow(valueList)
+
+    def closeCSV(self):
+
+        self.CSVFileObject.close()

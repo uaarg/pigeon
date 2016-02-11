@@ -76,8 +76,10 @@ class GroundStation:
 
         if not output_path:
             output_path = self.settings_data["Feature Export Path"]
-        for item in feature_list:
-            self.csv_exporter.WriteCSV(item.feature)
+
+        self.csv_exporter.openCSV()
+        self.csv_exporter.writeCSV(feature_list)
+        self.csv_exporter.closeCSV()
 
 
     def run(self):
