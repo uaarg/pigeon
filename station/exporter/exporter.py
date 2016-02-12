@@ -256,19 +256,21 @@ class CSVExporter:
         self.CSVFileObject = open("exported.csv", 'w+')
 
     def writeCSV(self, FeatureList):
-        # Writing to CSV
+        # Writing to CSV, 
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        #for field, value in item.feature.data: #Go through each field in feature.data
-            #spamWriter.writerow(field, value) # Write it
-        spamWriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
-        valueList = []
-        for item in FeatureList:
-                #if field == "Export" and value == True: #Need to know why this isint working
-                    for field, value in item.feature.data: 
-                        valueList.append(value)
+        # creates fileObject
+        
+        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export"])
+        
+        currentMarkerList = [] # start with an empty marker list
+        for item in FeatureList: #Over every marker
+                currentMarkerList.append(item.feature.position) # Slaps position in the row list
+                for field, value in item.feature.data: # Get data values
+                        currentMarkerList.append(value) # add to list
+                spamWriter.writerow(currentMarkerList) #write list as a csv row
+                currentMarkerList = [] # clear list for next row
 
-                    spamWriter.writerow(valueList)
 
     def closeCSV(self):
-
+        # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
