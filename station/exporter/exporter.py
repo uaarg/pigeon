@@ -247,15 +247,14 @@ class CSVExporter:
     Include CDN and US comp output styles
     """
 
-    def __init__(self, output_options=None):
+    #def __init__(self, output_options=None):
         #Created File Object for csv file
-        self.CSVFileObject = open("exported.csv", 'w+')
+        # self.CSVFileObject = open("exported.csv", 'w+') I guess initialization is not required...
         # Note : w+ for writing and initialize if the file DNE
 
-    def openCSV(self):
-        self.CSVFileObject = open("exported.csv", 'w+')
-
     def writeCSV(self, FeatureList):
+        #Created File Object for csv file
+        self.CSVFileObject = open("exported.csv", 'w+')
         # Writing to CSV, 
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
         # creates fileObject
@@ -269,8 +268,6 @@ class CSVExporter:
                         currentMarkerList.append(value) # add to list
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
                 currentMarkerList = [] # clear list for next row
-
-
-    def closeCSV(self):
+        
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()

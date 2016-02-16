@@ -77,9 +77,9 @@ class GroundStation:
         if not output_path: 
             output_path = self.settings_data["Feature Export Path"]
 
-        self.csv_exporter.openCSV() # Ensure csv file is open
+        #self.csv_exporter.openCSV() # Ensure csv file is open
         self.csv_exporter.writeCSV(feature_list) # write marker list
-        self.csv_exporter.closeCSV() # close the file 
+        #self.csv_exporter.closeCSV() # close the file 
 
 
     def run(self):
