@@ -439,17 +439,31 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-        self.KMLexport_button = QtWidgets.QPushButton("Export Features (KML)", self)
-        self.KMLexport_button.resize(self.KMLexport_button.minimumSizeHint())
-        self.layout.addWidget(self.KMLexport_button)
+        self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
+        self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
+        self.ExportingChoice.addItem("KML") # Normal KML exporting
+        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
+        self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
+        self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results 
+        self.layout.addWidget(self.ExportingChoice)
+        self.ExportingChoice.setCurrentIndex(1) # Default Export is CSV 
 
-        self.KMLexport_button.clicked.connect(lambda: self.feature_KMLexport_requested.emit(self.getFeatureList()))
+        self.export_button = QtWidgets.QPushButton("Execute Export", self)
+        self.export_button.resize(self.export_button.minimumSizeHint())
+        self.layout.addWidget(self.export_button)
 
-        self.CSVexport_button = QtWidgets.QPushButton("Export Markers (CSV)", self)
-        self.CSVexport_button.resize(self.CSVexport_button.minimumSizeHint())
-        self.layout.addWidget(self.CSVexport_button)
+        self.export_button.clicked.connect(self.doExporting)
 
-        self.CSVexport_button.clicked.connect(lambda: self.feature_CSVexport_requested.emit(self.getFeatureList()))
+    def doExporting(self):
+        text= self.ExportingChoice.currentText()
+        if text == "KML":
+            self.feature_KMLexport_requested.emit(self.getFeatureList())
+
+        elif text == "CSV Normal":
+            self.feature_CSVexport_requested.emit(self.getFeatureList())
+
+        else:
+            print("Exporting type " + text + " is not supported!!!!!")
 
     def getFeatureList(self):
         return [feature for feature in self.feature_list.iterItems()]
