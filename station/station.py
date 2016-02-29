@@ -27,8 +27,7 @@ class GroundStation:
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
-                     export_kml=self.exportKMLfeatures,
-                     export_csv=self.exportCSVfeatures,
+                     exporter=self.exportFeatures,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
                      ground_control_points=ground_control_points)
@@ -59,10 +58,10 @@ class GroundStation:
         if self.settings_data.get("UAV Network"):
             self.uav.setBus(self.settings_data["UAV Network"])
 
-    def exportKMLfeatures(self, feature_list, output_path=None ):
-
-        if not output_path:
-            output_path = self.settings_data["Feature Export Path"]
+    def exportFeatures(self, feature_list, exportType, output_path=None):
+        if exportType== "KML":
+            if not output_path:
+                output_path = self.settings_data["Feature Export Path"]
             for item in feature_list:
                 for field, value in item.feature.data:
                     if field == "Export" and value == True:
@@ -72,15 +71,13 @@ class GroundStation:
 
             self.kml_exporter.writeKML(output_path)
 
-    def exportCSVfeatures(self, feature_list, output_path=None ):
+        elif exportType=="CSV Normal":
+            if not output_path: 
+                output_path = self.settings_data["Feature Export Path"]
 
-        if not output_path: 
-            output_path = self.settings_data["Feature Export Path"]
-
-        #self.csv_exporter.openCSV() # Ensure csv file is open
-        self.csv_exporter.writeCSV(feature_list) # write marker list
-        #self.csv_exporter.closeCSV() # close the file 
-
+            self.csv_exporter.writeCSV(feature_list) # write marker list
+        else:
+            raise Exception(exportType+" is not supported!!!!!")   
 
     def run(self):
         self.loadSettings()

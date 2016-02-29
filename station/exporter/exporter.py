@@ -244,7 +244,7 @@ class CSVExporter:
     Provides methods for creating a CSV document populated
     with objects from Pigeon, including marker properties
 
-    Include CDN and US comp output styles
+    Include Anaylasis, CDN, and US competition output styles
     """
 
     #def __init__(self, output_options=None):

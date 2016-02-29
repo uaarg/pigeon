@@ -32,7 +32,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
-    def __init__(self, save_settings, load_settings, export_kml, export_csv, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -48,8 +48,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
-        self.main_window.feature_area.feature_KMLexport_requested.connect(export_kml)
-        self.main_window.feature_area.feature_CSVexport_requested.connect(export_csv)
+        self.main_window.feature_area.feature_export_requested.connect(exporter)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -407,8 +406,7 @@ class FeatureDetailArea(EditableBaseListForm):
 
 class FeatureArea(QtWidgets.QFrame):
 
-    feature_KMLexport_requested = QtCore.pyqtSignal(list)
-    feature_CSVexport_requested = QtCore.pyqtSignal(list)
+    feature_export_requested = QtCore.pyqtSignal(list,str)
 
     def __init__(self, *args, settings_data={}, **kwargs):
         super().__init__(*args, **kwargs)
@@ -442,7 +440,7 @@ class FeatureArea(QtWidgets.QFrame):
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
         self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
         self.ExportingChoice.addItem("KML") # Normal KML exporting
-        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
+        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features AND target anaylasis TBA
         self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
         self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results 
         self.layout.addWidget(self.ExportingChoice)
@@ -456,13 +454,9 @@ class FeatureArea(QtWidgets.QFrame):
 
     def doExporting(self):
         text= self.ExportingChoice.currentText()
-        if text == "KML":
-            self.feature_KMLexport_requested.emit(self.getFeatureList())
-
-        elif text == "CSV Normal":
-            self.feature_CSVexport_requested.emit(self.getFeatureList())
-
-        else:
+        try:
+            self.feature_export_requested.emit(self.getFeatureList(),text)
+        except:
             print("Exporting type " + text + " is not supported!!!!!")
 
     def getFeatureList(self):
