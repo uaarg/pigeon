@@ -2,6 +2,7 @@ import sys
 import logging
 import datetime
 import math
+import signal
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -33,6 +34,9 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
+    def ctrlcshutdown(self, signum, fram):
+        self.app.exit()
+
     def __init__(self, save_settings, load_settings, image_queue, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -49,6 +53,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(lambda: self.settings_changed.emit())
 
         self.connectQueue(image_queue, self.addImage)
+        signal.signal(signal.SIGINT, self.ctrlcshutdown)
 
         def print_image_clicked(image, point):
             string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
