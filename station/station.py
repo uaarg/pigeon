@@ -10,9 +10,10 @@ import image
 import settings
 import features
 from comms.uav import UAV
-from exporter import KMLExporter
+from exporter import KMLExporter, CSVExporter
 from exporter import CSVExporter
 
+import geo # for marker error only 
 __version__ = "0.2"
 
 class GroundStation:
@@ -75,9 +76,9 @@ class GroundStation:
             if not output_path: 
                 output_path = self.settings_data["Feature Export Path"]
 
-            self.csv_exporter.writeCSV(feature_list) # write marker list
+            self.csv_exporter.writeCSV(feature_list, output_path) # write marker list
         else:
-            raise Exception(exportType+" is not supported!!!!!")   
+            raise Exception("Exporting in "+exportType+" is not supported!!!!!")   
 
     def run(self):
         self.loadSettings()

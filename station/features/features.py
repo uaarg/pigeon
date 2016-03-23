@@ -1,5 +1,6 @@
 import os
 import json
+import pdb
 
 from geo import Position
 
@@ -18,7 +19,7 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
+        self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True),]
 
     def __str__(self):
         if self.data:
@@ -45,8 +46,11 @@ class GroundControlPoint(Point):
     icon_size = (10, 10)
 
 class Marker(Point):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #MarkerError = []
+        #self.data.append(("Error from GCP",MarkerError))
     icon_name = "flag"
-
 
 def load_ground_control_points():
     """
@@ -61,3 +65,9 @@ def load_ground_control_points():
         position = Position(value[0], value[1])
         ground_control_points.append(GroundControlPoint(position, name=id))
     return ground_control_points
+
+def load_ground_control_points_Dictionary():
+        location = os.path.join(*["data", "ground_control_points.json"])
+        with open(location) as f:
+            data = json.load(f)
+        return data

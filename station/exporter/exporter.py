@@ -113,7 +113,7 @@ class KMLExporter:
             schema = Schema("ogckml22.xsd")
             schema.assertValid(doc)
 
-        with open(output_path, "wb") as output_file:
+        with open(output_path + "features.kml", "wb") as output_file:
             output_file.write(etree.tostring(self.doc, pretty_print=True))
 
 
@@ -238,7 +238,7 @@ class KMLExporter:
             altitude_mode = "clampToGround"
 
         return coordinates, altitude_mode
-# NOT READY YET
+# Ok kinda ready... needs more stuff
 class CSVExporter:
     """
     Provides methods for creating a CSV document populated
@@ -252,22 +252,29 @@ class CSVExporter:
         # self.CSVFileObject = open("exported.csv", 'w+') I guess initialization is not required...
         # Note : w+ for writing and initialize if the file DNE
 
-    def writeCSV(self, FeatureList):
+    def writeCSV(self, PointsOfIntrest, output_path):
         #Created File Object for csv file
-        self.CSVFileObject = open("exported.csv", 'w+')
-        # Writing to CSV, 
+        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
+        # Writing to CSV
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
         # creates fileObject
         
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export"])
+        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
+                            "Time of Export",datetime.datetime.now()])
         
         currentMarkerList = [] # start with an empty marker list
-        for item in FeatureList: #Over every marker
-                currentMarkerList.append(item.feature.position) # Slaps position in the row list
-                for field, value in item.feature.data: # Get data values
-                        currentMarkerList.append(value) # add to list
-                spamWriter.writerow(currentMarkerList) #write list as a csv row
-                currentMarkerList = [] # clear list for next row
+        for item in PointsOfIntrest: #Over every marker
+
+            #print(item.feature.image.name) # Image Name
+            #print(item.feature.image)
+            #print(dir(item.feature.image))
+            #print(item.feature.image.info_data)
+            currentMarkerList.append(item.feature.position) # Slaps position in the row list
+            for field, value in item.feature.data: # Get data values
+                currentMarkerList.append(value) # add to list
+            currentMarkerList.append(item.feature.image.name) # Slaps position in the row list
+            spamWriter.writerow(currentMarkerList) #write list as a csv row
+            currentMarkerList = [] # clear list for next row
         
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()

@@ -63,12 +63,13 @@ class BasePixmapLabel(QtWidgets.QLabel):
         """
         return self._mapPointToOriginal(self.mapFromParent(point))
 
-    def pointOnDisplay(self, point):
+    def pointOnDisplay(self, point, offset):
         """
         Given a point on the original pixmap, returns a QPoint
         object describing the location on this widget's parent.
         """
-        return self.mapToParent(self._mapPointToDisplay(point))
+
+        return self.mapToParent(self._mapPointToDisplay(point)) + offset
 
     def getPixmapForSize(self, size):
         """
@@ -109,8 +110,9 @@ class BasePixmapLabel(QtWidgets.QLabel):
         # Giving the feature a function (not a method) that allows
         # it to map a point on the original pixmap to the displayed
         # pixmap:
-        def mapPoint(point):
-            return self.pointOnDisplay(point)
+        def mapPoint(point, offset):
+
+            return self.pointOnDisplay(point, offset)
 
         feature.mapPoint = mapPoint
 
@@ -167,7 +169,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     Class for markers (points) that can be put on a PixmapLabel
     (or anything that inherits from BasePixmapLabel).
     """
-    def __init__(self, parent, icon, size=(20, 20)):
+    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0)):
         super().__init__(parent)
 
         pixmap = QtGui.QPixmap(icon)
@@ -176,7 +178,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.setPixmap(pixmap)
         self.setScaledContents(True)
         self.hide()
-
+        self.offset = offset
         self.size = size
         self.point = None
 
@@ -192,7 +194,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         if not self.mapPoint:
             raise(Exception("Can't position a PixmapLabelMarker that hasn't been added to something yet."))
         if self.point:
-            point = self.mapPoint(self.point)
+            point = self.mapPoint(self.point, self.offset)
             self.setGeometry(point.x()-self.size[0]/2, point.y() - self.size[1]/2, self.size[0], self.size[1])
 
     def moveTo(self, point):
@@ -200,6 +202,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         Move the marker to the specified point on the parent PixmapLabel.
         """
         self.point = point
+
         self.position()
 
 

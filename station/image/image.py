@@ -41,6 +41,7 @@ class Image:
             for line in f:
                 key, sep, value = line.partition("=")
                 self.info_data[key.strip()] = value.strip()
+        return  self.info_data
 
     def _prepareProperties(self):
         """
@@ -130,13 +131,13 @@ class Image:
 
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
-    def distance(self, pixelA_x, pixelA_y, pixelB_x, pixelB_y):
+    def distance(self, point_a, point_b):
         """
         Returns the distance between the two points on the ground
         refered to by the provided pixel locations.
         """
-        positions = [self.geoReferencePoint(pixelA_x, pixelA_y),
-                     self.geoReferencePoint(pixelB_x, pixelB_y)]
+        positions = [self.geoReferencePoint(*point_a),
+                     self.geoReferencePoint(*point_b)]
         return geo.PositionCollection(positions).length()
 
     def getImageOutline(self):

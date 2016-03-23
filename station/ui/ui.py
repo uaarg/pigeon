@@ -3,6 +3,8 @@ import logging
 import datetime
 import types
 
+import json # For working with .json files
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
@@ -50,6 +52,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.main_window.feature_area.feature_export_requested.connect(exporter)
 
+
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
 
@@ -57,6 +60,8 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
         self.connectQueue(image_queue, self.addImage)
+
+        self.ruler = None
 
         def print_image_clicked(image, point):
             string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
@@ -71,9 +76,25 @@ class UI(QtCore.QObject, QueueMixin):
             marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
             self.addFeature(image, marker)
 
+        def updateRuler(image, point): 
+            if self.ruler is None:
+                self.ruler = point
+                #Draw Start Point
+                # Append to say this is for GCP error stuff?
+            else: 
+                distance = image.distance([self.ruler.x(), self.ruler.y()],[point.x(), point.y()])
+                QtCore.QLine(self.ruler, point) # Setup class, need to use
+
+                # Append to say this is for GCP error stuff?
+
+                # Draw ruler between points? 
+                print("Ruler is "+ str(distance)+ "m long.") # Add angle??? 
+                self.ruler = None
+            self.main_window.main_image_area.drawRuler(point)
+
         # Hooking up some inter-component behaviour
         self.main_window.main_image_area.image_clicked.connect(create_new_marker)
-        self.main_window.main_image_area.image_right_clicked.connect(print_image_clicked)
+        self.main_window.main_image_area.image_right_clicked.connect(updateRuler)
         self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
     def run(self):
@@ -133,7 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
         self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
-        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data)
+        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, features=features)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
         # Hooking up some inter-component benhaviour
@@ -306,7 +327,7 @@ class MainImageArea(QtWidgets.QWidget):
 
     def showImage(self, image):
         self._clearFeatures()
-
+        # clear past Ruler
         self.image = image
         self.image_area.setPixmap(image.pixmap_loader)
 
@@ -363,6 +384,14 @@ class MainImageArea(QtWidgets.QWidget):
     def addFeature(self, feature):
         self._drawFeature(feature)
 
+    def drawRuler(self, start):
+        
+        pixmap_label_marker = PixmapLabelMarker(self.image_area, icons.end_point, offset=QtCore.QPoint(-9, -19))
+        self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+        pixmap_label_marker.moveTo(start)
+        #pixmap_label_marker.setToolTip(str(feature))
+        pixmap_label_marker.show()
+
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user clicks on the image.
@@ -376,6 +405,7 @@ class MainImageArea(QtWidgets.QWidget):
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
             self.image_right_clicked.emit(self.image, point)
+
 
 
 class FeatureDetailArea(EditableBaseListForm):
@@ -408,7 +438,7 @@ class FeatureArea(QtWidgets.QFrame):
 
     feature_export_requested = QtCore.pyqtSignal(list,str)
 
-    def __init__(self, *args, settings_data={}, **kwargs):
+    def __init__(self, *args, settings_data={}, features=[],**kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
 
@@ -437,6 +467,17 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
+        self.CompairingChoice = QtWidgets.QComboBox(self)
+        self.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
+
+        for confirmedPoint in features:
+            self.CompairingChoice.addItem(confirmedPoint.data[0][1])
+        #self.CompairingChoice.activated[str].connect(self.doErrorCheck)      
+
+        print("We have "+str(self.CompairingChoice.count())+" GCP's")
+        self.layout.addWidget(self.CompairingChoice)
+
+
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
         self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
         self.ExportingChoice.addItem("KML") # Normal KML exporting
@@ -458,6 +499,15 @@ class FeatureArea(QtWidgets.QFrame):
             self.feature_export_requested.emit(self.getFeatureList(),text)
         except:
             print("Exporting type " + text + " is not supported!!!!!")
+
+    #def doErrorCheck(self):
+     #   text= self.CompairingChoice.currentText()
+
+        #self.error_check_requested.emit(feature,text)
+        #for confirmedPoint in features:
+          #  if(confirmedPoint.data[0][1]== self.CompairingChoice.currentText()):
+         #       print(dir(confirmedPoint.data))
+        #populate marker thing as GCP's Position
 
     def getFeatureList(self):
         return [feature for feature in self.feature_list.iterItems()]
@@ -482,46 +532,6 @@ class FeatureArea(QtWidgets.QFrame):
                 item.setText(str(feature))
                 break
 
-        markPoint = QtWidgets.QPushButton("Add", self)
-        markPoint.clicked.connect(self.addPoint)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(0,0)
-
-        markPoint = QtWidgets.QPushButton("Remove", self)
-        markPoint.clicked.connect(self.removePoint)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(120,0)
-
-        markPoint = QtWidgets.QPushButton("Calc Dist", self)
-        markPoint.clicked.connect(self.calcDist)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(0,50)
-
-        markPoint = QtWidgets.QPushButton("Calc Area", self)
-        markPoint.clicked.connect(self.calcArea)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(120,50)
-
-        markPoint = QtWidgets.QPushButton("Clear", self)
-        markPoint.clicked.connect(self.clearMarker)
-        markPoint.resize(markPoint.minimumSizeHint())
-        markPoint.move(120,100)
-
-
-    def addPoint(self):
-        print("Dummy Function {add Last Point to Marker!}")
-
-    def removePoint(self):
-        print("Dummy Function {remove Last Point to Marker!}")
-
-    def calcDist(self):
-        print("Dummy Function {refresh Distance calc!}")
-
-    def calcArea(self):
-        print("Dummy Function {refresh Area calc!}")
-
-    def clearMarker(self):
-        print("Dummy Function {Clear Marker!}")
 
 
 class ThumbnailArea(QtWidgets.QWidget):
