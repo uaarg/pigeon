@@ -43,6 +43,9 @@ class UI(QtCore.QObject, QueueMixin):
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
 
+
+
+
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
         self.main_window = MainWindow(self.settings_data, self.features)
@@ -157,7 +160,24 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
 
         # Finishing up
+        ctrlgaction = QtWidgets.QAction("Ctrl G Action", self)
+        ctrlgaction.setShortcut('Ctrl+G')
+        ctrlgaction.triggered.connect(self.ctrlgfunction)
+        ctrlsaction = QtWidgets.QAction("Ctrl S Action", self)
+        ctrlsaction.setShortcut('Ctrl+S')
+        ctrlsaction.triggered.connect(self.ctrlsfunction)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(ctrlgaction)
+        fileMenu.addAction(ctrlsaction)
         QtCore.QMetaObject.connectSlotsByName(self)
+
+    def ctrlgfunction(self):
+        print("You pressed Ctrl+G")
+
+    def ctrlsfunction(self):
+        print("You pressed Ctrl+S")
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
