@@ -466,16 +466,17 @@ class FeatureArea(QtWidgets.QFrame):
 
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
+        
+        # Compairing Choice shows all GCP's
+        #self.CompairingChoice = QtWidgets.QComboBox(self)
+        #elf.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
 
-        self.CompairingChoice = QtWidgets.QComboBox(self)
-        self.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
-
-        for confirmedPoint in features:
-            self.CompairingChoice.addItem(confirmedPoint.data[0][1])
+        #for confirmedPoint in features:
+         #   self.CompairingChoice.addItem(confirmedPoint.data[0][1])
         #self.CompairingChoice.activated[str].connect(self.doErrorCheck)      
 
-        print("We have "+str(self.CompairingChoice.count())+" GCP's")
-        self.layout.addWidget(self.CompairingChoice)
+        #print("We have "+str(self.CompairingChoice.count())+" GCP's")
+        #self.layout.addWidget(self.CompairingChoice)
 
 
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
