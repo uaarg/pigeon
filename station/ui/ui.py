@@ -2,8 +2,7 @@ import sys
 import logging
 import datetime
 import types
-
-import json # For working with .json files
+import signal # For exiting pigeon from terminal
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
@@ -34,6 +33,10 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal()
 
+    def ExitFcn (self, signum, fram):
+        # Exiting Program from the Terminal
+        self.app.exit()
+
     def __init__(self, save_settings, load_settings, exporter, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -43,7 +46,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features)
+        self.main_window = MainWindow(self.settings_data, self.features, self.app.exit)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
@@ -60,8 +63,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
         self.connectQueue(image_queue, self.addImage)
-
-        self.ruler = None
+        signal.signal(signal.SIGINT,self.ExitFcn)
 
         def print_image_clicked(image, point):
             string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
@@ -76,25 +78,9 @@ class UI(QtCore.QObject, QueueMixin):
             marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
             self.addFeature(image, marker)
 
-        def updateRuler(image, point): 
-            if self.ruler is None:
-                self.ruler = point
-                #Draw Start Point
-                # Append to say this is for GCP error stuff?
-            else: 
-                distance = image.distance([self.ruler.x(), self.ruler.y()],[point.x(), point.y()])
-                QtCore.QLine(self.ruler, point) # Setup class, need to use
-
-                # Append to say this is for GCP error stuff?
-
-                # Draw ruler between points? 
-                print("Ruler is "+ str(distance)+ "m long.") # Add angle??? 
-                self.ruler = None
-            self.main_window.main_image_area.drawRuler(point)
-
         # Hooking up some inter-component behaviour
         self.main_window.main_image_area.image_clicked.connect(create_new_marker)
-        self.main_window.main_image_area.image_right_clicked.connect(updateRuler)
+        self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.updateRuler)
         self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
     def run(self):
@@ -111,12 +97,11 @@ class UI(QtCore.QObject, QueueMixin):
         self.features.append(feature)
         self.main_window.addFeature(feature)
 
-
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings_data={}, features=[]):
+    def __init__(self, settings_data={}, features=[], exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
-
+        self.ExitingCB = exitfcnCB
         # State
         self.current_image = None
 
@@ -178,7 +163,28 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
 
         # Finishing up
+
+               
+        ExitAction = QtWidgets.QAction("Exit Pigeon :(", self)
+        ExitAction.setShortcut('Ctrl+Q')
+        ExitAction.triggered.connect(self.ExitFcn)
+        
+        AboutAction = QtWidgets.QAction("About Pigeon", self)
+        AboutAction.setShortcut('Ctrl+A')
+        AboutAction.triggered.connect(self.AboutPopup)
+
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(AboutAction)
+        fileMenu.addAction(ExitAction)
+
         QtCore.QMetaObject.connectSlotsByName(self)
+    def ExitFcn(self):
+        print("You pressed Ctrl+Q, now exiting")
+        self.ExitingCB()
+
+    def AboutPopup(self):
+        print("You pressed Ctrl+S, popup is not working yet")
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
@@ -325,9 +331,33 @@ class MainImageArea(QtWidgets.QWidget):
         # Features as drawn:
         self.feature_pixmap_label_markers = []
 
+        self.ruler = QtCore.QLine()
+
+    def updateRuler(self, image, point): 
+        if (self.ruler.dx() ==0 ) and (self.ruler.dy() == 0): # on first click
+            print("Got to first click") 
+            self.ruler.setP1(point)  # Set new point
+            print('Point 1 x = ' + str(point.x()) +'\n y = '+ str(point.y()))
+            point.setX(point.x()+1) # Set changes to prep for second click
+            point.setY(point.y()+1)
+            print('Point 1 (+1,+1) x = ' + str(point.x()) +'\n y = '+ str(point.y()))
+            self.ruler.setP2(point) 
+            print('dx = ' + str(self.ruler.dx()) +'\n dy = '+ str(self.ruler.dy()))
+        elif (self.ruler.dx() == 1) and (self.ruler.dy() == 1): # on second click
+            print('Got to second click')
+            self.ruler.setP2(point) # set second point
+            distance = image.distance([self.ruler.x1(), self.ruler.y1()],
+                                      [self.ruler.x2(), self.ruler.y2()])
+            #datPainter = QtGui.QPainter() # Probably need to add pixmap to this event, RJA, E.I.T.
+            #datPainter.begin(self)
+            #self._drawLine(datPainter, self.ruler, 'Ruler')
+            #datPainter.end()
+            print("Ruler is "+ str(distance)+ "m long.") # Add angle??? 
+        self.showRuler(point)
+
     def showImage(self, image):
         self._clearFeatures()
-        # clear past Ruler
+        # clear past Ruler?
         self.image = image
         self.image_area.setPixmap(image.pixmap_loader)
 
@@ -359,6 +389,28 @@ class MainImageArea(QtWidgets.QWidget):
         elif self.plumbline:
             self.plumbline.hide()
 
+    def _drawLine(self, datPainter, line, drwType ):
+        '''
+        This is the 
+        Used to draw the connecting line between any two points. 
+        '''
+        
+        if drwType == 'Ruler': # For the line of the ruler
+            pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DashDotDotLine)
+        elif drwType == 'Border': # For the border of a Meta-Marker between markers
+            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+        elif drwType == '':
+            print('Type of Line is not supported!!')
+
+        datPainter.setPen(pen)
+        datPainter.drawLine(line.x1(), line.x2(), line.y1(), line.y2())
+
+    def paintEvent(self, e):
+        datPainter = QtGui.QPainter()
+        datPainter.begin(self)
+        self._drawLine(datPainter, self.ruler, 'Ruler')
+        datPainter.end()
+
     def _clearFeatures(self):
         for pixmap_label_marker in self.feature_pixmap_label_markers:
             pixmap_label_marker.deleteLater()
@@ -384,14 +436,16 @@ class MainImageArea(QtWidgets.QWidget):
     def addFeature(self, feature):
         self._drawFeature(feature)
 
-    def drawRuler(self, start):
-        
+    def showRuler(self, point):
+        '''
+        Used to draw the end icon of the Ruler
+        '''
         pixmap_label_marker = PixmapLabelMarker(self.image_area, icons.end_point, offset=QtCore.QPoint(-9, -19))
         self.image_area.addPixmapLabelFeature(pixmap_label_marker)
-        pixmap_label_marker.moveTo(start)
+        pixmap_label_marker.moveTo(point)
         #pixmap_label_marker.setToolTip(str(feature))
         pixmap_label_marker.show()
-
+        
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user clicks on the image.
@@ -405,8 +459,7 @@ class MainImageArea(QtWidgets.QWidget):
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
             self.image_right_clicked.emit(self.image, point)
-
-
+         
 
 class FeatureDetailArea(EditableBaseListForm):
     featureChanged = QtCore.pyqtSignal(Feature)
@@ -467,22 +520,23 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
         
+        '''
         # Compairing Choice shows all GCP's
-        #self.CompairingChoice = QtWidgets.QComboBox(self)
-        #elf.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
+        self.CompairingChoice = QtWidgets.QComboBox(self)
+        self.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
 
-        #for confirmedPoint in features:
-         #   self.CompairingChoice.addItem(confirmedPoint.data[0][1])
-        #self.CompairingChoice.activated[str].connect(self.doErrorCheck)      
+        for confirmedPoint in features:
+            self.CompairingChoice.addItem(confirmedPoint.data[0][1])
+        self.CompairingChoice.activated[str].connect(self.doErrorCheck)      
 
-        #print("We have "+str(self.CompairingChoice.count())+" GCP's")
-        #self.layout.addWidget(self.CompairingChoice)
-
+        print("We have "+str(self.CompairingChoice.count())+" GCP's")
+        self.layout.addWidget(self.CompairingChoice)
+        '''
 
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
         self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
         self.ExportingChoice.addItem("KML") # Normal KML exporting
-        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features AND target anaylasis TBA
+        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
         self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
         self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results 
         self.layout.addWidget(self.ExportingChoice)
@@ -500,16 +554,16 @@ class FeatureArea(QtWidgets.QFrame):
             self.feature_export_requested.emit(self.getFeatureList(),text)
         except:
             print("Exporting type " + text + " is not supported!!!!!")
+    '''
+    def doErrorCheck(self):
+        text= self.CompairingChoice.currentText()
 
-    #def doErrorCheck(self):
-     #   text= self.CompairingChoice.currentText()
-
-        #self.error_check_requested.emit(feature,text)
-        #for confirmedPoint in features:
-          #  if(confirmedPoint.data[0][1]== self.CompairingChoice.currentText()):
-         #       print(dir(confirmedPoint.data))
+        self.error_check_requested.emit(feature,text)
+        for confirmedPoint in features:
+            if(confirmedPoint.data[0][1]== self.CompairingChoice.currentText()):
+                print(dir(confirmedPoint.data))
         #populate marker thing as GCP's Position
-
+    '''
     def getFeatureList(self):
         return [feature for feature in self.feature_list.iterItems()]
 

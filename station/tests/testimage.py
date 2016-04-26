@@ -238,5 +238,5 @@ class ImageTestCase2(BaseTestCase):
         self.image.field_of_view_horiz = 90
 
     def testDistance(self):
-        calculated_distance = self.image.distance(0, 500, 1000, 500)
-        self.assertAlmostEqual(calculated_distance, 200)
+        calculated_distance = self.image.distance([0, 500], [1000, 500])
+        self.assertAlmostEqual(calculated_distance, 200, 1) #Test accureacy to 1m

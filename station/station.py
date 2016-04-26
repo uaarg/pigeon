@@ -11,7 +11,6 @@ import settings
 import features
 from comms.uav import UAV
 from exporter import KMLExporter, CSVExporter
-from exporter import CSVExporter
 
 import geo # for marker error only 
 __version__ = "0.2"
@@ -72,11 +71,16 @@ class GroundStation:
 
             self.kml_exporter.writeKML(output_path)
 
-        elif exportType=="CSV Normal":
+        elif exportType == "CSV Normal":
             if not output_path: 
                 output_path = self.settings_data["Feature Export Path"]
 
-            self.csv_exporter.writeCSV(feature_list, output_path) # write marker list
+            self.csv_exporter.writeMarkersCSV(feature_list, output_path) # write marker list
+        elif exportType == "CSV: USC":
+            if not output_path: 
+                output_path = self.settings_data["Feature Export Path"]
+
+            self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
         else:
             raise Exception("Exporting in "+exportType+" is not supported!!!!!")   
 

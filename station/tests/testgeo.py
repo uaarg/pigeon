@@ -307,6 +307,16 @@ class AreaCalculationTests(BaseTestCase):
         kwargs["places"] = 1
         super().assertAlmostEqual(*args, **kwargs)
 
+    def testCentroidCalc(self):
+        locations = [Position(53.640376, -113.287968),
+                     Position(53.639969, -113.285930),
+                     Position(53.641470, -113.285865),
+                     Position(53.641063, -113.287432)]
+        assumedCentroid = [53.6407195, -113.2867998]
+        calcCentrod = PositionCollection(locations).center()
+        self.assertAlmostEqual(assumedCentroid[0], calcCentrod[0])
+        self.assertAlmostEqual(assumedCentroid[1], calcCentrod[1])
+
     def testEmptyArea(self):
         """
         If the points provided define nothing, just a point, or just a line,

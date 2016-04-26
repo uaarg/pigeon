@@ -308,6 +308,49 @@ class PositionCollection:
         """
         self.positions = positions
         self.interior_positions_list = interior_positions_list
+        self.collectionArea = None # TBD when area() is called
+        self.collectionCenter = None # TBD when center() is called
+
+    def updatePositions(self, positions, interior_positions_list):
+        """
+        Updates the lists of positions used
+        """
+        self.positions = positions
+        self.interior_positions_list = interior_positions_list
+        self.area() # Re-Calc area
+        self.collectionCenter = center() # Recalc centroid
+        return True 
+
+    def addPosition(self, position = None , interior_position = None): 
+        """
+        Adds a single position to eiether position list.
+        """
+        if position is not None:
+            positions.append(position)
+        if interior_position is not None:
+            interior_positions.append(interior_position)
+
+        return True
+
+    def removePosition(self, position = None , interior_position = None):
+        """
+        Removes a single position from eiether position list
+        """
+        if position is not None:
+            positions.remove(position)
+        if interior_position is not None:
+            interior_positions.remove(interior_position)
+
+        return True
+
+    def center(self):
+        """
+        Calculates the centroid of the polygon defined by the sequence of positions.
+        """
+        lat, lon = zip(*[position.latLon() for position in self.positions])
+        cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
+        cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
+        return [cenLat,cenLon] # Returns centroid as a tuple
 
     def area(self):
         """
@@ -327,6 +370,7 @@ class PositionCollection:
                 # Converting to a list of latitudes and a list of longitudes since this is what pyproj expects
             x, y = projection(lon, lat) # Projection the lat/lon into x/y
             coords = list(zip(x, y))
+            print(coords)
             return coords
 
         # Converting the outside of the polygon:
@@ -344,6 +388,7 @@ class PositionCollection:
         polygon = Polygon(coords, interior_coords_list)
         if not polygon.is_valid:
             raise(ValueError("Positions do not define a valid polygon."))
+        self.collectionArea = polygon.area
         return polygon.area
 
     def _segment_length(self, positions, include_height, include_alt):

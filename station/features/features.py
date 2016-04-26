@@ -48,9 +48,19 @@ class GroundControlPoint(Point):
 class Marker(Point):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        #MarkerError = []
-        #self.data.append(("Error from GCP",MarkerError))
     icon_name = "flag"
+
+    #positions = [self.position] #Im lost why this doesent work lol, will be edited when we do meta-markers
+
+    def addPosition(self, newPosition): 
+        positions.append(newPosition)
+        _correctPosition()
+
+    def _correctPosition(self):
+        lat, lon = zip(*[position.latLon() for position in positions])
+        cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
+        cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
+        position = [cenLat,cenLon] # Returns new as a tuple
 
 def load_ground_control_points():
     """
