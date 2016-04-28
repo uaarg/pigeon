@@ -12,7 +12,7 @@ import features
 from comms.uav import UAV
 from exporter import KMLExporter, CSVExporter
 
-import geo # for marker error only 
+import geo
 __version__ = "0.2"
 
 class GroundStation:
@@ -22,6 +22,7 @@ class GroundStation:
         self.uav = UAV(uav_ivybus)
         self.kml_exporter = KMLExporter()
         self.csv_exporter = CSVExporter()
+        self.areas = {}
 
         ground_control_points = features.load_ground_control_points()
 
@@ -30,7 +31,44 @@ class GroundStation:
                      exporter=self.exportFeatures,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
+                     check_areas=self.checkAreas,
                      ground_control_points=ground_control_points)
+
+
+    def checkAreas(self, feature):
+        area = ""
+        position = feature.position
+        for i, (field_name, field_value) in enumerate(feature.data):
+
+            if field_name == "Area":
+                area = field_value
+                # check area, w/PositionCollection
+
+        # look at positioncollection, update
+        if area in self.areas: # if already in our dict of areas
+            add = True
+            for existingPosition in self.areas[area].positions:
+                if self.positionEqual(existingPosition, position):
+                    add = False
+                    break
+                else:
+                  continue
+            if add:
+                self.areas[area].addPosition(position)
+
+        else: # if not already in there
+            self.areas[area] = geo.PositionCollection([position])
+
+        print(self.areas)
+        for area in self.areas.keys():
+            print(area, self.areas[area].positions)
+
+
+    def positionEqual(self, position1, position2):
+      if position1.latLon() == position2.latLon():
+        return True
+      else:
+        return False
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:
@@ -72,17 +110,17 @@ class GroundStation:
             self.kml_exporter.writeKML(output_path)
 
         elif exportType == "CSV Normal":
-            if not output_path: 
+            if not output_path:
                 output_path = self.settings_data["Feature Export Path"]
 
             self.csv_exporter.writeMarkersCSV(feature_list, output_path) # write marker list
         elif exportType == "CSV: USC":
-            if not output_path: 
+            if not output_path:
                 output_path = self.settings_data["Feature Export Path"]
 
             self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
         else:
-            raise Exception("Exporting in "+exportType+" is not supported!!!!!")   
+            raise Exception("Exporting in "+exportType+" is not supported!!!!!")
 
     def run(self):
         self.loadSettings()

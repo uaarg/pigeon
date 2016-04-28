@@ -311,25 +311,27 @@ class PositionCollection:
         self.collectionArea = None # TBD when area() is called
         self.collectionCenter = None # TBD when center() is called
 
-    def updatePositions(self, positions, interior_positions_list):
+    def updatePositions(self, positions=None, interior_positions_list=None):
         """
         Updates the lists of positions used
         """
         self.positions = positions
         self.interior_positions_list = interior_positions_list
-        self.area() # Re-Calc area
-        self.collectionCenter = center() # Recalc centroid
-        return True 
+        self.collectionArea = self.area() # Re-Calc area
+        self.collectionCenter = self.center() # Recalc centroid
+        print("Area:", self.collectionArea)
+        print("Center:", self.collectionCenter)
+        return True
 
-    def addPosition(self, position = None , interior_position = None): 
+    def addPosition(self, position=None, interior_position=None):
         """
         Adds a single position to eiether position list.
         """
         if position is not None:
-            positions.append(position)
+            self.positions.append(position)
         if interior_position is not None:
-            interior_positions.append(interior_position)
-
+            self.interior_positions.append(interior_position)
+        self.updatePositions(self.positions)
         return True
 
     def removePosition(self, position = None , interior_position = None):
@@ -337,10 +339,10 @@ class PositionCollection:
         Removes a single position from eiether position list
         """
         if position is not None:
-            positions.remove(position)
+            self.positions.remove(position)
         if interior_position is not None:
-            interior_positions.remove(interior_position)
-
+            self.interior_positions.remove(interior_position)
+        self.updatePositions(self.positions)
         return True
 
     def center(self):
@@ -370,7 +372,6 @@ class PositionCollection:
                 # Converting to a list of latitudes and a list of longitudes since this is what pyproj expects
             x, y = projection(lon, lat) # Projection the lat/lon into x/y
             coords = list(zip(x, y))
-            print(coords)
             return coords
 
         # Converting the outside of the polygon:
@@ -384,11 +385,13 @@ class PositionCollection:
         else:
             interior_coords_list = None
 
+        print(coords)
+
         # Creating the planar shape and getting its area
         polygon = Polygon(coords, interior_coords_list)
         if not polygon.is_valid:
             raise(ValueError("Positions do not define a valid polygon."))
-        self.collectionArea = polygon.area
+
         return polygon.area
 
     def _segment_length(self, positions, include_height, include_alt):
