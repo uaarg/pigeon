@@ -19,7 +19,7 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
+        self.data = [("Name", name), ("Notes", ""), ("Crop Type", ""), ("Crop healthy? (y/n)", False), ("Export", True)]
 
     def __str__(self):
         if self.data:

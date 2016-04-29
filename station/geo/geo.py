@@ -12,7 +12,7 @@ import collections
 import copy
 
 import pyproj
-from shapely.geometry import shape, Polygon
+from shapely.geometry import shape, Polygon, MultiPoint
 
 geod = pyproj.Geod(ellps="WGS84") # WGS84 is the datum used by GPS
 
@@ -356,10 +356,14 @@ class PositionCollection:
         cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
         return (cenLat,cenLon) # Returns centroid as a tuple
 
-    def area(self):
+    def area(self, convex_hull=True):
         """
         Calculates the area of polygon defined by the sequence of
         positions (and optional holes defined by interior_positions_list).
+
+        If convex_hull is set to true, the area of the convex hull of the
+        positions will be calculated. This is to avoid the need for entering
+        coordinates in the correct order.
         """
         if len(self.positions) < 4:
             return 0
@@ -387,14 +391,12 @@ class PositionCollection:
         else:
             interior_coords_list = None
 
-        print(coords)
-
-        from shapely.geometry import MultiPoint
-        # coords is a list of (x, y) tuples
-        polygon = MultiPoint(coords).convex_hull
-
         # Creating the planar shape and getting its area
-        # polygon = Polygon(coords, interior_coords_list)
+        if convex_hull: # Avoiding the need to give an ordered list of coordinates
+            polygon = MultiPoint(coords).convex_hull
+        else:
+            polygon = Polygon(coords, interior_coords_list)
+
         if not polygon.is_valid:
             raise(ValueError("Positions do not define a valid polygon."))
 

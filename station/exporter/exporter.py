@@ -290,7 +290,7 @@ class CSVExporter:
         # creates fileObject
         spamWriterZ = CSV.writer(self.CSVAreaObject, delimiter=',', quotechar='|')
         print("Got spamWriter")
-        spamWriterZ.writerow(["Centroid Latitude","Centroid Longitude","Area","Crop Type","Crop healthy? (y/n)","Time of Export",datetime.datetime.now()])
+        spamWriterZ.writerow(["Area Name","Centroid Latitude","Centroid Longitude","Area","Crop Type","Crop healthy? (y/n)","Time of Export",datetime.datetime.now()])
         print("got 1st row")
         currentAreaList = [] # start with an empty marker listir
         print(Areas)
@@ -298,6 +298,7 @@ class CSVExporter:
         for AreaName in Areas.keys():
             print(Areas[AreaName])
             print(dir(Areas[AreaName]))
+            currentAreaList.append(AreaName)
             currentAreaList.append(Areas[AreaName].collectionCenter[0])
             currentAreaList.append(Areas[AreaName].collectionCenter[1])
             currentAreaList.append(Areas[AreaName].collectionArea)
@@ -306,7 +307,7 @@ class CSVExporter:
             print(currentAreaList)
 
             spamWriterZ.writerow(currentAreaList) #write list as a csv row
-            currentMarkerList = [] # clear list for next row
+            currentAreaList = [] # clear list for next row
 
         # Closes CSV so file is updated upon station exit
         self.CSVAreaObject.close()
