@@ -56,6 +56,7 @@ To install on Ubuntu (tested on 14.04), do:
 sudo apt-get install python3 python3-dev
 sudo apt-get install qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
 sudo apt-get install python3-shapely python3-pip
+sudo apt-get install libxml2-dev libxslt1-dev
 sudo pip3 install pyinotify pyproj pykml
 sudo pip3 install git+https://github.com/camlee/ivy-python
 ```
