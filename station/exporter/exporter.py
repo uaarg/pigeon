@@ -266,7 +266,7 @@ class CSVExporter:
             Export = False
             currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
             currentMarkerList.append(item.feature.position.lon)
-            
+
             for field, value in item.feature.data: # Get data values
 
                 if field == "Export": # cant use is here?
@@ -283,30 +283,32 @@ class CSVExporter:
         self.CSVFileObject.close()
 
     def writeAreasCSV(self, Areas, output_path):
-        print("In da function")
-        #THIS IS SO SO WRONG NOW!
-        #Created File Object for csv file
         self.CSVAreaObject = open(output_path + "AreaResults.csv", 'w+')
-        # creates fileObject
-        spamWriterZ = CSV.writer(self.CSVAreaObject, delimiter=',', quotechar='|')
-        print("Got spamWriter")
-        spamWriterZ.writerow(["Area Name","Centroid Latitude","Centroid Longitude","Area","Crop Type","Crop healthy? (y/n)","Time of Export",datetime.datetime.now()])
-        print("got 1st row")
-        currentAreaList = [] # start with an empty marker listir
-        print(Areas)
-        print(dir(Areas))
+        areaWriter = CSV.writer(self.CSVAreaObject, delimiter=',', quotechar='|')
+        areaWriter.writerow(["Area Name","Centroid Latitude","Centroid Longitude","Area","Crop Type","Crop healthy? (y/n)","Time of Export",datetime.datetime.now()])
+        currentAreaList = [] # start with an empty marker list
+
         for AreaName in Areas.keys():
-            print(Areas[AreaName])
-            print(dir(Areas[AreaName]))
             currentAreaList.append(AreaName)
-            currentAreaList.append(Areas[AreaName].collectionCenter[0])
-            currentAreaList.append(Areas[AreaName].collectionCenter[1])
-            currentAreaList.append(Areas[AreaName].collectionArea)
+
+            if Areas[AreaName].collectionCenter is not None:
+                currentAreaList.append(Areas[AreaName].collectionCenter[0])
+                currentAreaList.append(Areas[AreaName].collectionCenter[1])
+            else:
+                currentAreaList.append('')
+                currentAreaList.append('')
+
+            if Areas[AreaName].collectionArea is not None:
+                currentAreaList.append(Areas[AreaName].collectionArea)
+            else:
+                currentAreaList.append('')
+
             for field, value in Areas[AreaName].data:
                 currentAreaList.append(value)
+
             print(currentAreaList)
 
-            spamWriterZ.writerow(currentAreaList) #write list as a csv row
+            areaWriter.writerow(currentAreaList) # write list as a csv row
             currentAreaList = [] # clear list for next row
 
         # Closes CSV so file is updated upon station exit
