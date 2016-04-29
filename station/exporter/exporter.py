@@ -257,56 +257,56 @@ class CSVExporter:
         self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        
+
         spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
                             "Time of Export",datetime.datetime.now()])
-        
+
         currentMarkerList = [] # start with an empty marker list
         for item in PointsOfIntrest: #Over every marker
             Export = False
             currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-            currentMarkerList.append(item.feature.position.lon) 
-            #print(dir(item.feature.data))
+            currentMarkerList.append(item.feature.position.lon)
+            
             for field, value in item.feature.data: # Get data values
-                
-                if field == "Export": # cant use is here? 
+
+                if field == "Export": # cant use is here?
                     Export = value
-                    
+
                 currentMarkerList.append(value) # add to list
 
             if Export is True: #To be sure we only export things we want to
-                currentMarkerList.append(item.feature.image.name) 
+                currentMarkerList.append(item.feature.image.name)
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
             currentMarkerList = [] # clear list for next row
-        
+
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 
-    def writeAreasCSV(self, PointsOfIntrest, output_path):
+    def writeAreasCSV(self, Areas, output_path):
+        print("In da function")
+        #THIS IS SO SO WRONG NOW!
         #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
+        self.CSVAreaObject = open(output_path + "AreaResults.csv", 'w+')
         # creates fileObject
-        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        
-        spamWriter.writerow(["Latitude","Longitude","Area","Crop Type","Time of Export",datetime.datetime.now()])
-        
-        currentMarkerList = [] # start with an empty marker list
-        for item in PointsOfIntrest: #Over every marker
-            Export = False
-            currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-            currentMarkerList.append(item.feature.position.lon) 
-            #print(dir(item.feature.data))
-            for field, value in item.feature.data: # Get data values
-                
-                if field == "Export": # cant use is here? 
-                    Export = value
-                    
-                currentMarkerList.append(value) # add to list
+        spamWriterZ = CSV.writer(self.CSVAreaObject, delimiter=',', quotechar='|')
+        print("Got spamWriter")
+        spamWriterZ.writerow(["Centroid Latitude","Centroid Longitude","Area","Crop Type","Crop healthy? (y/n)","Time of Export",datetime.datetime.now()])
+        print("got 1st row")
+        currentAreaList = [] # start with an empty marker listir
+        print(Areas)
+        print(dir(Areas))
+        for AreaName in Areas.keys():
+            print(Areas[AreaName])
+            print(dir(Areas[AreaName]))
+            currentAreaList.append(Areas[AreaName].collectionCenter[0])
+            currentAreaList.append(Areas[AreaName].collectionCenter[1])
+            currentAreaList.append(Areas[AreaName].collectionArea)
+            for field, value in Areas[AreaName].data:
+                currentAreaList.append(value)
+            print(currentAreaList)
 
-            if Export is True: #To be sure we only export things we want to
-                currentMarkerList.append(item.feature.image.name) 
-                spamWriter.writerow(currentMarkerList) #write list as a csv row
+            spamWriterZ.writerow(currentAreaList) #write list as a csv row
             currentMarkerList = [] # clear list for next row
-        
+
         # Closes CSV so file is updated upon station exit
-        self.CSVFileObject.close()
+        self.CSVAreaObject.close()

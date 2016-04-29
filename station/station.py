@@ -57,7 +57,13 @@ class GroundStation:
                 self.areas[area].addPosition(position)
 
         else: # if not already in there
-            self.areas[area] = geo.PositionCollection([position])
+            if area is not "":
+                self.areas[area] = geo.PositionCollection([position])
+                print(feature.data)
+                #Inherit Relevent Marker Data
+                self.areas[area].data[0] = feature.data[2] # Inherit Crop Type
+                self.areas[area].data[1] = feature.data[3] # Inherit Crop Health
+                self.areas[area].data[2] = feature.data[4] # Inherit Export Status
 
         print(self.areas)
         for area in self.areas.keys():
@@ -65,10 +71,10 @@ class GroundStation:
 
 
     def positionEqual(self, position1, position2):
-      if position1.latLon() == position2.latLon():
-        return True
-      else:
-        return False
+        if position1.latLon() == position2.latLon():
+            return True
+        else:
+            return False
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:
@@ -118,7 +124,7 @@ class GroundStation:
             if not output_path:
                 output_path = self.settings_data["Feature Export Path"]
 
-            self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
+            self.csv_exporter.writeAreasCSV( self.areas, output_path) # write marker list
         else:
             raise Exception("Exporting in "+exportType+" is not supported!!!!!")
 

@@ -310,6 +310,8 @@ class PositionCollection:
         self.interior_positions_list = interior_positions_list
         self.collectionArea = None # TBD when area() is called
         self.collectionCenter = None # TBD when center() is called
+        # Inherited Data from Marker
+        self.data = [("Crop Type", ""), ("Crop healthy? (y/n)", False), ("Export", True)]
 
     def updatePositions(self, positions=None, interior_positions_list=None):
         """
@@ -352,7 +354,7 @@ class PositionCollection:
         lat, lon = zip(*[position.latLon() for position in self.positions])
         cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
         cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
-        return [cenLat,cenLon] # Returns centroid as a tuple
+        return (cenLat,cenLon) # Returns centroid as a tuple
 
     def area(self):
         """
@@ -387,8 +389,12 @@ class PositionCollection:
 
         print(coords)
 
+        from shapely.geometry import MultiPoint
+        # coords is a list of (x, y) tuples
+        polygon = MultiPoint(coords).convex_hull
+
         # Creating the planar shape and getting its area
-        polygon = Polygon(coords, interior_coords_list)
+        # polygon = Polygon(coords, interior_coords_list)
         if not polygon.is_valid:
             raise(ValueError("Positions do not define a valid polygon."))
 

@@ -552,10 +552,9 @@ class FeatureArea(QtWidgets.QFrame):
 
     def doExporting(self):
         text= self.ExportingChoice.currentText()
-        try:
-            self.feature_export_requested.emit(self.getFeatureList(),text)
-        except:
-            print("Exporting type " + text + " is not supported!!!!!")
+        print("You tried to export in", text)
+        self.feature_export_requested.emit(self.getFeatureList(),text)
+        
     '''
     def doErrorCheck(self):
         text= self.CompairingChoice.currentText()
