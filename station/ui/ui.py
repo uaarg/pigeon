@@ -37,7 +37,7 @@ class UI(QtCore.QObject, QueueMixin):
         # Exiting Program from the Terminal
         self.app.exit()
 
-    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, check_areas, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, check_areas, csv_exporter, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -46,7 +46,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, self.app.exit)
+        self.main_window = MainWindow(csv_exporter, self.settings_data, self.features, self.app.exit)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
@@ -98,7 +98,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.addFeature(feature)
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings_data={}, features=[], exitfcnCB= None):
+    def __init__(self, csv_exporter, settings_data={}, features=[], exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
         self.ExitingCB = exitfcnCB
@@ -138,10 +138,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
-        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
+        self.main_image_area = MainImageArea(self.main_horizontal_split,settings_data=settings_data, features=features, csv_exporter = csv_exporter)
         self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, features=features)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
-
+        print("HellOSFSKDJFSDLJKFJDSFLJKDSFJKLDSF")
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
         self.feature_area.feature_list.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature)) # Show feature details for the selected feature
@@ -294,10 +294,11 @@ class MainImageArea(QtWidgets.QWidget):
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     rightmousepresspoint = 0;
 
-    def __init__(self, *args, settings_data={}, features=[], **kwargs):
+    def __init__(self, *args,settings_data={}, features=[], csv_exporter = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
         self.features = features
+        self.centroids = []
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
@@ -332,6 +333,7 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = []
 
         self.ruler = QtCore.QLine()
+        self.csv_exportercb = csv_exporter.addcentroidfunc(self.addCentroid)
 
     def updateRuler(self, image, point):
         if (self.ruler.dx() ==0 ) and (self.ruler.dy() == 0): # on first click
@@ -363,6 +365,7 @@ class MainImageArea(QtWidgets.QWidget):
 
         self._drawPlanePlumb()
         self._drawFeatures()
+        self._drawcentroids
 
     def _drawPlanePlumb(self):
         """
@@ -417,11 +420,15 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = []
 
     def _drawFeature(self, feature):
+        print(feature.position)
         if feature.position:
             pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
+            print(pixel_x)
             if pixel_x and pixel_y:
                 point = QtCore.QPoint(pixel_x, pixel_y)
                 pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
+                print(type(feature.icon_name))
+                print(feature.icon_size)
                 self.image_area.addPixmapLabelFeature(pixmap_label_marker)
                 pixmap_label_marker.moveTo(point)
                 pixmap_label_marker.setToolTip(str(feature))
@@ -433,8 +440,29 @@ class MainImageArea(QtWidgets.QWidget):
         for feature in self.features:
             self._drawFeature(feature)
 
+
     def addFeature(self, feature):
         self._drawFeature(feature)
+
+
+
+    def _drawCentroid(self, centroid):
+        if centroid:
+            pixel_x, pixel_y = self.image.invGeoReferencePoint(centroid)
+            if pixel_x and pixel_y:
+                point = QtCore.QPoint(pixel_x, pixel_y)
+                pixmap_label_marker = PixmapLabelMarker(self,  icons.name_map["flag"], (20,20))
+
+                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+                pixmap_label_marker.moveTo(point)
+                pixmap_label_marker.setToolTip(str(feature))
+                pixmap_label_marker.show()
+
+                self.feature_pixmap_label_markers.append(pixmap_label_marker)
+
+    def addCentroid(self, centroid):
+        self._drawCentroid(centroid)
+
 
     def showRuler(self, point):
         '''
@@ -554,7 +582,7 @@ class FeatureArea(QtWidgets.QFrame):
         text= self.ExportingChoice.currentText()
         print("You tried to export in", text)
         self.feature_export_requested.emit(self.getFeatureList(),text)
-        
+
     '''
     def doErrorCheck(self):
         text= self.CompairingChoice.currentText()
@@ -569,6 +597,7 @@ class FeatureArea(QtWidgets.QFrame):
         return [feature for feature in self.feature_list.iterItems()]
 
     def addFeature(self, feature):
+        print(dir(feature.picture))
         item = QtWidgets.QListWidgetItem("", self.feature_list)
         item.setText(str(feature))
         item.feature = feature

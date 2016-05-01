@@ -31,7 +31,7 @@ class GroundStation:
                      exporter=self.exportFeatures,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
-                     check_areas=self.checkAreas,
+                     check_areas=self.checkAreas, csv_exporter = self.csv_exporter,
                      ground_control_points=ground_control_points)
 
 

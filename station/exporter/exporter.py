@@ -282,6 +282,9 @@ class CSVExporter:
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 
+    def addcentroidfunc(self,foo):
+	    self.addCentroid = foo
+
     def writeAreasCSV(self, Areas, output_path):
         self.CSVAreaObject = open(output_path + "AreaResults.csv", 'w+')
         areaWriter = CSV.writer(self.CSVAreaObject, delimiter=',', quotechar='|')
@@ -294,6 +297,10 @@ class CSVExporter:
             if Areas[AreaName].collectionCenter is not None:
                 currentAreaList.append(Areas[AreaName].collectionCenter[0])
                 currentAreaList.append(Areas[AreaName].collectionCenter[1])
+                t = tup1()
+                t.lat = Areas[AreaName].collectionCenter[0]
+                t.lon = Areas[AreaName].collectionCenter[0]
+                self.addCentroid(t)
             else:
                 currentAreaList.append('')
                 currentAreaList.append('')
@@ -313,3 +320,8 @@ class CSVExporter:
 
         # Closes CSV so file is updated upon station exit
         self.CSVAreaObject.close()
+class tup1:
+    def __init__(self):
+        self.lat = None
+        self.lon = None
+        self.height = 0
