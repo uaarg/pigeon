@@ -11,6 +11,7 @@ import settings
 import features
 from comms.uav import UAV
 from exporter import KMLExporter, CSVExporter
+from geo import Position
 
 import geo
 __version__ = "0.2"
@@ -39,42 +40,60 @@ class GroundStation:
         area = ""
         position = feature.position
         for i, (field_name, field_value) in enumerate(feature.data):
-
             if field_name == "Area":
                 area = field_value
                 # check area, w/PositionCollection
 
+        def positionEqual(position1, position2):
+            if position1.latLon() == position2.latLon():
+                return True
+            else:
+                return False
+
         # look at positioncollection, update
         if area in self.areas: # if already in our dict of areas
-            add = True
+            add_position = True
             for existingPosition in self.areas[area].positions:
-                if self.positionEqual(existingPosition, position):
-                    add = False
+                if positionEqual(existingPosition, position):
+                    add_position = False
                     break
                 else:
                   continue
-            if add:
-                self.areas[area].addPosition(position)
+
+            if add_position:
+                currentArea = self.areas[area]
+
+                previous_center_exists = False
+                if currentArea.collectionCenter is not None:
+                    previous_center_exists = True
+
+                currentArea.addPosition(position)
+
+                # Update centroid feature in UI
+                if currentArea.collectionCenter is not None:
+                    if previous_center_exists:
+                        self.ui.delete_area_centroid(area)
+                    centroid_position = Position(currentArea.collectionCenter[0], currentArea.collectionCenter[1])
+                    self.ui.add_area_centroid(area, centroid_position)
 
         else: # if not already in there
             if area is not "":
-                self.areas[area] = geo.PositionCollection([position])
-                print(feature.data)
-                #Inherit Relevent Marker Data
-                self.areas[area].data[0] = feature.data[2] # Inherit Crop Type
-                self.areas[area].data[1] = feature.data[3] # Inherit Crop Health
-                self.areas[area].data[2] = feature.data[4] # Inherit Export Status
+                currentArea = geo.PositionCollection([position])
+                self.areas[area] = currentArea
+                # Inherit Relevent Marker Data
+                currentArea.data[0] = feature.data[2] # Inherit Crop Type
+                currentArea.data[1] = feature.data[3] # Inherit Crop Health
+                currentArea.data[2] = feature.data[4] # Inherit Export Status
+
+                # Add centroid feature in UI
+                if currentArea.collectionCenter is not None:
+                    centroid_position = Position(currentArea.collectionCenter[0], currentArea.collectionCenter[1])
+                    self.ui.add_area_centroid(area, centroid_position)
+
 
         print(self.areas)
         for area in self.areas.keys():
             print(area, self.areas[area].positions)
-
-
-    def positionEqual(self, position1, position2):
-        if position1.latLon() == position2.latLon():
-            return True
-        else:
-            return False
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:

@@ -40,10 +40,16 @@ class Point(Feature):
         super().__init__(*args, **kwargs)
         self.position = position
 
-
 class GroundControlPoint(Point):
     icon_name = "x"
     icon_size = (10, 10)
+
+class CentroidPoint(Point):
+    icon_name = "dotcircle"
+    icon_size = (10, 10)
+
+    def __init__(self, area_name, *args, **kwargs):
+        super().__init__(name=area_name, *args, **kwargs)
 
 class Marker(Point):
     def __init__(self, *args, **kwargs):

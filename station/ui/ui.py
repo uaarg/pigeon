@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from image import Image
-from features import Marker, Feature
+from features import Marker, Feature, CentroidPoint
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin, format_duration_for_display
 from .commonwidgets import EditableBaseListForm, NonEditableBaseListForm
@@ -42,11 +42,12 @@ class UI(QtCore.QObject, QueueMixin):
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
+        self.centroid_features = {} # For drawing centroids of areas
         self.uav = uav
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, self.app.exit)
+        self.main_window = MainWindow(self.settings_data, self.features, self.centroid_features, self.app.exit)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
@@ -83,6 +84,14 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.updateRuler)
         self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
+    def add_area_centroid(self, area_name, centroid_position):
+        # Construct new centroid Feature
+        centroid_feature = CentroidPoint(area_name, centroid_position)
+        self.main_window.main_image_area.addCentroidFeature(centroid_feature)
+
+    def delete_area_centroid(self, area_name):
+        self.main_window.main_image_area.deleteCentroidFeature(area_name)
+
     def run(self):
         self.main_window.info_area.settings_area.settings_load_requested.emit()
         self.main_window.show()
@@ -98,7 +107,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.addFeature(feature)
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings_data={}, features=[], exitfcnCB= None):
+    def __init__(self, settings_data={}, features=[], centroid_features={}, exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
         self.ExitingCB = exitfcnCB
@@ -138,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data)
-        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
+        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features, centroid_features=centroid_features)
         self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, features=features)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data)
 
@@ -294,10 +303,11 @@ class MainImageArea(QtWidgets.QWidget):
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     rightmousepresspoint = 0;
 
-    def __init__(self, *args, settings_data={}, features=[], **kwargs):
+    def __init__(self, *args, settings_data={}, features=[], centroid_features={}, **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
         self.features = features
+        self.centroid_features = centroid_features
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
@@ -330,6 +340,7 @@ class MainImageArea(QtWidgets.QWidget):
 
         # Features as drawn:
         self.feature_pixmap_label_markers = []
+        self.centroid_feature_pixmap_label_markers = {}
 
         self.ruler = QtCore.QLine()
 
@@ -435,6 +446,27 @@ class MainImageArea(QtWidgets.QWidget):
 
     def addFeature(self, feature):
         self._drawFeature(feature)
+
+    def addCentroidFeature(self, centroid_feature):
+        name = str(centroid_feature)
+        self.centroid_features[name] = centroid_feature
+
+        if centroid_feature.position:
+            pixel_x, pixel_y = self.image.invGeoReferencePoint(centroid_feature.position)
+            if pixel_x and pixel_y:
+                point = QtCore.QPoint(pixel_x, pixel_y)
+                pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[centroid_feature.icon_name], centroid_feature.icon_size)
+                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+                pixmap_label_marker.moveTo(point)
+                pixmap_label_marker.setToolTip(str(centroid_feature))
+                pixmap_label_marker.show()
+
+                name = str(centroid_feature)
+                self.centroid_feature_pixmap_label_markers[name] = pixmap_label_marker
+
+    def deleteCentroidFeature(self, area_name):
+        self.centroid_feature_pixmap_label_markers[area_name].deleteLater()
+        del self.centroid_features[area_name]
 
     def showRuler(self, point):
         '''
@@ -554,7 +586,7 @@ class FeatureArea(QtWidgets.QFrame):
         text= self.ExportingChoice.currentText()
         print("You tried to export in", text)
         self.feature_export_requested.emit(self.getFeatureList(),text)
-        
+
     '''
     def doErrorCheck(self):
         text= self.CompairingChoice.currentText()
