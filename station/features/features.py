@@ -3,6 +3,7 @@ import json
 import pdb
 
 from geo import Position
+from collections import OrderedDict
 
 class Feature():
     """
@@ -19,14 +20,12 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True),]
+        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
 
     def __str__(self):
         if self.data:
-            for name, value in self.data:
-                if name == "Name":
-                    if value:
-                        return value
+            if self.data["Name"]:
+                return self.data["Name"]
         return "(unnamed)"
 
     def dispLatLon(self):
@@ -52,7 +51,7 @@ class Marker(Point):
 
     #positions = [self.position] #Im lost why this doesent work lol, will be edited when we do meta-markers
 
-    def addPosition(self, newPosition): 
+    def addPosition(self, newPosition):
         positions.append(newPosition)
         _correctPosition()
 

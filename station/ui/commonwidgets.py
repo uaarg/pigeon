@@ -31,10 +31,16 @@ class EditableBaseListForm(QtWidgets.QWidget):
     def _interpreted_data(self, data):
         """
         Returns a list of fields where each field is a 3-element tuple.
-        Set the third element to True for input fields with only two 
+        Set the third element to True for input fields with only two
         elements.
         """
         return [field if len(field) == 3 else (field[0], field[1], self.editable) for field in data]
+
+    def _no_editability_data(self, data):
+        """
+        Returns a list of fields with the editable property removed.
+        """
+        return [field if len(field) == 2 else (field[0], field[1]) for field in data]
 
     def _createFields(self, data):
         """
@@ -82,13 +88,14 @@ class EditableBaseListForm(QtWidgets.QWidget):
                 self.data[i] = (field_name, field_value)
                 break
 
-        self.dataEdited.emit(self.data)
+        # For updating the feature itself, strip out the editability attribute
+        self.dataEdited.emit(self._no_editability_data(self.data))
 
     def setData(self, data):
         """
         data should be a list of tuples. The first element of tuple
         will be used as the field name and the second as the field
-        value. If the tuple has a third element that's False, the 
+        value. If the tuple has a third element that's False, the
         field will be read-only. Otherwise, it'll be editable.
 
         The field names should be unique and the same field names
@@ -124,7 +131,7 @@ class EditableBaseListForm(QtWidgets.QWidget):
                 field_editable = not edit_widget.isReadOnly()
             else:
                 raise(ValueError())
-            
+
 
             output.append((field_name, field_value, field_editable))
 

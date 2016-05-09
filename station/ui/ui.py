@@ -9,6 +9,7 @@ translate = QtCore.QCoreApplication.translate
 
 from image import Image
 from features import Marker, Feature
+from geo import Position
 
 from .common import PixmapLabel, WidthForHeightPixmapLabel, PixmapLabelMarker, BoldQLabel, BaseQListWidget, ListImageItem, ScaledListWidget, QueueMixin, format_duration_for_display
 from .commonwidgets import EditableBaseListForm, NonEditableBaseListForm
@@ -164,11 +165,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Finishing up
 
-               
+
         ExitAction = QtWidgets.QAction("Exit Pigeon :(", self)
         ExitAction.setShortcut('Ctrl+Q')
         ExitAction.triggered.connect(self.ExitFcn)
-        
+
         AboutAction = QtWidgets.QAction("About Pigeon", self)
         AboutAction.setShortcut('Ctrl+A')
         AboutAction.triggered.connect(self.AboutPopup)
@@ -333,15 +334,15 @@ class MainImageArea(QtWidgets.QWidget):
 
         self.ruler = QtCore.QLine()
 
-    def updateRuler(self, image, point): 
+    def updateRuler(self, image, point):
         if (self.ruler.dx() ==0 ) and (self.ruler.dy() == 0): # on first click
-            print("Got to first click") 
+            print("Got to first click")
             self.ruler.setP1(point)  # Set new point
             print('Point 1 x = ' + str(point.x()) +'\n y = '+ str(point.y()))
             point.setX(point.x()+1) # Set changes to prep for second click
             point.setY(point.y()+1)
             print('Point 1 (+1,+1) x = ' + str(point.x()) +'\n y = '+ str(point.y()))
-            self.ruler.setP2(point) 
+            self.ruler.setP2(point)
             print('dx = ' + str(self.ruler.dx()) +'\n dy = '+ str(self.ruler.dy()))
         elif (self.ruler.dx() == 1) and (self.ruler.dy() == 1): # on second click
             print('Got to second click')
@@ -352,7 +353,7 @@ class MainImageArea(QtWidgets.QWidget):
             #datPainter.begin(self)
             #self._drawLine(datPainter, self.ruler, 'Ruler')
             #datPainter.end()
-            print("Ruler is "+ str(distance)+ "m long.") # Add angle??? 
+            print("Ruler is "+ str(distance)+ "m long.") # Add angle???
         self.showRuler(point)
 
     def showImage(self, image):
@@ -391,10 +392,10 @@ class MainImageArea(QtWidgets.QWidget):
 
     def _drawLine(self, datPainter, line, drwType ):
         '''
-        This is the 
-        Used to draw the connecting line between any two points. 
+        This is the
+        Used to draw the connecting line between any two points.
         '''
-        
+
         if drwType == 'Ruler': # For the line of the ruler
             pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DashDotDotLine)
         elif drwType == 'Border': # For the border of a Meta-Marker between markers
@@ -445,7 +446,7 @@ class MainImageArea(QtWidgets.QWidget):
         pixmap_label_marker.moveTo(point)
         #pixmap_label_marker.setToolTip(str(feature))
         pixmap_label_marker.show()
-        
+
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user clicks on the image.
@@ -459,7 +460,7 @@ class MainImageArea(QtWidgets.QWidget):
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
             self.image_right_clicked.emit(self.image, point)
-         
+
 
 class FeatureDetailArea(EditableBaseListForm):
     featureChanged = QtCore.pyqtSignal(Feature)
@@ -472,19 +473,27 @@ class FeatureDetailArea(EditableBaseListForm):
         return "Feature Detail:"
 
     def _editFeatureData(self, data):
-        for i, (field_name, field_value) in enumerate(self.feature.data):
+        """
+        Updates the attributes of the feature object being edited,
+        using the data provided from the EditableBaseListForm.
+        """
+        for field_name, field_value in self.feature.data.items():
             for data_name, data_value in data:
                 if field_name == data_name:
-                    self.feature.data[i] = (field_name, data_value)
+                    self.feature.data[field_name] = data_value
                     break
+
         self.featureChanged.emit(self.feature)
 
     def showFeature(self, feature):
         self.feature = feature
-        data = feature.data.copy()
-        data.append(("Position", feature.dispLatLon(), False))
-        data.append(("Image Name", str(feature.image.name), False))
-        self.setData(data)
+
+        # Convert dictionary to list of tuples for the EditableBaseListForm
+        data = [(key, value) for key, value in feature.data.items()]
+        display_data = data.copy()
+        display_data.append(("Position", feature.dispLatLon(), False))
+        display_data.append(("Image Name", str(feature.image.name), False))
+        self.setData(display_data)
 
 
 class FeatureArea(QtWidgets.QFrame):
@@ -519,7 +528,7 @@ class FeatureArea(QtWidgets.QFrame):
 
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
-        
+
         '''
         # Compairing Choice shows all GCP's
         self.CompairingChoice = QtWidgets.QComboBox(self)
@@ -527,7 +536,7 @@ class FeatureArea(QtWidgets.QFrame):
 
         for confirmedPoint in features:
             self.CompairingChoice.addItem(confirmedPoint.data[0][1])
-        self.CompairingChoice.activated[str].connect(self.doErrorCheck)      
+        self.CompairingChoice.activated[str].connect(self.doErrorCheck)
 
         print("We have "+str(self.CompairingChoice.count())+" GCP's")
         self.layout.addWidget(self.CompairingChoice)
@@ -538,9 +547,9 @@ class FeatureArea(QtWidgets.QFrame):
         self.ExportingChoice.addItem("KML") # Normal KML exporting
         self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
         self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
-        self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results 
+        self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results
         self.layout.addWidget(self.ExportingChoice)
-        self.ExportingChoice.setCurrentIndex(1) # Default Export is CSV 
+        self.ExportingChoice.setCurrentIndex(1) # Default Export is CSV
 
         self.export_button = QtWidgets.QPushButton("Execute Export", self)
         self.export_button.resize(self.export_button.minimumSizeHint())

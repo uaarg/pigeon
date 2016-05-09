@@ -257,28 +257,23 @@ class CSVExporter:
         self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
+
+        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes",
                             "Time of Export",datetime.datetime.now()])
-        
+
         currentMarkerList = [] # start with an empty marker list
         for item in PointsOfIntrest: #Over every marker
-            Export = False
-            currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-            currentMarkerList.append(item.feature.position.lon) 
-            #print(dir(item.feature.data))
-            for field, value in item.feature.data: # Get data values
-                
-                if field == "Export": # cant use is here? 
-                    Export = value
-                    
-                currentMarkerList.append(value) # add to list
-
-            if Export is True: #To be sure we only export things we want to
-                currentMarkerList.append(item.feature.image.name) 
+            if item.feature.data["Export"] == True: # To be sure we only export things we want to
+                currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
+                currentMarkerList.append(item.feature.position.lon)
+                currentMarkerList.append(item.feature.image.name)
+                currentMarkerList.append(item.feature.data["Colour"])
+                currentMarkerList.append(item.feature.data["Letter"])
+                currentMarkerList.append(item.feature.data["Notes"])
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
+
             currentMarkerList = [] # clear list for next row
-        
+
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 
@@ -287,26 +282,22 @@ class CSVExporter:
         self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-        
-        spamWriter.writerow(["Latitude","Longitude","Area","Crop Type","Time of Export",datetime.datetime.now()])
-        
+
+        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
+                            "Time of Export",datetime.datetime.now()])
+
         currentMarkerList = [] # start with an empty marker list
         for item in PointsOfIntrest: #Over every marker
-            Export = False
-            currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-            currentMarkerList.append(item.feature.position.lon) 
-            #print(dir(item.feature.data))
-            for field, value in item.feature.data: # Get data values
-                
-                if field == "Export": # cant use is here? 
-                    Export = value
-                    
-                currentMarkerList.append(value) # add to list
-
-            if Export is True: #To be sure we only export things we want to
-                currentMarkerList.append(item.feature.image.name) 
+            if item.feature.data["Export"] == True: # To be sure we only export things we want to
+                currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
+                currentMarkerList.append(item.feature.position.lon)
+                currentMarkerList.append(item.feature.image.name)
+                for key in item.feature.data:
+                    value = item.feature.data[key]
+                    currentMarkerList.append(value)
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
+
             currentMarkerList = [] # clear list for next row
-        
+
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
