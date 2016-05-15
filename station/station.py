@@ -22,6 +22,7 @@ class GroundStation:
         self.uav = UAV(uav_ivybus)
         self.kml_exporter = KMLExporter()
         self.csv_exporter = CSVExporter()
+        self.metamarkers = {}
 
         ground_control_points = features.load_ground_control_points()
 
@@ -30,7 +31,21 @@ class GroundStation:
                      exporter=self.exportFeatures,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
+                     update_metamarkers=self.updateMetaMarkers,
                      ground_control_points=ground_control_points)
+
+
+    def updateMetaMarkers(self, marker):
+        """
+        Updates the master list of metamarkers.
+        Takes a marker in as an argument.
+        """
+        metamarker_name = marker.data["Metamarker"]
+        if metamarker_name in self.metamarkers:
+            self.metamarkers[metamarker_name].addMarker(marker.position)
+        else:
+            self.metamarkers[metamarker_name] = features.MetaMarker(str(marker))
+            self.metamarkers[metamarker_name].addMarker(marker.position)
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:

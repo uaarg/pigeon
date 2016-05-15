@@ -20,7 +20,7 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
+        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Metamarker", ""), ("Export", True)])
 
     def __str__(self):
         if self.data:
@@ -47,19 +47,36 @@ class GroundControlPoint(Point):
 class Marker(Point):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data["Metamarker"] = ""
     icon_name = "flag"
 
-    #positions = [self.position] #Im lost why this doesent work lol, will be edited when we do meta-markers
+class MetaMarker(Marker):
+    """
+    Describes a single real-world feature of interest appearing in an image.
+    A MetaMarker is composed of a list of markers that have been used to mark
+    that real-world feature.
 
-    def addPosition(self, newPosition):
-        positions.append(newPosition)
-        _correctPosition()
+    A MetaMarker can also be associated with a reference position; this is the
+    "true" position of the real-word feature that the MetaMarker is associated with.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.positions = []
+    icon_name = "flag"
+
+    def addMarker(self, newPosition):
+        self.positions.append(newPosition)
+        self._correctPosition()
 
     def _correctPosition(self):
-        lat, lon = zip(*[position.latLon() for position in positions])
+        """
+        Sets the position of the MetaMarker using the positions of the
+        component Markers.
+        """
+        lat, lon = zip(*[position.latLon() for position in self.positions])
         cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
         cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
-        position = [cenLat,cenLon] # Returns new as a tuple
+        self.averagePosition = Position(cenLat, cenLon)
 
 def load_ground_control_points():
     """

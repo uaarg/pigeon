@@ -38,7 +38,7 @@ class UI(QtCore.QObject, QueueMixin):
         # Exiting Program from the Terminal
         self.app.exit()
 
-    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, update_metamarkers, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -55,7 +55,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
         self.main_window.feature_area.feature_export_requested.connect(exporter)
-
+        self.main_window.feature_area.feature_detail_area.metamarkerChanged.connect(update_metamarkers)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -464,6 +464,8 @@ class MainImageArea(QtWidgets.QWidget):
 
 class FeatureDetailArea(EditableBaseListForm):
     featureChanged = QtCore.pyqtSignal(Feature)
+    metamarkerChanged = QtCore.pyqtSignal(Feature)
+
     def __init__(self):
         super().__init__()
         self.feature = None
@@ -484,6 +486,7 @@ class FeatureDetailArea(EditableBaseListForm):
                     break
 
         self.featureChanged.emit(self.feature)
+        self.metamarkerChanged.emit(self.feature)
 
     def showFeature(self, feature):
         self.feature = feature
