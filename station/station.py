@@ -25,6 +25,11 @@ class GroundStation:
         self.metamarkers = {}
 
         ground_control_points = features.load_ground_control_points()
+        gcp_dict = features.load_ground_control_points_Dictionary()
+
+        # Set up initial list of metamarkers from GCPs
+        for gcp in gcp_dict:
+            self.metamarkers[gcp] = features.MetaMarker(gcp_dict[gcp].position, name=gcp)
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
@@ -42,10 +47,10 @@ class GroundStation:
         """
         metamarker_name = marker.data["Metamarker"]
         if metamarker_name in self.metamarkers:
-            self.metamarkers[metamarker_name].addMarker(marker.position)
+            self.metamarkers[metamarker_name].addMarker(marker)
         else:
-            self.metamarkers[metamarker_name] = features.MetaMarker(str(marker))
-            self.metamarkers[metamarker_name].addMarker(marker.position)
+            self.metamarkers[metamarker_name] = features.MetaMarker(marker.position)
+            self.metamarkers[metamarker_name].addMarker(marker)
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:
@@ -95,6 +100,12 @@ class GroundStation:
                 output_path = self.settings_data["Feature Export Path"]
 
             self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
+
+        elif exportType == "GCP Error":
+            if not output_path:
+                output_path = self.settings_data["Feature Export Path"]
+            self.csv_exporter.writeGCPErrorsCSV(self.metamarkers, output_path)
+
         else:
             raise Exception("Exporting in "+exportType+" is not supported!!!!!")
 

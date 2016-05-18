@@ -301,3 +301,33 @@ class CSVExporter:
 
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
+
+    def writeGCPErrorsCSV(self, metamarkers, output_path):
+        self.CSVFileObject = open(output_path + "gcpError.csv", 'w+')
+        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
+        for mm in metamarkers:
+            spamWriter.writerow(["GCP", "GCP Position (Lat)", "GCP Position (Lon)"])
+            metamarker = metamarkers[mm]
+
+            lat, lon = metamarker.position.latLon()
+            spamWriter.writerow([mm, lat, lon])
+
+            position_errors = metamarkers[mm]._calcPositionError()
+
+            spamWriter.writerow(["Marker Name", "Position (Lat)", "Marker Position (Lon)",	"Distance Error from GCP", "Bearing Error from GCP"])
+            for pos_name in metamarkers[mm].positions:
+                position = metamarkers[mm].positions[pos_name]
+                lat, lon = position.latLon()
+                angle, dist = position_errors[pos_name]
+                spamWriter.writerow([pos_name, lat, lon, dist, angle])
+
+            spamWriter.writerow(["Number of Markers", "Average Position (Lat)", "Average Position (Lon)", "Average Distance Error",	"Average Bearing Error"])
+            num_markers = len(metamarker.positions)
+            if (metamarker.averagePosition):
+                lat, lon = metamarker.averagePosition.latLon()
+            else:
+                lat, lon = 0, 0
+            spamWriter.writerow([num_markers, lat, lon])
+            spamWriter.writerow([])
+
+        self.CSVFileObject.close()

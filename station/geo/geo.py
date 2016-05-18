@@ -319,9 +319,9 @@ class PositionCollection:
         self.interior_positions_list = interior_positions_list
         self.area() # Re-Calc area
         self.collectionCenter = center() # Recalc centroid
-        return True 
+        return True
 
-    def addPosition(self, position = None , interior_position = None): 
+    def addPosition(self, position = None , interior_position = None):
         """
         Adds a single position to eiether position list.
         """
@@ -513,3 +513,12 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
 
     lon, lat = pr(easting, northing, inverse=True)
     return lat, lon
+
+def vector_between_positions(position1, position2):
+    """
+    Returns the distance and forward azimuth between 2 positions.
+    """
+    lat1, lon1 = position1.latLon()
+    lat2, lon2 = position2.latLon()
+    az12, az21, dist = geod.inv(lon1, lat1, lon2, lat2)
+    return az12, dist

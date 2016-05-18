@@ -2,7 +2,7 @@ import os
 import json
 import pdb
 
-from geo import Position
+from geo import Position, vector_between_positions
 from collections import OrderedDict
 
 class Feature():
@@ -20,7 +20,7 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Metamarker", ""), ("Export", True)])
+        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
 
     def __str__(self):
         if self.data:
@@ -47,7 +47,7 @@ class GroundControlPoint(Point):
 class Marker(Point):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data["Metamarker"] = ""
+        self.data["GCP"] = ""
     icon_name = "flag"
 
 class MetaMarker(Marker):
@@ -61,22 +61,36 @@ class MetaMarker(Marker):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.positions = []
+        self.positions = {}
+        self.averagePosition = None
     icon_name = "flag"
 
-    def addMarker(self, newPosition):
-        self.positions.append(newPosition)
+    def addMarker(self, marker):
+        self.positions[marker.data["Name"]] = marker.position
         self._correctPosition()
+
+    def setReferencePosition(self, position):
+        self.position = position
 
     def _correctPosition(self):
         """
         Sets the position of the MetaMarker using the positions of the
         component Markers.
         """
-        lat, lon = zip(*[position.latLon() for position in self.positions])
+        lat, lon = zip(*[self.positions[name].latLon() for name in self.positions])
         cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
         cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
         self.averagePosition = Position(cenLat, cenLon)
+
+    def _calcPositionError(self):
+        """
+        Calculates the error of each position in the Metamarker
+        away from the reference position.
+        """
+        position_errors = {}
+        for name in self.positions:
+            position_errors[name] = vector_between_positions(self.positions[name], self.position)
+        return position_errors
 
 def load_ground_control_points():
     """
@@ -96,4 +110,8 @@ def load_ground_control_points_Dictionary():
         location = os.path.join(*["data", "ground_control_points.json"])
         with open(location) as f:
             data = json.load(f)
-        return data
+        ground_control_points = {}
+        for id, value in data.items():
+            position = Position(value[0], value[1])
+            ground_control_points[id] = (GroundControlPoint(position, name=id))
+        return ground_control_points

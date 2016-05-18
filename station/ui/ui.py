@@ -503,7 +503,7 @@ class FeatureArea(QtWidgets.QFrame):
 
     feature_export_requested = QtCore.pyqtSignal(list,str)
 
-    def __init__(self, *args, settings_data={}, features=[],**kwargs):
+    def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
 
@@ -532,25 +532,13 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-        '''
-        # Compairing Choice shows all GCP's
-        self.CompairingChoice = QtWidgets.QComboBox(self)
-        self.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
-
-        for confirmedPoint in features:
-            self.CompairingChoice.addItem(confirmedPoint.data[0][1])
-        self.CompairingChoice.activated[str].connect(self.doErrorCheck)
-
-        print("We have "+str(self.CompairingChoice.count())+" GCP's")
-        self.layout.addWidget(self.CompairingChoice)
-        '''
-
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
         self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
         self.ExportingChoice.addItem("KML") # Normal KML exporting
         self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
         self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
         self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results
+        self.ExportingChoice.addItem("GCP Error")
         self.layout.addWidget(self.ExportingChoice)
         self.ExportingChoice.setCurrentIndex(1) # Default Export is CSV
 
@@ -568,11 +556,11 @@ class FeatureArea(QtWidgets.QFrame):
             print("Exporting type " + text + " is not supported!!!!!")
     '''
     def doErrorCheck(self):
-        text= self.CompairingChoice.currentText()
+        text= self.GCPComparison.currentText()
 
         self.error_check_requested.emit(feature,text)
         for confirmedPoint in features:
-            if(confirmedPoint.data[0][1]== self.CompairingChoice.currentText()):
+            if(confirmedPoint.data[0][1]== self.GCPComparison.currentText()):
                 print(dir(confirmedPoint.data))
         #populate marker thing as GCP's Position
     '''
