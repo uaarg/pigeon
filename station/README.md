@@ -36,6 +36,7 @@ Main Image Area
 ---------------
 * Right click on the image to geo-reference that particular point and have the results printed in the terminal.
 * Left click to create a marker which will be added to the Marker List on the right.
+* Markers can be dragged around to change their location.
 
 Marker Area
 ----------------

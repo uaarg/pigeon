@@ -1,6 +1,5 @@
 import os
 import json
-import pdb
 
 from geo import Position
 from collections import OrderedDict
@@ -34,11 +33,16 @@ class Feature():
         else:
             return "(not on earth)"
 
+    def id(self):
+        return id(self)
+
 class Point(Feature):
     def __init__(self, position, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.position = position
 
+    def updatePosition(self, position):
+        self.position = position
 
 class GroundControlPoint(Point):
     icon_name = "x"

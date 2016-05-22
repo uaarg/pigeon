@@ -2,6 +2,15 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 import queue as queue_module
 import sys
 import logging
+import uuid
+
+# Creating a mimetype for dragging PixmapLabelMarkers within this application:
+internal_pimap_label_marker_mimetype = "application/vnd.uaarg-%s-pixmap-label-marker" % uuid.uuid4()
+    # Integrating a random number since we don't want other applications which might
+    # use the same mimetype to accept a drop (ex. other instances of Pigeon). This
+    # allows us simplify complex behaviour by having the source and target of the
+    # drag and drop action communicate with each other outside of the drag and drop
+    # operation.
 
 class BasePixmapLabel(QtWidgets.QLabel):
     """
@@ -12,7 +21,9 @@ class BasePixmapLabel(QtWidgets.QLabel):
       original pixmap (and back).
     * Adding features to be displayed over the pixmap.
     """
-    def __init__(self, *args, pixmap_loader=None, **kwargs):
+    pixmap_label_marker_dropped = QtCore.pyqtSignal(str, QtCore.QPoint)
+
+    def __init__(self, *args, pixmap_loader=None, interactive=False, **kwargs):
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.pixmap_loader = pixmap_loader
         if self.pixmap_loader:
@@ -22,6 +33,10 @@ class BasePixmapLabel(QtWidgets.QLabel):
         super().__init__(*args, **kwargs)
 
         self.features = []
+
+        self.interactive = interactive
+        if self.interactive:
+            self.setAcceptDrops(True)
 
     def _mapPointToOriginal(self, point):
         """
@@ -103,6 +118,26 @@ class BasePixmapLabel(QtWidgets.QLabel):
         for feature in features_removed:
             self.features.remove(feature)
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype):
+            self.logger.info("Accepting drop event")
+            event.acceptProposedAction()
+        else:
+            self.logger.info("Ignoring drop event with MIME types %s (looking for %s)" % (event.mimeData().formats(), internal_pimap_label_marker_mimetype))
+
+    # def dragMoveEvent(self, event):
+    #     # event.acceptProposedAction()
+    #     pass
+
+    def dropEvent(self, event):
+        self.logger.info("Received drop event")
+        if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype):
+            feature_id, pos_offset_x, pos_offset_y = event.mimeData().data(internal_pimap_label_marker_mimetype).split("-")
+            offset_point = QtCore.QPoint(event.pos().x() + int(int(pos_offset_x)/2), event.pos().y() + int(int(pos_offset_y)/2))
+            mapped_drop_point = self.pointOnOriginal(offset_point)
+            self.pixmap_label_marker_dropped.emit(str(int(feature_id)), mapped_drop_point)
+        event.acceptProposedAction()
+
     def addPixmapLabelFeature(self, feature):
         """
         Add the provided PixmapLabelFeature to this PixmapLabel.
@@ -169,23 +204,33 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     Class for markers (points) that can be put on a PixmapLabel
     (or anything that inherits from BasePixmapLabel).
     """
-    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0)):
+    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0), moveable=False, feature_id=None):
         super().__init__(parent)
+
+        self.parent = parent
+        self.icon = icon
+        self.size = size
+        self.offset = offset
+        self.moveable = moveable
+        self.feature_id = feature_id
 
         pixmap = QtGui.QPixmap(icon)
         if pixmap.isNull():
             raise ValueError("Unable to load icon at %s." % icon)
         self.setPixmap(pixmap)
+
         self.setScaledContents(True)
         self.hide()
-        self.offset = offset
-        self.size = size
+
         self.point = None
 
         self.mapPoint = None # mapPoint is to be a function for mapping
         # a point on the PixmapLabel's original pixmap to the window.
         # It's set by the PixmapLabel that this PixmapLabelMarker is added
         # to because only the PixmapLabel knows how to do that mapping.
+
+        if self.moveable:
+            self.setCursor(QtCore.Qt.OpenHandCursor)
 
     def position(self):
         """
@@ -204,6 +249,36 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.point = point
 
         self.position()
+
+    def mouseReleaseEvent(self, event):
+        # Don't want users to be able to click-through this widget if it's moveable
+        if self.moveable:
+            event.accept()
+        else:
+            event.ignore()
+
+    def mousePressEvent(self, event):
+        if self.moveable and event.button() == QtCore.Qt.LeftButton:
+            self.drag_start_position = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.moveable and (event.pos() - self.drag_start_position).manhattanLength() < QtWidgets.QApplication.startDragDistance():
+            return # Requiring the mouse to have moved a small distance before counting it as a drag
+
+        drag = QtGui.QDrag(self)
+        mime_data = QtCore.QMimeData()
+        mime_data.setData(internal_pimap_label_marker_mimetype, "%s-%s-%s" % (self.feature_id, self.size[0], self.size[1]))
+        drag.setMimeData(mime_data)
+        drag.setHotSpot(QtCore.QPoint(int(self.size[0]/2), self.size[1]/2))
+        drag.setPixmap(self.pixmap().scaled(self.size[0], self.size[1]))
+
+        self.hide()
+
+        drop_action = drag.exec_()
+        if drop_action:
+            pass
+        else:
+            self.show()
 
 
 class BoldQLabel(QtWidgets.QLabel):

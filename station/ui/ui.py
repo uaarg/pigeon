@@ -99,6 +99,8 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.addFeature(feature)
 
 class MainWindow(QtWidgets.QMainWindow):
+    featureChanged = QtCore.pyqtSignal(Feature)
+
     def __init__(self, settings_data={}, features=[], exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
@@ -146,9 +148,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
         self.feature_area.feature_list.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature)) # Show feature details for the selected feature
-        self.feature_area.feature_detail_area.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list when it's details are changed
-        self.feature_area.feature_detail_area.featureChanged.connect(self.main_image_area._drawFeature) # Re-draw the feature when its details are changed (including re-setting its tooltip)
 
+        self.feature_area.feature_detail_area.featureChanged.connect(self.featureChanged.emit) # Feature's details can be changed
+        self.main_image_area.featureChanged.connect(self.featureChanged.emit)  # Feature's position can be changed when it's dragged
+
+        self.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list
+        self.featureChanged.connect(self.main_image_area.updateFeature) # Update the feature in the main image window
+        self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
 
         # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
         # self.menubar = QtWidgets.QMenuBar(self)
@@ -293,7 +299,8 @@ class InfoArea(QtWidgets.QFrame):
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
-    rightmousepresspoint = 0;
+    featureChanged = QtCore.pyqtSignal(Feature)
+    rightmousepresspoint = 0
 
     def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
@@ -315,7 +322,7 @@ class MainImageArea(QtWidgets.QWidget):
         # self.title.setAlignment(QtCore.Qt.AlignHCenter)
         # self.layout.addWidget(self.title)
 
-        self.image_area = PixmapLabel()
+        self.image_area = PixmapLabel(interactive=True)
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
@@ -330,7 +337,8 @@ class MainImageArea(QtWidgets.QWidget):
         self.plumbline = None
 
         # Features as drawn:
-        self.feature_pixmap_label_markers = []
+        self.feature_pixmap_label_markers = {}
+        self.image_area.pixmap_label_marker_dropped.connect(self._moveFeatureById)
 
         self.ruler = QtCore.QLine()
 
@@ -413,28 +421,49 @@ class MainImageArea(QtWidgets.QWidget):
         datPainter.end()
 
     def _clearFeatures(self):
-        for pixmap_label_marker in self.feature_pixmap_label_markers:
+        for pixmap_label_marker in self.feature_pixmap_label_markers.values():
             pixmap_label_marker.deleteLater()
-        self.feature_pixmap_label_markers = []
+        self.feature_pixmap_label_markers = {}
 
     def _drawFeature(self, feature):
+        # Cleaning up any UI elements already drawn for this feature if they exist:
+        old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(feature.id(), None)
+        if old_pixmap_label_marker:
+            old_pixmap_label_marker.hide()
+
         if feature.position:
             pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
             if pixel_x and pixel_y:
                 point = QtCore.QPoint(pixel_x, pixel_y)
-                pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size)
+                pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size, moveable=True, feature_id=feature.id())
                 self.image_area.addPixmapLabelFeature(pixmap_label_marker)
                 pixmap_label_marker.moveTo(point)
                 pixmap_label_marker.setToolTip(str(feature))
                 pixmap_label_marker.show()
 
-                self.feature_pixmap_label_markers.append(pixmap_label_marker)
+                self.feature_pixmap_label_markers[feature.id()] = pixmap_label_marker
+
 
     def _drawFeatures(self):
         for feature in self.features:
             self._drawFeature(feature)
 
+    def _moveFeatureById(self, feature_id, point):
+        try:
+            feature = [feature for feature in self.features if id(feature) == int(feature_id)][0]
+        except IndexError:
+            raise(Exception("Provided feature id of '%s' doesn't match any known features." % (feature_id,)))
+        self._moveFeature(feature, point)
+
+    def _moveFeature(self, feature, point):
+        feature.updatePosition(self.image.geoReferencePoint(point.x(), point.y()))
+        self._drawFeature(feature)
+        self.featureChanged.emit(feature)
+
     def addFeature(self, feature):
+        self._drawFeature(feature)
+
+    def updateFeature(self, feature):
         self._drawFeature(feature)
 
     def showRuler(self, point):
@@ -495,6 +524,9 @@ class FeatureDetailArea(EditableBaseListForm):
         display_data.append(("Image Name", str(feature.image.name), False))
         self.setData(display_data)
 
+    def updateFeature(self, feature):
+        if feature == self.feature:
+            self.showFeature(feature)
 
 class FeatureArea(QtWidgets.QFrame):
 
