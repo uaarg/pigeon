@@ -558,17 +558,27 @@ class FeatureTree(QtWidgets.QTreeWidget):
         self.header().close()
         self.font=QtGui.QFont()
         self.font.setPointSize(14)
+        self.expandAll()
         #print(dir(self))
 
 
-    def iterItems(self):
+    def iterFeatures(self):
         items = []
         root = self.invisibleRootItem()
         for index in range(root.childCount()):
             items.append(root.child(index))
         return items
 
+    def iterSubFeatures(self, feature):
+        items = []
+        for index in range(feature.childCount()):
+            items.append(root.child(index))
+        return items
 
+    def findFeature(self, feature):
+        for item in self.iterFeatures():
+            if item.feature == feature:
+                return  item
 
 class FeatureArea(QtWidgets.QFrame):
 
@@ -617,16 +627,25 @@ class FeatureArea(QtWidgets.QFrame):
             item.setIcon(0,icon)
         self.showFeature(feature)
 
-
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
         self.feature_tree.setCurrentItem(feature.feature_area_item)
 
+    def showSubFeature(self, feature):
+        self.feature_detail_area.showSubFeature(feature)
+        #self.feature_tree.setCurrentItem(feature.feature_area_item)
+
     def updateFeature(self, feature):
-        for item in self.feature_tree.iterItems():
-            if item.feature == feature:
-                item.setText(0,str(feature))
-                break
+        item = self.feature_tree.findFeature(feature)
+        item.setText(0,str(feature))
+
+    def addSubFeature(self, parentfeature, subfeature):
+        item = self.feature_tree.findFeature(parentfeature)
+        subitem = QtWidgets.QTreeWidgetItem(item)
+        subitem.setText(0,subfeature.image.name)
+
+
+
 
 class ThumbnailArea(QtWidgets.QWidget):
     def __init__(self, *args, settings_data={}, **kwargs):
