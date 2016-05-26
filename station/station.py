@@ -11,6 +11,7 @@ import settings
 import features
 from comms.uav import UAV
 from exporter import KMLExporter, CSVExporter
+from interop import InteropClient
 
 import geo # for marker error only
 __version__ = "0.2"
@@ -22,6 +23,7 @@ class GroundStation:
         self.uav = UAV(uav_ivybus)
         self.kml_exporter = KMLExporter()
         self.csv_exporter = CSVExporter()
+        self.interop_client = InteropClient()
 
         ground_control_points = features.load_ground_control_points()
 
@@ -80,6 +82,10 @@ class GroundStation:
                 output_path = self.settings_data["Feature Export Path"]
 
             self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
+
+        elif exportType == "INTEROP":
+            self.interop_client.sendData(feature_list)
+
         else:
             raise Exception("Exporting in "+exportType+" is not supported!!!!!")
 

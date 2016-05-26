@@ -175,22 +175,26 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu.addAction(ExitAction)
 
         KMLexport = QtWidgets.QAction("KML Export", self)
-        KMLexport.triggered.connect(lambda: self.doExporting("KML"))
+        KMLexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"KML"))
 
         CSVexport = QtWidgets.QAction("CSV Normal", self)
-        CSVexport.triggered.connect(lambda: self.doExporting("CSV Normal"))
+        CSVexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV Normal"))
 
         CSVexportUSC = QtWidgets.QAction("CSV: USC", self)
-        CSVexportUSC.triggered.connect(lambda: self.doExporting("CSV: USC"))
+        CSVexportUSC.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: USC"))
 
         CSVexportAUVSI = QtWidgets.QAction("CSV: AUVSI", self)
-        CSVexportAUVSI.triggered.connect(lambda: self.doExporting("CSV: AUVSI"))
+        CSVexportAUVSI.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: AUVSI"))
+
+        INTEROPexport = QtWidgets.QAction("INTEROP: Export", self)
+        INTEROPexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"INTEROP"))
 
         fileMenu = self.menubar.addMenu('&Export')
         fileMenu.addAction(KMLexport)
         fileMenu.addAction(CSVexport)
         fileMenu.addAction(CSVexportUSC)
         fileMenu.addAction(CSVexportAUVSI)
+        fileMenu.addAction(INTEROPexport)
 
     def ExitFcn(self):
         print("You pressed Ctrl+Q, now exiting")
@@ -200,10 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("You pressed Ctrl+S, popup is not working yet")
 
     def doExporting(self, text):
-        try:
-            self.feature_export_requested.emit(self.feature_area.getFeatureList(),text)
-        except:
-            print("Exporting type " + text + " is not supported!!!!!")
+        self.feature_export_requested.emit(self.feature_area.getFeatureList(),text)
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
@@ -613,7 +614,7 @@ class FeatureArea(QtWidgets.QFrame):
 
 
     def getFeatureList(self):
-        return [feature for feature in self.feature_tree.iterItems()]
+        return [feature for feature in self.feature_tree.iterFeatures()]
 
     def addFeature(self, feature):
         item = QtWidgets.QTreeWidgetItem(self.feature_tree)
