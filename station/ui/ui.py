@@ -147,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
-        self.feature_area.feature_list.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature)) # Show feature details for the selected feature
+        self.feature_area.feature_tree.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature))  # Show feature details for the selected feature
 
         self.feature_area.feature_detail_area.featureChanged.connect(self.featureChanged.emit) # Feature's details can be changed
         self.main_image_area.featureChanged.connect(self.featureChanged.emit)  # Feature's position can be changed when it's dragged
@@ -541,6 +541,35 @@ class FeatureDetailArea(EditableBaseListForm):
         if feature == self.feature:
             self.showFeature(feature)
 
+
+class FeatureTree(QtWidgets.QTreeWidget):
+
+    def __init__(self):
+        super().__init__()
+        #print(dir(self))
+        self.feature = None
+        #self.setColumnCount(1)
+        #self.setHeaderLabels(['Name'])
+        #parent = QtWidgets.QTreeWidgetItem(self)
+        #parent.setText(0,"name of feature")
+        #child2 = QtWidgets.QTreeWidgetItem(parent1)
+        #child2.setText(0,'child2')
+        self.expandAll()
+        self.header().close()
+        self.font=QtGui.QFont()
+        self.font.setPointSize(14)
+        #print(dir(self))
+
+
+    def iterItems(self):
+        items = []
+        root = self.invisibleRootItem()
+        for index in range(root.childCount()):
+            items.append(root.child(index))
+        return items
+
+
+
 class FeatureArea(QtWidgets.QFrame):
 
     def __init__(self, *args, settings_data={}, features=[],**kwargs):
@@ -564,87 +593,40 @@ class FeatureArea(QtWidgets.QFrame):
 
         self.layout.addWidget(self.title, 0, 0, 1, 1)
 
-        self.feature_list = BaseQListWidget(self)
-        self.feature_list.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.feature_list.setFlow(QtWidgets.QListWidget.TopToBottom)
-        self.layout.addWidget(self.feature_list, 1, 0, 1, 1)
+        self.feature_tree = FeatureTree()
+        self.feature_tree.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.layout.addWidget(self.feature_tree, 1, 0, 1, 1)
 
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-        '''
-        # Compairing Choice shows all GCP's
-        self.CompairingChoice = QtWidgets.QComboBox(self)
-        self.CompairingChoice.resize(self.CompairingChoice.minimumSizeHint())
-
-        for confirmedPoint in features:
-            self.CompairingChoice.addItem(confirmedPoint.data[0][1])
-        self.CompairingChoice.activated[str].connect(self.doErrorCheck)
-
-        print("We have "+str(self.CompairingChoice.count())+" GCP's")
-        self.layout.addWidget(self.CompairingChoice)
-        '''
 
 
-        '''
-        self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
-        self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
-        self.ExportingChoice.addItem("KML") # Normal KML exporting
-        self.ExportingChoice.addItem("CSV Normal") # CSV export with the existing marker features
-        self.ExportingChoice.addItem("CSV: USC") # Exporting for USC 2016 results
-        self.ExportingChoice.addItem("CSV: AUVSI") # Exporting for AUVSI 2016 results
-        self.layout.addWidget(self.ExportingChoice)
-        self.ExportingChoice.setCurrentIndex(1) # Default Export is CSV
-
-        self.export_button = QtWidgets.QPushButton("Execute Export", self)
-        self.export_button.resize(self.export_button.minimumSizeHint())
-        self.layout.addWidget(self.export_button)
-
-        self.export_button.clicked.connect(self.doExporting)
-
-    def doExporting(self):
-        text= self.ExportingChoice.currentText()
-        print((self.getFeatureList()))
-        print(text)
-        try:
-            self.feature_export_requested.emit(self.getFeatureList(),text)
-        except:
-            print("Exporting type " + text + " is not supported!!!!!")
-
-        
-    def doErrorCheck(self):
-        text= self.CompairingChoice.currentText()
-
-        self.error_check_requested.emit(feature,text)
-        for confirmedPoint in features:
-            if(confirmedPoint.data[0][1]== self.CompairingChoice.currentText()):
-                print(dir(confirmedPoint.data))
-        #populate marker thing as GCP's Position
-    '''
     def getFeatureList(self):
-        return [feature for feature in self.feature_list.iterItems()]
+        return [feature for feature in self.feature_tree.iterItems()]
 
     def addFeature(self, feature):
-        item = QtWidgets.QListWidgetItem("", self.feature_list)
-        item.setText(str(feature))
+        item = QtWidgets.QTreeWidgetItem(self.feature_tree)
+        #item.setSizeHint(0,QtCore.QSize(75, 75)) //to cahnge size of collumn 0
+        item.setText(0,str(feature))
         item.feature = feature
+        item.setFont(0,self.feature_tree.font)
         feature.feature_area_item = item
         if feature.picture:
             icon = QtGui.QIcon(feature.picture)
-            item.setIcon(icon)
+            item.setIcon(0,icon)
         self.showFeature(feature)
+
 
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
-        self.feature_list.setCurrentItem(feature.feature_area_item)
+        self.feature_tree.setCurrentItem(feature.feature_area_item)
 
     def updateFeature(self, feature):
-        for item in self.feature_list.iterItems():
+        for item in self.feature_tree.iterItems():
             if item.feature == feature:
-                item.setText(str(feature))
+                item.setText(0,str(feature))
                 break
-
-
 
 class ThumbnailArea(QtWidgets.QWidget):
     def __init__(self, *args, settings_data={}, **kwargs):
