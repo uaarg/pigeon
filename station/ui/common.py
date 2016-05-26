@@ -280,12 +280,6 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         else:
             self.show()
 
-
-class BoldQLabel(QtWidgets.QLabel):
-    """
-    Bolding defined in the stylesheet.
-    """
-
 class BaseQListWidget(QtWidgets.QListWidget):
     def iterItems(self):
         for i in range(self.count()):

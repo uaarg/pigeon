@@ -1,7 +1,10 @@
 from PyQt5 import QtCore, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
-from .common import BoldQLabel
+class BoldQLabel(QtWidgets.QLabel):
+    """
+    Bolding defined in the stylesheet.
+    """
 
 class EditableBaseListForm(QtWidgets.QWidget):
     dataEdited = QtCore.pyqtSignal(list)
