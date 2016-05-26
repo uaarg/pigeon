@@ -54,8 +54,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
-        self.main_window.feature_area.feature_export_requested.connect(exporter)
-
+        self.main_window.feature_export_requested.connect(exporter)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -100,6 +99,7 @@ class UI(QtCore.QObject, QueueMixin):
 
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(Feature)
+    feature_export_requested = QtCore.pyqtSignal(list,str)
 
     def __init__(self, settings_data={}, features=[], exitfcnCB= None):
         super().__init__()
@@ -156,21 +156,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.featureChanged.connect(self.main_image_area.updateFeature) # Update the feature in the main image window
         self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
 
-        # # Defining the menu bar, status bar, and toolbar. These aren't used yet.
-        # self.menubar = QtWidgets.QMenuBar(self)
-        # self.menubar.setGeometry(QtCore.QRect(0, 0, 689, 21))
-        # self.menubar.setDefaultUp(False)
-        # self.menubar.setObjectName("menubar")
-        # self.setMenuBar(self.menubar)
-        # self.statusbar = QtWidgets.QStatusBar(self)
-        # self.statusbar.setObjectName("statusbar")
-        # self.setStatusBar(self.statusbar)
-        # self.toolBar = QtWidgets.QToolBar(self)
-        # self.toolBar.setObjectName("toolBar")
-        # self.addToolBar(QtCore.Qt.TopToolBarArea, self.toolBar)
+        self.initMenuBar()
+        QtCore.QMetaObject.connectSlotsByName(self)
 
-        # Finishing up
-
+    def initMenuBar(self):
+        self.menubar = self.menuBar()
 
         ExitAction = QtWidgets.QAction("Exit Pigeon :(", self)
         ExitAction.setShortcut('Ctrl+Q')
@@ -180,18 +170,40 @@ class MainWindow(QtWidgets.QMainWindow):
         AboutAction.setShortcut('Ctrl+A')
         AboutAction.triggered.connect(self.AboutPopup)
 
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
+        fileMenu = self.menubar.addMenu('&File')
         fileMenu.addAction(AboutAction)
         fileMenu.addAction(ExitAction)
 
-        QtCore.QMetaObject.connectSlotsByName(self)
+        KMLexport = QtWidgets.QAction("KML Export", self)
+        KMLexport.triggered.connect(lambda: self.doExporting("KML"))
+
+        CSVexport = QtWidgets.QAction("CSV Normal", self)
+        CSVexport.triggered.connect(lambda: self.doExporting("CSV Normal"))
+
+        CSVexportUSC = QtWidgets.QAction("CSV: USC", self)
+        CSVexportUSC.triggered.connect(lambda: self.doExporting("CSV: USC"))
+
+        CSVexportAUVSI = QtWidgets.QAction("CSV: AUVSI", self)
+        CSVexportAUVSI.triggered.connect(lambda: self.doExporting("CSV: AUVSI"))
+
+        fileMenu = self.menubar.addMenu('&Export')
+        fileMenu.addAction(KMLexport)
+        fileMenu.addAction(CSVexport)
+        fileMenu.addAction(CSVexportUSC)
+        fileMenu.addAction(CSVexportAUVSI)
+
     def ExitFcn(self):
         print("You pressed Ctrl+Q, now exiting")
         self.ExitingCB()
 
     def AboutPopup(self):
         print("You pressed Ctrl+S, popup is not working yet")
+
+    def doExporting(self, text):
+        try:
+            self.feature_export_requested.emit(self.feature_area.getFeatureList(),text)
+        except:
+            print("Exporting type " + text + " is not supported!!!!!")
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
@@ -221,6 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def addFeature(self, feature):
         self.feature_area.addFeature(feature)
         self.main_image_area.addFeature(feature)
+
 
 class InfoArea(QtWidgets.QFrame):
     def __init__(self, *args, settings_data={}, **kwargs):
@@ -530,8 +543,6 @@ class FeatureDetailArea(EditableBaseListForm):
 
 class FeatureArea(QtWidgets.QFrame):
 
-    feature_export_requested = QtCore.pyqtSignal(list,str)
-
     def __init__(self, *args, settings_data={}, features=[],**kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
@@ -574,6 +585,8 @@ class FeatureArea(QtWidgets.QFrame):
         self.layout.addWidget(self.CompairingChoice)
         '''
 
+
+        '''
         self.ExportingChoice = QtWidgets.QComboBox(self) #Drop down menu
         self.ExportingChoice.resize(self.ExportingChoice.minimumSizeHint())
         self.ExportingChoice.addItem("KML") # Normal KML exporting
@@ -591,11 +604,14 @@ class FeatureArea(QtWidgets.QFrame):
 
     def doExporting(self):
         text= self.ExportingChoice.currentText()
+        print((self.getFeatureList()))
+        print(text)
         try:
             self.feature_export_requested.emit(self.getFeatureList(),text)
         except:
             print("Exporting type " + text + " is not supported!!!!!")
-    '''
+
+        
     def doErrorCheck(self):
         text= self.CompairingChoice.currentText()
 
