@@ -20,6 +20,8 @@ class Feature():
                             # is intended to be a crop of the original
                             # image right around the feature.
         self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
+        #self.subfeatures = False
+        self.isSubFeature = False
 
     def __str__(self):
         if self.data:

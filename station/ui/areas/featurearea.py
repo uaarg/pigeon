@@ -44,6 +44,13 @@ class FeatureTree(QtWidgets.QTreeWidget):
             if item.feature == feature:
                 return  item
 
+    def currentlyselected(self):
+        for item in self.selectedItems():
+            return item
+
+    #def addSubFeature(self, parentfeature, feature):
+        #findFeature(parentfeature)
+
 class FeatureArea(QtWidgets.QFrame):
 
     def __init__(self, *args, settings_data={}, features=[], minimum_width=250,**kwargs):
@@ -74,26 +81,28 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-
-
     def getFeatureList(self):
         return [feature for feature in self.feature_tree.iterFeatures()]
 
     def addFeature(self, feature):
-        item = QtWidgets.QTreeWidgetItem(self.feature_tree)
-        #item.setSizeHint(0,QtCore.QSize(75, 75)) //to cahnge size of collumn 0
-        item.setText(0,str(feature))
-        item.feature = feature
-        item.setFont(0,self.feature_tree.font)
-        feature.feature_area_item = item
-        if feature.picture:
-            icon = QtGui.QIcon(feature.picture)
-            item.setIcon(0,icon)
-        self.showFeature(feature)
+        if feature.isSubFeature == True:
+            self.addSubFeature(feature)
+        else:
+            item = QtWidgets.QTreeWidgetItem(self.feature_tree)
+            #item.setSizeHint(0,QtCore.QSize(75, 75)) //to cahnge size of collumn 0
+            item.setText(0,str(feature))
+            item.feature = feature
+            item.setFont(0,self.feature_tree.font)
+            feature.feature_area_item = item
+            if feature.picture:
+                icon = QtGui.QIcon(feature.picture)
+                item.setIcon(0,icon)
+            self.showFeature(feature)
 
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
-        self.feature_tree.setCurrentItem(feature.feature_area_item)
+        if feature.isSubFeature == False:
+            self.feature_tree.setCurrentItem(feature.feature_area_item)
 
     def showSubFeature(self, feature):
         self.feature_detail_area.showSubFeature(feature)
@@ -103,7 +112,11 @@ class FeatureArea(QtWidgets.QFrame):
         item = self.feature_tree.findFeature(feature)
         item.setText(0,str(feature))
 
-    def addSubFeature(self, parentfeature, subfeature):
-        item = self.feature_tree.findFeature(parentfeature)
-        subitem = QtWidgets.QTreeWidgetItem(item)
-        subitem.setText(0,subfeature.image.name)
+    def addSubFeature(self, feature):
+        parentfeature = self.feature_tree.currentlyselected()
+        subitem = QtWidgets.QTreeWidgetItem(parentfeature)
+        subitem.setText(0,feature.image.name)
+        if feature.picture:
+            icon = QtGui.QIcon(feature.picture)
+            subitem.setIcon(0,icon)
+        self.showFeature(feature)

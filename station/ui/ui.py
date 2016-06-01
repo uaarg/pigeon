@@ -33,6 +33,7 @@ class UI(QtCore.QObject, QueueMixin):
     unit testing for easy testing of the rest of the application.
     """
     settings_changed = QtCore.pyqtSignal()
+    clicktypeChanged = QtCore.pyqtSignal(int)
 
     def ExitFcn (self, signum, fram):
         # Exiting Program from the Terminal
@@ -54,7 +55,10 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
+
+        self.clicksetting = 1
         self.main_window.feature_export_requested.connect(exporter)
+        self.main_window.feature_area.feature_detail_area.clicktypeChanged.connect(self.setclicksetting)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -76,7 +80,13 @@ class UI(QtCore.QObject, QueueMixin):
 
             cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
             marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
-            self.addFeature(image, marker)
+
+            if self.clicksetting == 1:
+                self.addFeature(image, marker)
+            elif self.clicksetting == 2:
+                marker.isSubFeature = True
+                self.addFeature(image, marker)
+
 
         # Hooking up some inter-component behaviour
         self.main_window.main_image_area.image_clicked.connect(create_new_marker)
@@ -96,6 +106,9 @@ class UI(QtCore.QObject, QueueMixin):
         feature.image = image
         self.features.append(feature)
         self.main_window.addFeature(feature)
+
+    def setclicksetting(self, val):
+        self.clicksetting = val
 
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(Feature)

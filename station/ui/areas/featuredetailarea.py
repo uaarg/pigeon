@@ -8,10 +8,17 @@ from features import Feature
 
 class FeatureDetailArea(EditableBaseListForm):
     featureChanged = QtCore.pyqtSignal(Feature)
+    clicktypeChanged = QtCore.pyqtSignal(int)
+    addingsubfeature = QtCore.pyqtSignal(Feature)
+
     def __init__(self):
         super().__init__()
         self.feature = None
         self.dataEdited.connect(lambda data: self._editFeatureData(data))
+        self.add_subfeature = QtWidgets.QPushButton("Add Subfeature", self)
+        self.add_subfeature.resize(self.add_subfeature.minimumSizeHint())
+        self.add_subfeature.clicked.connect(lambda: self.clicktypeChanged.emit(2))
+        #print(dir(self.add_subfeature.clicked))
 
     def _title(self):
         return "Feature Detail:"
@@ -26,18 +33,18 @@ class FeatureDetailArea(EditableBaseListForm):
                 if field_name == data_name:
                     self.feature.data[field_name] = data_value
                     break
-
         self.featureChanged.emit(self.feature)
 
     def showFeature(self, feature):
         self.feature = feature
-
+        self.clicktypeChanged.emit(1)
         # Convert dictionary to list of tuples for the EditableBaseListForm
         data = [(key, value) for key, value in feature.data.items()]
         display_data = data.copy()
         display_data.append(("Position", feature.dispLatLon(), False))
         display_data.append(("Image Name", str(feature.image.name), False))
         self.setData(display_data)
+        self.layout.addWidget(self.add_subfeature)
 
     def updateFeature(self, feature):
         if feature == self.feature:
