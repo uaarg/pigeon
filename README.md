@@ -59,6 +59,7 @@ sudo apt-get install python3-shapely python3-pip
 sudo apt-get install libxml2-dev libxslt1-dev
 sudo pip3 install pyinotify pyproj pykml
 sudo pip3 install git+https://github.com/camlee/ivy-python
+sudo pip3 install requests
 ```
 
 
