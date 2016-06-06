@@ -224,7 +224,7 @@ class GeoReference:
         # Step 3: calculating level distance and angle to pixel
         distance_y = location.height * tan(pitch)
         distance_x = location.height * tan(-roll)
-        distance = sqrt(pow(distance_x, 2) + pow(distance_y, 2))
+        distance = sqrt(distance_x*distance_x + distance_y*distance_y)
         phi = atan2(distance_x, distance_y) # atan2 used to provide
                 # angle properly for any quadrant
 
@@ -308,59 +308,68 @@ class PositionCollection:
         """
         self.positions = positions
         self.interior_positions_list = interior_positions_list
-        self.collectionArea = None # TBD when area() is called
-        self.collectionCenter = None # TBD when center() is called
-
-    def updatePositions(self, positions, interior_positions_list):
-        """
-        Updates the lists of positions used
-        """
-        self.positions = positions
-        self.interior_positions_list = interior_positions_list
-        self.area() # Re-Calc area
-        self.collectionCenter = center() # Recalc centroid
-        return True 
-
-    def addPosition(self, position = None , interior_position = None): 
-        """
-        Adds a single position to eiether position list.
-        """
-        if position is not None:
-            positions.append(position)
-        if interior_position is not None:
-            interior_positions.append(interior_position)
-
-        return True
-
-    def removePosition(self, position = None , interior_position = None):
-        """
-        Removes a single position from eiether position list
-        """
-        if position is not None:
-            positions.remove(position)
-        if interior_position is not None:
-            interior_positions.remove(interior_position)
-
-        return True
 
     def center(self):
         """
-        Calculates the centroid of the polygon defined by the sequence of positions.
+        Calculates the centroid of the positions.
+
+        Inspired by https://gist.github.com/amites/3718961
         """
-        lat, lon = zip(*[position.latLon() for position in self.positions])
-        cenLat = float(sum(lat))/float(len(lat)) # Finds the average latitude
-        cenLon = float(sum(lon))/float(len(lon)) # Finds the average longitude
-        return [cenLat,cenLon] # Returns centroid as a tuple
+        if not self.positions:
+            return None
+        elif len(self.positions) == 1:
+            return self.positions[0]
+        else:
+            x = 0
+            y = 0
+            z = 0
+            height = 0
+            alt = 0
+
+            for position in self.positions:
+                lat = radians(position.lat)
+                lon = radians(position.lon)
+                x += cos(lat) * cos(lon)
+                y += cos(lat) * sin(lon)
+                z += sin(lat)
+
+                if not position.height:
+                    height = None
+                else:
+                    if height is not None:
+                        height += position.height
+
+                if not position.alt:
+                    alt = None
+                else:
+                    if alt is not None:
+                        alt += position.alt
+
+            x = float(x / len(self.positions))
+            y = float(y / len(self.positions))
+            z = float(z / len(self.positions))
+
+            lat = degrees(atan2(z, sqrt(x*x + y*y)))
+            lon = degrees(atan2(y, x))
+
+            if height:
+                height = height / len(self.positions)
+            if alt:
+                alt = alt / len(self.positions)
+
+            return Position(lat, lon, height, alt)
+
 
     def area(self):
         """
-        Calculates the area of polygon defined by the sequence of
+        Calculates the area of the polygon defined by the sequence of
         positions (and optional holes defined by interior_positions_list).
         """
         if len(self.positions) < 4:
             return 0
 
-        lat, lon = zip(*[position.latLon() for position in self.positions])
+        positions = self.getPerimeterPositions(close=True)
+        lat, lon = zip(*[position.latLon() for position in positions])
 
         projection = pyproj.Proj(proj="aea", lat_1=min(lat), lat_2=max(lat), lat_0=mean(lat), lon_0=mean(lon))
             # Defining an equal area projection around the location of interest. aea stands for Albers equal-area
@@ -370,11 +379,10 @@ class PositionCollection:
                 # Converting to a list of latitudes and a list of longitudes since this is what pyproj expects
             x, y = projection(lon, lat) # Projection the lat/lon into x/y
             coords = list(zip(x, y))
-            print(coords)
             return coords
 
         # Converting the outside of the polygon:
-        coords = positions_to_coords(self.positions)
+        coords = positions_to_coords(positions)
 
         # Now doing the same for the interiors, if any:
         if self.interior_positions_list:
@@ -388,7 +396,6 @@ class PositionCollection:
         polygon = Polygon(coords, interior_coords_list)
         if not polygon.is_valid:
             raise(ValueError("Positions do not define a valid polygon."))
-        self.collectionArea = polygon.area
         return polygon.area
 
     def _segment_length(self, positions, include_height, include_alt):

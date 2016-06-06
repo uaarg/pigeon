@@ -137,37 +137,40 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = {}
 
     def _drawFeature(self, feature):
-        # Cleaning up any UI elements already drawn for this feature if they exist:
-        old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(feature.id(), None)
-        if old_pixmap_label_marker:
-            old_pixmap_label_marker.hide()
+        if feature in self.features: # Only drawing top-level features, not subfeatures
+            # Cleaning up any UI elements already drawn for this feature if they exist:
+            for feature_point in feature.visiblePoints(self.image):
+                old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(str(id(feature_point)), None)
+                if old_pixmap_label_marker:
+                    old_pixmap_label_marker.hide()
 
-        if feature.position:
-            pixel_x, pixel_y = self.image.invGeoReferencePoint(feature.position)
-            if pixel_x and pixel_y:
-                point = QtCore.QPoint(pixel_x, pixel_y)
-                pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature.icon_name], feature.icon_size, moveable=True, feature_id=feature.id())
-                self.image_area.addPixmapLabelFeature(pixmap_label_marker)
-                pixmap_label_marker.moveTo(point)
-                pixmap_label_marker.setToolTip(str(feature))
-                pixmap_label_marker.show()
+                pixel_x, pixel_y = feature_point.point_on_image
+                if pixel_x and pixel_y:
+                    point = QtCore.QPoint(pixel_x, pixel_y)
+                    pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature_point.icon_name], feature_point.icon_size, moveable=True, id_=str(id(feature_point)))
+                    self.image_area.addPixmapLabelFeature(pixmap_label_marker)
+                    pixmap_label_marker.moveTo(point)
+                    pixmap_label_marker.setToolTip(str(feature))
+                    pixmap_label_marker.show()
 
-                self.feature_pixmap_label_markers[feature.id()] = pixmap_label_marker
+                    self.feature_pixmap_label_markers[str(id(feature_point))] = pixmap_label_marker
 
 
     def _drawFeatures(self):
         for feature in self.features:
             self._drawFeature(feature)
 
-    def _moveFeatureById(self, feature_id, point):
-        try:
-            feature = [feature for feature in self.features if id(feature) == int(feature_id)][0]
-        except IndexError:
-            raise(Exception("Provided feature id of '%s' doesn't match any known features." % (feature_id,)))
-        self._moveFeature(feature, point)
+    def _moveFeatureById(self, id_, point):
+        for feature in self.features:
+            result = feature.updatePointById(id_, self.image, (point.x(), point.y()))
+            if result:
+                self._moveFeature(feature, point)
+                break
+        else:
+            raise(Exception("Provided id of '%s' doesn't match any known features." % (id_,)))
 
     def _moveFeature(self, feature, point):
-        feature.updatePosition(self.image.geoReferencePoint(point.x(), point.y()))
+        feature.updatePoint(self.image, (point.x(), point.y()))
         self._drawFeature(feature)
         self.featureChanged.emit(feature)
 

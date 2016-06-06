@@ -118,25 +118,36 @@ class BasePixmapLabel(QtWidgets.QLabel):
         for feature in features_removed:
             self.features.remove(feature)
 
+    def _processDropEvent(self, event):
+        id_, pos_offset_x, pos_offset_y = event.mimeData().data(internal_pimap_label_marker_mimetype).split("-")
+        offset_point = QtCore.QPoint(event.pos().x() + int(int(pos_offset_x)/2), event.pos().y() + int(int(pos_offset_y)/2))
+        mapped_drop_point = self.pointOnOriginal(offset_point)
+        if mapped_drop_point:
+            return (id_, mapped_drop_point)
+        else:
+            return None
+
+
     def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype):
+        if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype) and self._processDropEvent(event):
             self.logger.info("Accepting drop event")
             event.acceptProposedAction()
         else:
             self.logger.info("Ignoring drop event with MIME types %s (looking for %s)" % (event.mimeData().formats(), internal_pimap_label_marker_mimetype))
 
-    # def dragMoveEvent(self, event):
-    #     # event.acceptProposedAction()
-    #     pass
+    def dragMoveEvent(self, event):
+        if self._processDropEvent(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def dropEvent(self, event):
         self.logger.info("Received drop event")
         if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype):
-            feature_id, pos_offset_x, pos_offset_y = event.mimeData().data(internal_pimap_label_marker_mimetype).split("-")
-            offset_point = QtCore.QPoint(event.pos().x() + int(int(pos_offset_x)/2), event.pos().y() + int(int(pos_offset_y)/2))
-            mapped_drop_point = self.pointOnOriginal(offset_point)
-            self.pixmap_label_marker_dropped.emit(str(int(feature_id)), mapped_drop_point)
-        event.acceptProposedAction()
+            id_, mapped_drop_point = self._processDropEvent(event)
+            if mapped_drop_point:
+                self.pixmap_label_marker_dropped.emit(str(int(id_)), mapped_drop_point)
+                event.acceptProposedAction()
 
     def addPixmapLabelFeature(self, feature):
         """
@@ -146,7 +157,6 @@ class BasePixmapLabel(QtWidgets.QLabel):
         # it to map a point on the original pixmap to the displayed
         # pixmap:
         def mapPoint(point, offset):
-
             return self.pointOnDisplay(point, offset)
 
         feature.mapPoint = mapPoint
@@ -204,7 +214,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     Class for markers (points) that can be put on a PixmapLabel
     (or anything that inherits from BasePixmapLabel).
     """
-    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0), moveable=False, feature_id=None):
+    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0), moveable=False, id_=None):
         super().__init__(parent)
 
         self.parent = parent
@@ -212,7 +222,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.size = size
         self.offset = offset
         self.moveable = moveable
-        self.feature_id = feature_id
+        self.id_ = id_
 
         pixmap = QtGui.QPixmap(icon)
         if pixmap.isNull():
@@ -267,7 +277,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
 
         drag = QtGui.QDrag(self)
         mime_data = QtCore.QMimeData()
-        mime_data.setData(internal_pimap_label_marker_mimetype, "%s-%s-%s" % (self.feature_id, self.size[0], self.size[1]))
+        mime_data.setData(internal_pimap_label_marker_mimetype, "%s-%s-%s" % (self.id_, self.size[0], self.size[1]))
         drag.setMimeData(mime_data)
         drag.setHotSpot(QtCore.QPoint(int(self.size[0]/2), self.size[1]/2))
         drag.setPixmap(self.pixmap().scaled(self.size[0], self.size[1]))

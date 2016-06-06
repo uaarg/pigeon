@@ -5,7 +5,7 @@ import signal # For exiting pigeon from terminal
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
-from features import Feature, Marker
+from features import BaseFeature, Feature, Marker
 
 from .common import QueueMixin
 from .pixmaploader import PixmapLoader
@@ -20,7 +20,7 @@ from .areas import MainImageArea
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
-FEATURE_AREA_MIN_WIDTH = 250
+FEATURE_AREA_MIN_WIDTH = 300
 
 class UI(QtCore.QObject, QueueMixin):
     """
@@ -75,8 +75,7 @@ class UI(QtCore.QObject, QueueMixin):
             self.logger.info(string)
 
         def create_new_marker(image, point):
-            position = image.geoReferencePoint(point.x(), point.y())
-            marker = Marker(position)
+            marker = Marker(image, image.geoReferencePoint(point.x(), point.y()))
 
             cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
             marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
@@ -111,7 +110,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.clicksetting = val
 
 class MainWindow(QtWidgets.QMainWindow):
-    featureChanged = QtCore.pyqtSignal(Feature)
+    featureChanged = QtCore.pyqtSignal(BaseFeature)
     feature_export_requested = QtCore.pyqtSignal(list,str)
 
     def __init__(self, settings_data={}, features=[], exitfcnCB= None):
@@ -155,12 +154,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Populating the page layout with the major components.
         self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data, minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
-        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, features=features, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
-        self.feature_area.feature_tree.currentItemChanged.connect(lambda new_item, old_item: self.feature_area.showFeature(new_item.feature))  # Show feature details for the selected feature
+        # self.feature_area.selectedFeatureChanged.connect(lambda new_item, old_item: print("selectedFeatureChanged TODO: implement"))
 
         self.feature_area.feature_detail_area.featureChanged.connect(self.featureChanged.emit) # Feature's details can be changed
         self.main_image_area.featureChanged.connect(self.featureChanged.emit)  # Feature's position can be changed when it's dragged

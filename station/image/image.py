@@ -32,6 +32,12 @@ class Image:
 
         self.georeference = None
 
+    def __str__(self):
+        return "Image %s" % self.name
+
+    def __repr__(self):
+        return "Image(name=%r)" % self.name
+
     def _readInfo(self):
         """
         Populates info_data with the data from the info file.
@@ -64,7 +70,7 @@ class Image:
 
         if len(missing_fields) != 0:
             raise(KeyError("Missing %s field(s) from info file." % ", ".join(missing_fields)))
-        
+
         # Ensuring we don't let in any infinities or Nan's (both are valid for floats, but not integers):
         for field in field_map.values():
             try:
