@@ -268,14 +268,13 @@ class CSVExporter(Exporter):
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
 
-        spamWriter.writerow(["Latitude", "Longitude", "Name", "Colour","Letter", "Notes",
+        spamWriter.writerow(["Latitude", "Longitude", "Colour","Letter", "Notes",
                             "Time of Export",datetime.datetime.now()])
 
         currentMarkerList = [] # start with an empty marker list
         for feature in features: #Over every marker
             currentMarkerList.append(feature.position.lat) # Slaps position in the row list
             currentMarkerList.append(feature.position.lon)
-            currentMarkerList.append(feature.image.name)
             for data_column in ["Colour", "Letter", "Notes"]:
                 for key, value in feature.data:
                     if key == data_column:

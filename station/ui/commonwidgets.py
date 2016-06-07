@@ -102,7 +102,8 @@ class EditableBaseListForm(QtWidgets.QWidget):
         field will be read-only. Otherwise, it'll be editable.
 
         The field names should be unique and the same field names
-        should be provided each time.
+        should be provided each time: new fields and old ones will
+        be ignored.
         """
         self.data = data
         if not self.fields:
@@ -112,14 +113,15 @@ class EditableBaseListForm(QtWidgets.QWidget):
             return
 
         for field_name, field_value, field_editable in self._interpreted_data(data):
-            setting_label, edit_widget = self.fields[field_name]
+            setting_label, edit_widget = self.fields.get(field_name, (None, None))
 
-            if isinstance(field_value, bool):
-                edit_widget.setChecked(field_value)
-            elif isinstance(field_value, str):
-                edit_widget.setText(field_value)
-            else:
-                raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
+            if edit_widget:
+                if isinstance(field_value, bool):
+                    edit_widget.setChecked(field_value)
+                elif isinstance(field_value, str):
+                    edit_widget.setText(field_value)
+                else:
+                    raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
 
     def getData(self):
         if not self.fields:

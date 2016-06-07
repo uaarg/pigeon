@@ -21,6 +21,9 @@ class BaseFeature:
     def subfeatures(self):
         return []
 
+    def allowSubfeatures(self):
+        return False
+
 class PointOfInterest(BaseFeature):
     """
     Class for each point in an image that's interesting.
@@ -159,6 +162,9 @@ class Point(Feature):
 
     def subfeatures(self):
         return self.instances.values()
+
+    def allowSubfeatures(self):
+        return True
 
 class GroundControlPoint(Point):
     icon_name = "x"

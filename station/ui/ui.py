@@ -33,7 +33,6 @@ class UI(QtCore.QObject, QueueMixin):
     unit testing for easy testing of the rest of the application.
     """
     settings_changed = QtCore.pyqtSignal()
-    clicktypeChanged = QtCore.pyqtSignal(int)
 
     def ExitFcn (self, signum, fram):
         # Exiting Program from the Terminal
@@ -55,9 +54,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
         self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
 
-
-        self.clicksetting = 1
-        self.main_window.feature_area.feature_detail_area.clicktypeChanged.connect(self.setclicksetting)
+        self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(self.main_window.collectSubfeature)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
@@ -68,26 +65,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.connectQueue(image_queue, self.addImage)
         signal.signal(signal.SIGINT,self.ExitFcn)
 
-        def print_image_clicked(image, point):
-            string = "Point right clicked in image %s: %s" % (image.name, image.geoReferencePoint(point.x(), point.y()))
-            print(string)
-            self.logger.info(string)
-
-        def create_new_marker(image, point):
-            marker = Marker(image, point=(point.x(), point.y()))
-
-            cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
-            marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
-
-            if self.clicksetting == 1:
-                self.addFeature(image, marker)
-            elif self.clicksetting == 2:
-                marker.isSubFeature = True
-                self.addFeature(image, marker)
-
-
         # Hooking up some inter-component behaviour
-        self.main_window.main_image_area.image_clicked.connect(create_new_marker)
         self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.updateRuler)
         self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
@@ -99,11 +77,6 @@ class UI(QtCore.QObject, QueueMixin):
 
     def addImage(self, image):
         self.main_window.addImage(image)
-
-    def addFeature(self, image, feature):
-        feature.image = image
-        self.features.append(feature)
-        self.main_window.addFeature(feature)
 
     def setclicksetting(self, val):
         self.clicksetting = val
@@ -119,6 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ExitingCB = exitfcnCB
 
         # State
+        self.collect_subfeature_for = None
         self.current_image = None
 
         # Defining window properties
@@ -161,6 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Hooking up some inter-component benhaviour
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
         # self.feature_area.selectedFeatureChanged.connect(lambda new_item, old_item: print("selectedFeatureChanged TODO: implement"))
+        self.main_image_area.image_clicked.connect(self.handleMainImageClick)
 
         self.feature_area.feature_detail_area.featureChanged.connect(self.featureChanged.emit) # Feature's details can be changed
         self.main_image_area.featureChanged.connect(self.featureChanged.emit)  # Feature's position can be changed when it's dragged
@@ -229,5 +204,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.info_area.showImage(image)
 
     def addFeature(self, feature):
-        self.feature_area.addFeature(feature)
+        self.features.append(feature)
         self.main_image_area.addFeature(feature)
+        self.feature_area.addFeature(feature)
+
+    def createNewMarker(self, image, point):
+        marker = Marker(image, point=(point.x(), point.y()))
+
+        cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
+        marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
+
+        self.addFeature(marker)
+
+    def collectSubfeature(self, feature):
+        self.collect_subfeature_for = feature
+
+    def handleMainImageClick(self, image, point):
+        if self.collect_subfeature_for:
+            self.collect_subfeature_for.updatePoint(image, (point.x(), point.y()))
+            self.featureChanged.emit(self.collect_subfeature_for)
+            self.collect_subfeature_for = None
+        else:
+            self.createNewMarker(image, point)
+
+

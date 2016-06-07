@@ -1,21 +1,39 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
-from ..commonwidgets import EditableBaseListForm
+from ..commonwidgets import EditableBaseListForm, BoldQLabel
 
 from features import BaseFeature, Feature
 
-class FeatureDetailArea(EditableBaseListForm):
+class FeatureDetailArea(QtWidgets.QWidget):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
-    clicktypeChanged = QtCore.pyqtSignal(int)
+    addSubfeatureRequested = QtCore.pyqtSignal(BaseFeature)
 
     def __init__(self):
         super().__init__()
-        self.feature = None
-        self.dataEdited.connect(lambda data: self._editFeatureData(data))
 
-    def _title(self):
-        return "Feature Detail:"
+        self.feature = None
+
+        self.layout = QtWidgets.QVBoxLayout()
+
+        self.title = BoldQLabel(self)
+        self.title.setText(translate("FeatureDetailArea", "Feature Detail:"))
+        self.layout.addWidget(self.title)
+
+        self.edit_form = EditableBaseListForm(self)
+        self.layout.addWidget(self.edit_form)
+
+        self.edit_form.dataEdited.connect(lambda data: self._editFeatureData(data))
+
+        self.setLayout(self.layout)
+
+        self.buttons_layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(self.buttons_layout)
+
+        self.add_subfeature_button = QtWidgets.QPushButton(translate("FeatureDetailArea", "Add Subfeature"), self)
+        self.buttons_layout.addWidget(self.add_subfeature_button)
+
+        self.add_subfeature_button.clicked.connect(lambda: self.addSubfeatureRequested.emit(self.feature))
 
     def _editFeatureData(self, data):
         """
@@ -31,7 +49,6 @@ class FeatureDetailArea(EditableBaseListForm):
 
     def showFeature(self, feature):
         self.feature = feature
-        self.clicktypeChanged.emit(1)
         display_data = feature.data.copy()
         if hasattr(feature, "dispLatLon"):
             display_data.append(("Position", feature.dispLatLon(), False))
@@ -39,7 +56,11 @@ class FeatureDetailArea(EditableBaseListForm):
             display_data.append(("Error", feature.dispMaxPositionDistance(), False))
         if hasattr(feature, "image") and feature.image:
             display_data.append(("Image Name", str(feature.image.name), False))
-        self.setData(display_data)
+        self.edit_form.setData(display_data)
+        if self.feature.allowSubfeatures():
+            self.add_subfeature_button.show()
+        else:
+            self.add_subfeature_button.hide()
 
     def updateFeature(self, feature):
         if feature == self.feature:
