@@ -39,7 +39,7 @@ class UI(QtCore.QObject, QueueMixin):
         # Exiting Program from the Terminal
         self.app.exit()
 
-    def __init__(self, save_settings, load_settings, exporter, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -48,7 +48,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, self.app.exit)
+        self.main_window = MainWindow(self.settings_data, self.features, export_manager, self.app.exit)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
@@ -57,7 +57,6 @@ class UI(QtCore.QObject, QueueMixin):
 
 
         self.clicksetting = 1
-        self.main_window.feature_export_requested.connect(exporter)
         self.main_window.feature_area.feature_detail_area.clicktypeChanged.connect(self.setclicksetting)
 
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
@@ -75,7 +74,7 @@ class UI(QtCore.QObject, QueueMixin):
             self.logger.info(string)
 
         def create_new_marker(image, point):
-            marker = Marker(image, image.geoReferencePoint(point.x(), point.y()))
+            marker = Marker(image, point=(point.x(), point.y()))
 
             cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
             marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
@@ -111,12 +110,14 @@ class UI(QtCore.QObject, QueueMixin):
 
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
-    feature_export_requested = QtCore.pyqtSignal(list,str)
 
-    def __init__(self, settings_data={}, features=[], exitfcnCB= None):
+    def __init__(self, settings_data={}, features=[], export_manager=None, exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
+        self.features = features
+        self.export_manager = export_manager
         self.ExitingCB = exitfcnCB
+
         # State
         self.current_image = None
 
@@ -174,39 +175,26 @@ class MainWindow(QtWidgets.QMainWindow):
     def initMenuBar(self):
         self.menubar = self.menuBar()
 
-        ExitAction = QtWidgets.QAction("Exit Pigeon :(", self)
-        ExitAction.setShortcut('Ctrl+Q')
-        ExitAction.triggered.connect(self.ExitFcn)
+        exit_action = QtWidgets.QAction("Exit Pigeon :(", self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.triggered.connect(self.ExitFcn)
 
-        AboutAction = QtWidgets.QAction("About Pigeon", self)
-        AboutAction.setShortcut('Ctrl+A')
-        AboutAction.triggered.connect(self.AboutPopup)
+        about_action = QtWidgets.QAction("About Pigeon", self)
+        about_action.setShortcut('Ctrl+A')
+        about_action.triggered.connect(self.AboutPopup)
 
-        fileMenu = self.menubar.addMenu('&File')
-        fileMenu.addAction(AboutAction)
-        fileMenu.addAction(ExitAction)
+        menu = self.menubar.addMenu('&File')
+        menu.addAction(about_action)
+        menu.addAction(exit_action)
 
-        KMLexport = QtWidgets.QAction("KML Export", self)
-        KMLexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"KML"))
-
-        CSVexport = QtWidgets.QAction("CSV Normal", self)
-        CSVexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV Normal"))
-
-        CSVexportUSC = QtWidgets.QAction("CSV: USC", self)
-        CSVexportUSC.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: USC"))
-
-        CSVexportAUVSI = QtWidgets.QAction("CSV: AUVSI", self)
-        CSVexportAUVSI.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: AUVSI"))
-
-        INTEROPexport = QtWidgets.QAction("INTEROP: Export", self)
-        INTEROPexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"INTEROP"))
-
-        fileMenu = self.menubar.addMenu('&Export')
-        fileMenu.addAction(KMLexport)
-        fileMenu.addAction(CSVexport)
-        fileMenu.addAction(CSVexportUSC)
-        fileMenu.addAction(CSVexportAUVSI)
-        fileMenu.addAction(INTEROPexport)
+        if self.export_manager:
+            menu = self.menubar.addMenu('&Export')
+            for option_name, option_action in self.export_manager.options:
+                action_widget = QtWidgets.QAction(option_name, self)
+                def closure(action):
+                    return lambda enabled: action(self.features)
+                action_widget.triggered.connect(closure(option_action))
+                menu.addAction(action_widget)
 
     def ExitFcn(self):
         print("You pressed Ctrl+Q, now exiting")
@@ -214,9 +202,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def AboutPopup(self):
         print("You pressed Ctrl+S, popup is not working yet")
-
-    def doExporting(self, text):
-        self.feature_export_requested.emit(self.feature_area.getFeatureList(),text)
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)

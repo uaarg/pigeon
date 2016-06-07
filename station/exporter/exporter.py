@@ -17,7 +17,10 @@ from features import Marker
 import csv as CSV # For CSV Exporter
 from PyQt5 import QtGui
 
-class KMLExporter:
+from .common import Exporter
+from .interop import InteropClient
+
+class KMLExporter(Exporter):
     """
     Provides methods for creating a KML document populated
     with objects from Pigeon, including aircraft and marker
@@ -44,6 +47,15 @@ class KMLExporter:
                     id="outline_only_polygon"
                 )
             )
+
+    def export(self, features, path):
+        for feature in features:
+            if isinstance(feature, Marker):
+                self.doc.Document.append(
+                    self.classToKML(feature)
+                )
+
+        self.writeKML(path)
 
     def processImage(self, image):
         """
@@ -238,8 +250,8 @@ class KMLExporter:
             altitude_mode = "clampToGround"
 
         return coordinates, altitude_mode
-# Ok kinda ready... needs more stuff
-class CSVExporter:
+
+class CSVExporter(Exporter):
     """
     Provides methods for creating a CSV document populated
     with objects from Pigeon, including marker properties
@@ -247,57 +259,58 @@ class CSVExporter:
     Include Anaylasis, CDN, and US competition output styles
     """
 
-    #def __init__(self, output_options=None):
-        #Created File Object for csv file
-        # self.CSVFileObject = open("exported.csv", 'w+') I guess initialization is not required...
-        # Note : w+ for writing and initialize if the file DNE
+    def export(self, features, output_path):
+        self.writeMarkersCSV([feature for feature in features if isinstance(feature, Marker)], output_path)
 
-    def writeMarkersCSV(self, PointsOfIntrest, output_path):
+    def writeMarkersCSV(self, features, output_path):
         #Created File Object for csv file
         self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
 
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes",
+        spamWriter.writerow(["Latitude", "Longitude", "Name", "Colour","Letter", "Notes",
                             "Time of Export",datetime.datetime.now()])
 
         currentMarkerList = [] # start with an empty marker list
-        for item in PointsOfIntrest: #Over every marker
-            if item.feature.data["Export"] == True: # To be sure we only export things we want to
-                currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-                currentMarkerList.append(item.feature.position.lon)
-                currentMarkerList.append(item.feature.image.name)
-                currentMarkerList.append(item.feature.data["Colour"])
-                currentMarkerList.append(item.feature.data["Letter"])
-                currentMarkerList.append(item.feature.data["Notes"])
-                spamWriter.writerow(currentMarkerList) #write list as a csv row
+        for feature in features: #Over every marker
+            currentMarkerList.append(feature.position.lat) # Slaps position in the row list
+            currentMarkerList.append(feature.position.lon)
+            currentMarkerList.append(feature.image.name)
+            for data_column in ["Colour", "Letter", "Notes"]:
+                for key, value in feature.data:
+                    if key == data_column:
+                        currentMarkerList.append(value)
+                else:
+                    currentMarkerList.append("")
+
+            spamWriter.writerow(currentMarkerList) #write list as a csv row
 
             currentMarkerList = [] # clear list for next row
 
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 
-    def writeAreasCSV(self, PointsOfIntrest, output_path):
-        #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
-        # creates fileObject
-        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
 
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
-                            "Time of Export",datetime.datetime.now()])
+class ExportManager:
+    def __init__(self, path):
+        self.path = path
+        self.options = [
+                            ("KML", self._generateExporterFunc(KMLExporter)),
+                            ("CSV Normal", self._generateExporterFunc(CSVExporter)),
+                            ("Interop", self._generateExporterFunc(InteropClient)),
+                       ]
 
-        currentMarkerList = [] # start with an empty marker list
-        for item in PointsOfIntrest: #Over every marker
-            if item.feature.data["Export"] == True: # To be sure we only export things we want to
-                currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
-                currentMarkerList.append(item.feature.position.lon)
-                currentMarkerList.append(item.feature.image.name)
-                for key in item.feature.data:
-                    value = item.feature.data[key]
-                    currentMarkerList.append(value)
-                spamWriter.writerow(currentMarkerList) #write list as a csv row
+    def _generateExporterFunc(self, exporter):
+        def func(features):
+            exporter().export(self.featuresToExport(features), self.path)
+        return func
 
-            currentMarkerList = [] # clear list for next row
-
-        # Closes CSV so file is updated upon station exit
-        self.CSVFileObject.close()
+    def featuresToExport(self, features):
+        exportable = []
+        for feature in features:
+            for key, value in feature.data:
+                if key == "Export":
+                    if value:
+                        exportable.append(feature)
+                        break
+        return exportable

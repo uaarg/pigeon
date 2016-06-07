@@ -2,12 +2,22 @@ import requests
 import ast
 from time import time
 import threading
+import json
 baseurl = "http://localhost:8000"
 username = "testuser"
 password = "testpass"
 
+from features import Marker
 
-class InteropClient:
+from .common import Exporter
+
+class InteropClient(Exporter):
+    def __init__(self):
+        self.path = None
+
+    def export(self, features, path):
+        self.path = path + "interopSent.json"
+        self.sendData([feature for feature in features if isinstance(feature, Marker)])
 
     def sendData(self, rawdata):
         self.rawdata = rawdata
@@ -16,9 +26,18 @@ class InteropClient:
 
     def runner(self):
         self.interoplink = Connection()
+        targs = []
         for eachtarget in self.rawdata:
             targ = {'type':str(eachtarget.type),'latitude':float(eachtarget.lon), 'longitude':float(eachtarget.lon),'orientation':str(eachtarget.orentation),'shape':str(eachtarget.shape), 'background_color':str(eachtarget.bgcolor), 'alphanumeric':str(eachtarget.alphanumeric),'alphanumeric_color':str(eachtarget.alphanumeric_color)}
             self.interoplink.updatetelemetry(targ, img)
+
+            targs.append(targ)
+
+        # Recording a local copy of what was sent:
+        if self.path:
+            with open(self.path, "w") as f:
+                json.dump(targs, f, indent=4)
+
 
 
         print("completed: exiting server")
@@ -38,7 +57,7 @@ class Connection:
             self.login = self.s.post(baseurl + loginurl, data=data)
             self.loginsucess = True
             pass
-        except Exception as e:
+        except requests.exceptions.ConnectionError as e:
             print("Failed to login to interop server")
             pass
 

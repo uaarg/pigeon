@@ -10,26 +10,23 @@ import image
 import settings
 import features
 from comms.uav import UAV
-from exporter import KMLExporter, CSVExporter
-from interop import InteropClient
+from exporter import ExportManager
 
-import geo # for marker error only
-__version__ = "0.2"
+__version__ = "0.3"
 
 class GroundStation:
     def __init__(self, uav_ivybus=None):
         super().__init__()
+        self.loadSettings()
         self.image_watcher = image.Watcher()
         self.uav = UAV(uav_ivybus)
-        self.kml_exporter = KMLExporter()
-        self.csv_exporter = CSVExporter()
-        self.interop_client = InteropClient()
 
         ground_control_points = features.load_ground_control_points()
+        export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
-                     exporter=self.exportFeatures,
+                     export_manager=export_manager,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
                      ground_control_points=ground_control_points)
@@ -60,37 +57,7 @@ class GroundStation:
         if self.settings_data.get("UAV Network"):
             self.uav.setBus(self.settings_data["UAV Network"])
 
-    def exportFeatures(self, feature_list, exportType, output_path=None):
-        if exportType== "KML":
-            if not output_path:
-                output_path = self.settings_data["Feature Export Path"]
-            for item in feature_list:
-                    if item.feature.data["Export"]:
-                        self.kml_exporter.doc.Document.append(
-                                self.kml_exporter.classToKML(item.feature)
-                        )
-
-            self.kml_exporter.writeKML(output_path)
-
-        elif exportType == "CSV Normal":
-            if not output_path:
-                output_path = self.settings_data["Feature Export Path"]
-
-            self.csv_exporter.writeMarkersCSV(feature_list, output_path) # write marker list
-        elif exportType == "CSV: USC":
-            if not output_path:
-                output_path = self.settings_data["Feature Export Path"]
-
-            self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
-
-        elif exportType == "INTEROP":
-            self.interop_client.sendData(feature_list)
-
-        else:
-            raise Exception("Exporting in "+exportType+" is not supported!!!!!")
-
     def run(self):
-        self.loadSettings()
         self.checkMandatorySettings()
         self._propagateSettings()
 
