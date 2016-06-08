@@ -1,8 +1,8 @@
 {
+    "Feature Export Path": "data/results",
+    "Follow Images": false,
+    "UAV Network": "127:2010",
     "Plane Plumbline": true,
-    "Follow Images": true,
-    "Monitor Folder": "data/images",
     "Load Existing Images": true,
-    "Feature Export Path": "data/",
-    "UAV Network": "127:2010"
+    "Monitor Folder": "data/images"
 }

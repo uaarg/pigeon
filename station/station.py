@@ -83,6 +83,14 @@ class GroundStation:
 
             self.csv_exporter.writeAreasCSV(feature_list, output_path) # write marker list
 
+
+        elif exportType == "CSV: AUVSI":
+            if not output_path:
+                output_path = self.settings_data["Feature Export Path"]
+
+            self.csv_exporter.writeAUVSIMarkersCSV(feature_list, output_path) # write marker list
+            self.interop_client.sendData(feature_list)
+
         elif exportType == "INTEROP":
             self.interop_client.sendData(feature_list)
 

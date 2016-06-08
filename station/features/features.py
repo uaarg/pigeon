@@ -19,7 +19,10 @@ class Feature():
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
+        #self.data = OrderedDict([("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)])
+        self.data = OrderedDict([("Name", name), ("Orientation", ""), ("Shape", ""), ("Background_Color", ""), ("Alphanumeric", ""), ("Alphanumeric_Color", ""), ("Notes", ""), ("Export", True)])
+
+
         #self.subfeatures = False
         self.isSubFeature = False
 

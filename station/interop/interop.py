@@ -2,6 +2,9 @@ import requests
 import ast
 from time import time
 import threading
+
+from geo import Position
+
 baseurl = "http://localhost:8000"
 username = "testuser"
 password = "testpass"
@@ -17,11 +20,15 @@ class InteropClient:
     def runner(self):
         self.interoplink = Connection()
         for eachtarget in self.rawdata:
-            targ = {'type':str(eachtarget.type),'latitude':float(eachtarget.lon), 'longitude':float(eachtarget.lon),'orientation':str(eachtarget.orentation),'shape':str(eachtarget.shape), 'background_color':str(eachtarget.bgcolor), 'alphanumeric':str(eachtarget.alphanumeric),'alphanumeric_color':str(eachtarget.alphanumeric_color)}
-            self.interoplink.updatetelemetry(targ, img)
+            if eachtarget.feature.data["Export"] == True: # To be sure we only export things we want to
+                targ = {'type':str(eachtarget.feature.data["Name"]),'Latitude':float(eachtarget.feature.position.lat), 'Longitude':float(eachtarget.feature.position.lon),
+                        'Orientation':str(eachtarget.feature.data["Orientation"]),'Shape':str(eachtarget.feature.data["Shape"]), 'Background_Color':str(eachtarget.feature.data["Background_Color"]), 
+                        'Alphanumeric':str(eachtarget.feature.data["Alphanumeric"]),'Alphanumeric_Color':str(eachtarget.feature.data["Alphanumeric_Color"])}
+        #     self.interoplink.updatetelemetry(targ, img) # Commented for testing
+                print(targ)
 
+            print("completed: exiting server")
 
-        print("completed: exiting server")
 
 
 

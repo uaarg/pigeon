@@ -78,8 +78,10 @@ class UI(QtCore.QObject, QueueMixin):
             position = image.geoReferencePoint(point.x(), point.y())
             marker = Marker(position)
 
-            cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
-            marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
+            cropping_rect = QtCore.QRect(point.x() - 100, point.x() + 100, point.y() - 100, point.y() + 100) # This defines where the cropping happens
+            marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect) # This *magically* does it... 
+
+            marker.picture.save("SEE_THE_MARKER", "PNG")
 
             if self.clicksetting == 1:
                 self.addFeature(image, marker)
@@ -175,7 +177,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def initMenuBar(self):
         self.menubar = self.menuBar()
 
-        ExitAction = QtWidgets.QAction("Exit Pigeon :(", self)
+        ExitAction = QtWidgets.QAction("Exit Pigeon", self)
         ExitAction.setShortcut('Ctrl+Q')
         ExitAction.triggered.connect(self.ExitFcn)
 
@@ -183,20 +185,29 @@ class MainWindow(QtWidgets.QMainWindow):
         AboutAction.setShortcut('Ctrl+A')
         AboutAction.triggered.connect(self.AboutPopup)
 
+        SettingsAction = QtWidgets.QAction("Pigeon Settings", self)
+        SettingsAction.setShortcut('Ctrl+S')
+        SettingsAction.triggered.connect(self.SettingsPopup)
+
         fileMenu = self.menubar.addMenu('&File')
         fileMenu.addAction(AboutAction)
+        fileMenu.addAction(SettingsAction)
         fileMenu.addAction(ExitAction)
 
         KMLexport = QtWidgets.QAction("KML Export", self)
+        KMLexport.setShortcut('K+M+L')
         KMLexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"KML"))
 
         CSVexport = QtWidgets.QAction("CSV Normal", self)
+        KMLexport.setShortcut('C+S+V')
         CSVexport.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV Normal"))
 
         CSVexportUSC = QtWidgets.QAction("CSV: USC", self)
+        KMLexport.setShortcut('U+S+C')
         CSVexportUSC.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: USC"))
 
         CSVexportAUVSI = QtWidgets.QAction("CSV: AUVSI", self)
+        KMLexport.setShortcut('A+U+V+S+I')
         CSVexportAUVSI.triggered.connect(lambda: self.feature_export_requested.emit(self.feature_area.getFeatureList(),"CSV: AUVSI"))
 
         INTEROPexport = QtWidgets.QAction("INTEROP: Export", self)
@@ -214,6 +225,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ExitingCB()
 
     def AboutPopup(self):
+        print("You pressed Ctrl+A, popup is not working yet")
+
+    def SettingsPopup(self):
         print("You pressed Ctrl+S, popup is not working yet")
 
     def doExporting(self, text):

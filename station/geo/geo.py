@@ -70,6 +70,59 @@ class Position:
         """
         return "%.6f, %.6f" % (self.lat, self.lon)
 
+    def decimal2DegreeMinuiteSeconds(latlon = []):
+        """ 
+        Returns the Latitude and Longitude in DD:MM:SS form for US 2016 competition
+        """
+        try: 
+            lat = latlon[0]
+            lon = latlon[1]
+        except:
+            raise(TypeError("Missing Lat or Lon in conversion to DD MM SS.SSS"))
+
+        if (lat > 0):
+            latHemisphere = "N"
+        else: 
+            latHemisphere = "S"
+        
+        lat = abs(lat)
+
+        latDD = int(lat)
+        latMM = 60*(lat-latDD)
+        latSS = int(1000*60*(latMM-int(latMM)))/1000
+        if latDD < 10:
+            latDD = "0" + str(latDD)
+        elif latDD > 90: 
+            print("LATITUDE OVER 90 DEGREES. SOMETHING MESSED UP D:")
+        else: 
+            latDD = str(latDD)
+        latMM = str(int(latMM))
+        latSS = str(latSS)
+        latDDMMSS = latHemisphere+latDD+" "+latMM+" "+latSS
+
+        if (lon > 0):
+            lonHemisphere = "E"
+        else: 
+            lonHemisphere = "W"
+        lon = abs(lon)
+
+        lonDD = int(lon)
+        lonMM = 60*(lon-lonDD)
+        lonSS = int(1000*60*(lonMM-int(lonMM)))/100  
+        if lonDD < 10:
+            lonDD = "00" + str(lonDD)
+        elif lonDD < 100:
+            lonDD = "0" + str(lonDD)
+        elif lonDD > 180:
+            print("LONGITUDE OVER 180 DEGREES. SOMETHING MESSED UP D:")
+        lonDD = str(lonDD)
+        lonMM = str(int(lonMM))
+        lonSS = str(lonSS) 
+
+        lonDDMMSS = lonHemisphere+lonDD+" "+lonMM+" "+lonSS
+
+        return [latDDMMSS, lonDDMMSS]
+
 
 class Orientation:
     """

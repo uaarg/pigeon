@@ -238,7 +238,7 @@ class KMLExporter:
             altitude_mode = "clampToGround"
 
         return coordinates, altitude_mode
-# Ok kinda ready... needs more stuff
+
 class CSVExporter:
     """
     Provides methods for creating a CSV document populated
@@ -254,37 +254,44 @@ class CSVExporter:
 
     def writeMarkersCSV(self, PointsOfIntrest, output_path):
         #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
+        self.regCSV = open(output_path + "markerResults.csv", 'w+')
         # creates fileObject
-        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes",
-                            "Time of Export",datetime.datetime.now()])
+        spamWriter = CSV.writer(self.regCSV, delimiter=',')
 
         currentMarkerList = [] # start with an empty marker list
+        titleMissing = True
+        titleList = ["Latitude","Longitude"]
         for item in PointsOfIntrest: #Over every marker
             if item.feature.data["Export"] == True: # To be sure we only export things we want to
                 currentMarkerList.append(item.feature.position.lat) # Slaps position in the row list
                 currentMarkerList.append(item.feature.position.lon)
-                currentMarkerList.append(item.feature.image.name)
-                currentMarkerList.append(item.feature.data["Colour"])
-                currentMarkerList.append(item.feature.data["Letter"])
-                currentMarkerList.append(item.feature.data["Notes"])
+                for key in item.feature.data: # Add all marker features
+                    value = item.feature.data[key]
+                    currentMarkerList.append(value)
+                    if key in titleList: # Key is in in titleList
+                        titleMissing = False # we are on 2nd + marker
+                    else: # Assumes keys don't change between markers
+                        titleList.append(key) # Ergo this is the first marker
+                #if titleMissing:
+                 #   titleList.append("Time of Export")
+                  #  titleList.append(datetime.datetime.now())
+                ExportIndex = titleList.index("Export")
+                if titleMissing: # If its the first marker
+                    titleList.pop(ExportIndex)
+                    spamWriter.writerow(titleList)
+                currentMarkerList.pop(ExportIndex)
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
 
             currentMarkerList = [] # clear list for next row
 
         # Closes CSV so file is updated upon station exit
-        self.CSVFileObject.close()
+        self.regCSV.close()
 
     def writeAreasCSV(self, PointsOfIntrest, output_path):
         #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
+        self.areasCSV = open(output_path + "areaResults.csv", 'w+')
         # creates fileObject
-        spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
-
-        spamWriter.writerow(["Latitude","Longitude","Name", "Colour","Letter", "Notes", "Export",
-                            "Time of Export",datetime.datetime.now()])
+        spamWriter = CSV.writer(self.areasCSV, delimiter=',', quotechar='|')
 
         currentMarkerList = [] # start with an empty marker list
         for item in PointsOfIntrest: #Over every marker
@@ -298,6 +305,69 @@ class CSVExporter:
                 spamWriter.writerow(currentMarkerList) #write list as a csv row
 
             currentMarkerList = [] # clear list for next row
+
+        # Closes CSV so file is updated upon station exit
+        self.areasCSV.close()
+
+    def writeAUVSIMarkersCSV(self, PointsOfIntrest, output_path):
+        #Created File Object for csv file
+        self.CSVFileObject = open(output_path + "UAARG.csv", 'w+')
+        # creates fileObject
+        spamWriter = CSV.writer(self.CSVFileObject, delimiter='\t')
+
+        TargetCount = 0 
+        currentMarkerList = [] # start with an empty marker list
+        titleMissing = True
+        titleList = ["Target Number","Name","Latitude","Longitude"]
+        for item in PointsOfIntrest: #Over every marker
+
+            if item.feature.data["Export"] == True: # To be sure we only export things we want to
+
+                TargetCount = TargetCount + 1 # Increment counter
+                if TargetCount < 10:
+                    currentMarkerList.append("0"+ str(TargetCount))
+                else: 
+                    currentMarkerList.append(TargetCount)
+
+                latlonDDMMSS = Position.decimal2DegreeMinuiteSeconds([item.feature.position.lat, item.feature.position.lon])
+                currentMarkerList.append(latlonDDMMSS[0]) # Slaps position in the row list
+                currentMarkerList.append(latlonDDMMSS[1])
+
+                for key in item.feature.data: # Add all marker features
+                    value = item.feature.data[key]
+                    if key is "Name": # Use Name as Target Type (as it breaks stuff otherwise )
+                        currentMarkerList.insert(1, value)
+                    else: 
+                        currentMarkerList.append(value)
+                    if key in titleList: # Key is in in titleList
+                        titleMissing = False # we are on 2nd + marker
+                    else: # Assumes keys don't change between markers
+                        titleList.append(key) # Ergo this is the first marker
+
+                titleList.append("Image Name")
+                thumbnailName = str(TargetCount) + "_" + item.feature.image.name
+
+                item.feature.picture.save(output_path + thumbnailName, "PNG")
+
+                currentMarkerList.append(item.feature.image.name)
+                #if titleMissing:
+                 #   titleList.append("Time of Export")
+                  #  titleList.append(datetime.datetime.now())
+                ExportIndex = titleList.index("Export")
+                
+                if titleMissing: # If its the first marker
+                    titleList.pop(ExportIndex)
+                    NameIndex = titleList.index("Name")
+                    titleList.remove("Name")
+                    titleList.insert(NameIndex, "Target Type")
+                    spamWriter.writerow(titleList)
+                currentMarkerList.pop(ExportIndex)
+                spamWriter.writerow(currentMarkerList) #write list as a csv row
+
+            currentMarkerList = [] # clear list for next row
+
+
+
 
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
