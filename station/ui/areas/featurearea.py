@@ -35,6 +35,8 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_tree.header().close()
 
         self.feature_tree.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.icon_size = QtCore.QSize(40, 40)
+        self.feature_tree.setIconSize(self.icon_size)
         self.layout.addWidget(self.feature_tree, 1, 0, 1, 1)
 
         self.feature_detail_area = FeatureDetailArea()
@@ -46,11 +48,14 @@ class FeatureArea(QtWidgets.QFrame):
     def addFeature(self, feature, parent=None):
         item = QtWidgets.QTreeWidgetItem(parent or self.feature_tree)
         item.feature = feature
-        item.setText(0, str(feature))
         if feature.picture:
             icon = QtGui.QIcon(feature.picture)
             item.setIcon(0, icon)
+            item.setSizeHint(0, self.icon_size)
+        item.setText(0, str(feature))
+
         self.features[feature] = item
+
         if not parent:
             self.showFeature(feature)
 
