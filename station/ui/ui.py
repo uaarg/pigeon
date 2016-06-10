@@ -78,9 +78,6 @@ class UI(QtCore.QObject, QueueMixin):
     def addImage(self, image):
         self.main_window.addImage(image)
 
-    def setclicksetting(self, val):
-        self.clicksetting = val
-
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
 

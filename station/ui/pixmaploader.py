@@ -18,12 +18,12 @@ class PixmapLoader:
         self.image_size = None
 
         self.hold_original = False # A hint indicating the the original image should be held.
-        self.used_sizes = [] 
+        self.used_sizes = []
             # A history of sizes of the pixamp used; a hint for what sizes to potentially keep when freeing memory.
             # Each entry is a tuple, with the second element being the requested size and the first the used size.
             # (they are likley different because getPixmapForSize will keep the original pixmap's aspect ratio)
 
-        self.maximum_megabytes_to_safely_keep = 1 
+        self.maximum_megabytes_to_safely_keep = 1
             # Pixmaps under this size (in MB) will be kept in memory to avoid raving to re-load from disk.
             # Although you probably don't need to change it, if you want to tune things:
             #   For a given number of images:
@@ -39,7 +39,7 @@ class PixmapLoader:
         """
         Returns a pixmap for the requested size. This is the most
         important method of this class.
-        May or may not have to load or re-load the image file 
+        May or may not have to load or re-load the image file
         depending on whether optimizeMemory() has been called
         and it's behaviour.
         If the provided size is None, returns the original pixmap.
@@ -97,7 +97,7 @@ class PixmapLoader:
         """
         # Actual memory freeing occurs whenever self.pixmap is set to a new value
         # in the code below: once this is done, the old object is not referenced
-        # by anything and so gets cleaned up by Python's garbage collector (in 
+        # by anything and so gets cleaned up by Python's garbage collector (in
         # CPython, this happens immediately)
 
         if self.pixmap and not self.hold_original:
@@ -119,8 +119,8 @@ class PixmapLoader:
                     self.pixmap = None
                 else:
                     pass
-        if self.pixmap:
-            logger.debug("In PixmapLoader.optimizeMemory(), keeping size %s, %s at %.2f MB" % (self.pixmap.width(), self.pixmap.height(), self._estimatePixmapMemory(self.pixmap.size(), self.pixmap.depth())))
+        # if self.pixmap:
+        #     logger.debug("In PixmapLoader.optimizeMemory(), keeping size %s, %s at %.2f MB" % (self.pixmap.width(), self.pixmap.height(), self._estimatePixmapMemory(self.pixmap.size(), self.pixmap.depth())))
 
     def _requireLoad(self):
         """
@@ -139,7 +139,7 @@ class PixmapLoader:
 
     def _estimatePixmapMemory(self, size, depth):
         """
-        Returns an estimate of the memory used by a pixmap of the 
+        Returns an estimate of the memory used by a pixmap of the
         provided size and depth in MegaBytes (MB).
         """
         # Calculation from https://forum.qt.io/topic/4876/how-much-memory/5
