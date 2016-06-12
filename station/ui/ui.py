@@ -17,6 +17,8 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 
+from geo import position_at_offset
+
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
@@ -208,7 +210,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def createNewMarker(self, image, point):
         marker = Marker(image, point=(point.x(), point.y()))
 
-        cropping_rect = QtCore.QRect(point.x() - 40, point.x() + 40, point.y() - 40, point.y() + 40)
+        offset_position = position_at_offset(marker.position, float(self.settings_data["Nominal Target Size"]), 0)
+        offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
+        offset_pixels = max(abs(offset_pixel_x - point.x()), abs(offset_pixel_y - point.y()))
+
+        # Calculate thumbnail size and crop
+        cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
         marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
 
         self.addFeature(marker)
@@ -223,5 +230,3 @@ class MainWindow(QtWidgets.QMainWindow):
             self.collect_subfeature_for = None
         else:
             self.createNewMarker(image, point)
-
-

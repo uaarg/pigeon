@@ -557,3 +557,17 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
 
     lon, lat = pr(easting, northing, inverse=True)
     return lat, lon
+
+def position_at_offset(position, distance, angle):
+    """
+    Calculates the position of a point a certain distance and angle
+    away from the given position.
+
+    distance - the distance of the new point away from the given position, in m.
+    angle - the forward azimuth angle from the given point to the new point,
+    in degrees.
+
+    Returns a new Position object.
+    """
+    lon, lat, back_azimuth = geod.fwd(position.lon, position.lat, angle, distance)
+    return Position(lat, lon)
