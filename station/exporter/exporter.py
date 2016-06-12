@@ -20,6 +20,7 @@ from PyQt5 import QtGui
 from .common import Exporter
 from .interop import InteropClient
 
+
 class KMLExporter(Exporter):
     """
     Provides methods for creating a KML document populated
@@ -279,6 +280,7 @@ class CSVExporter(Exporter):
                 for key, value in feature.data:
                     if key == data_column:
                         currentMarkerList.append(value)
+                        break
                 else:
                     currentMarkerList.append("")
 
@@ -289,16 +291,20 @@ class CSVExporter(Exporter):
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 
+class AUVSICSVExporter(Exporter):
+    def export(self, features, output_path):
+        self.writeAUVSIMarkersCSV([feature for feature in features if isinstance(feature, Marker)], output_path)
+
     def writeAUVSIMarkersCSV(self, PointsOfIntrest, output_path):
         #Created File Object for csv file
         self.CSVFileObject = open(output_path + "UAARG.csv", 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter='\t')
 
-        TargetCount = 0 
+        TargetCount = 0
         currentMarkerList = [] # start with an empty marker list
         titleMissing = True
-        
+
         for marker in PointsOfIntrest: #Over every marker
             titleList = ["Target Number","Latitude","Longitude"]
             TargetCount = TargetCount + 1 # Increment counter
@@ -311,11 +317,12 @@ class CSVExporter(Exporter):
                 for key, value  in marker.data: # Add all marker features we care about
                     if key == data_column:
                         currentMarkerList.append(value)
-                #else:
-                    #currentMarkerList.append("")
+                        break
+                else:
+                    currentMarkerList.append("")
             titleList.extend(("Name", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"))
-            
-      
+
+
 
             titleList.insert(9,"Image Name")
             thumbnailName = "Targ_" + str(TargetCount)
@@ -339,13 +346,28 @@ class CSVExporter(Exporter):
         self.CSVFileObject.close()
 
 
+class AUVSI(Exporter):
+    """
+    Runs both the AUVSI CSV exporter and the Interop Exporter.
+    """
+    def __init__(self):
+        self.csv_exporter = AUVSICSVExporter()
+        self.interop_exporter = InteropClient()
+
+    def export(self, features, output_path):
+        self.csv_exporter.export(features, output_path)
+        self.interop_exporter.export(features, output_path)
+
+
 class ExportManager:
     def __init__(self, path):
         self.path = path
         self.options = [
                             ("KML", self._generateExporterFunc(KMLExporter)),
                             ("CSV Normal", self._generateExporterFunc(CSVExporter)),
-                            ("Interop", self._generateExporterFunc(InteropClient)),
+                            ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter)),
+                            ("AUVSI Interop", self._generateExporterFunc(InteropClient)),
+                            ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI)),
                        ]
 
     def _generateExporterFunc(self, exporter):
