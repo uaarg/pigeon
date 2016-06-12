@@ -65,8 +65,14 @@ class Feature(BaseFeature):
                             # is intended to be a crop of the original
                             # image right around the feature.
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
-        self.data = [("Name", name), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""), 
+        self.data = [("Name", name), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""),
                     ("Alphanumeric", ""), ("Alpha_Color", ""), ("Notes", ""), ("Export", True)]
+
+        # Holds references from external programs to this feature.
+        # An external program should register its own entry in this dictionary;
+        # all resources related to that program should be registered
+        # in that entry.
+        self.external_refs = {}
 
 class Point(Feature):
     """
