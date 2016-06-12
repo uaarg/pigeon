@@ -70,6 +70,43 @@ class Position:
         """
         return "%.6f, %.6f" % (self.lat, self.lon)
 
+    def dispLatLonDDMMSS(self): 
+        """ 
+        Returns the Latitude and Longitude in DD:MM:SS form for US 2016 competition
+        """
+
+        if (self.lat > 0):
+            latHemisphere = "N"
+        else: 
+            latHemisphere = "S"
+
+        latDD = int(abs(self.lat))
+        latMM = 60*(abs(self.lat)-latDD)
+        latSS = 60*(latMM-int(latMM))
+
+        latDD = str("%02.0f" % latDD)
+        latMM = str("%02.0f" % latMM)
+        latSS = str("%02.3f" % latSS)
+
+        latDDMMSS = latHemisphere+latDD+" "+latMM+" "+latSS
+
+        if (self.lon > 0):
+            lonHemisphere = "E"
+        else: 
+            lonHemisphere = "W"
+
+        lonDD = int(abs(self.lon))
+        lonMM = 60*(abs(self.lon)-lonDD)
+        lonSS = 60*(lonMM-int(lonMM)) 
+
+        lonDD = str("%03.0f" % lonDD)
+        lonMM = str("%02.0f" % lonMM)
+        lonSS = str("%02.3f" % lonSS)
+
+        lonDDMMSS = lonHemisphere+lonDD+" "+lonMM+" "+lonSS
+
+        return [latDDMMSS, lonDDMMSS]
+
 
 class Orientation:
     """

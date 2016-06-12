@@ -256,7 +256,7 @@ class CSVExporter(Exporter):
     Provides methods for creating a CSV document populated
     with objects from Pigeon, including marker properties
 
-    Include Anaylasis, CDN, and US competition output styles
+    Include Anaylasis, and US competition output styles
     """
 
     def export(self, features, output_path):
@@ -286,6 +286,55 @@ class CSVExporter(Exporter):
 
             currentMarkerList = [] # clear list for next row
 
+        # Closes CSV so file is updated upon station exit
+        self.CSVFileObject.close()
+
+    def writeAUVSIMarkersCSV(self, PointsOfIntrest, output_path):
+        #Created File Object for csv file
+        self.CSVFileObject = open(output_path + "UAARG.csv", 'w+')
+        # creates fileObject
+        spamWriter = CSV.writer(self.CSVFileObject, delimiter='\t')
+
+        TargetCount = 0 
+        currentMarkerList = [] # start with an empty marker list
+        titleMissing = True
+        
+        for marker in PointsOfIntrest: #Over every marker
+            titleList = ["Target Number","Latitude","Longitude"]
+            TargetCount = TargetCount + 1 # Increment counter
+            currentMarkerList.append("%02d" % TargetCount)
+
+            latlonDDMMSS = marker.position.dispLatLonDDMMSS()
+            currentMarkerList.append(latlonDDMMSS[0]) # Slaps position in the row list
+            currentMarkerList.append(latlonDDMMSS[1])
+            for data_column in ["Name", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
+                for key, value  in marker.data: # Add all marker features we care about
+                    if key == data_column:
+                        currentMarkerList.append(value)
+                #else:
+                    #currentMarkerList.append("")
+            titleList.extend(("Name", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"))
+            
+      
+
+            titleList.insert(9,"Image Name")
+            thumbnailName = "Targ_" + str(TargetCount)
+            marker.picture.save(output_path + thumbnailName, "JPG")
+            currentMarkerList.insert( 9,thumbnailName + ".jpg")
+
+            NameIndex = titleList.index("Name")
+            targ_type = currentMarkerList.pop(NameIndex)
+            currentMarkerList.insert(1, targ_type)
+            titleList.pop(NameIndex)
+            titleList.insert(1, "Target Type")
+
+
+            if (TargetCount == 1):
+                spamWriter.writerow(titleList) #write list as a csv row
+            spamWriter.writerow(currentMarkerList) #write list as a csv row
+
+            currentMarkerList = [] # clear list for next row
+            titleList = []
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
 

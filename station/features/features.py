@@ -64,8 +64,9 @@ class Feature(BaseFeature):
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
-        self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
-
+        #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
+        self.data = [("Name", name), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""), 
+                    ("Alphanumeric", ""), ("Alpha_Color", ""), ("Notes", ""), ("Export", True)]
 
 class Point(Feature):
     """
