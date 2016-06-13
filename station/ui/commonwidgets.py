@@ -24,8 +24,7 @@ class EditableBaseListForm(QtWidgets.QWidget):
         else:
             self.title = None
 
-        self.fields = None
-
+        self.fields = []
         self.data = None
 
     def _title(self):
@@ -45,14 +44,19 @@ class EditableBaseListForm(QtWidgets.QWidget):
         """
         return [field if len(field) == 2 else (field[0], field[1]) for field in data]
 
-    def _createFields(self, data):
+    def setData(self, data):
         """
-        Creates the UI elements.
-        """
-        self.fields = {}
+        Sets or updates the widget with the provided data.
 
+        data should be a list of tuples. The first element of tuple
+        will be used as the field name and the second as the field
+        value. If the tuple has a third element that's False, the
+        field will be read-only. Otherwise, it'll be editable.
+        """
         if not data:
             return
+
+        self.data = data
 
         # Creating the widgets
         for (i, (field_name, field_value, field_editable)) in enumerate(self._interpreted_data(data)):
@@ -77,10 +81,23 @@ class EditableBaseListForm(QtWidgets.QWidget):
             else:
                 raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
 
-            self.layout.addWidget(label, i+1, 0, 1, 1)
-            self.layout.addWidget(edit_widget, i+1, 1, 1, 1)
+            if len(self.fields) == i:
+                self.layout.addWidget(label, i+1, 0, 1, 1)
+                self.layout.addWidget(edit_widget, i+1, 1, 1, 1)
+                self.fields.append([label, edit_widget])
+            else:
+                self.layout.replaceWidget(self.fields[i][0], label)
+                self.layout.replaceWidget(self.fields[i][1], edit_widget)
+                self.fields[i][0].deleteLater()
+                self.fields[i][0] = label
+                self.fields[i][1].deleteLater()
+                self.fields[i][1] = edit_widget
 
-            self.fields[field_name] = (label, edit_widget)
+        # Hiding any old widgets that haven't been set this time:
+        while i + 1 < len(self.fields):
+            i += 1
+            self.fields[i][0].hide()
+            self.fields[i][1].hide()
 
     def _updateData(self, field_name, field_value):
         """
@@ -94,53 +111,8 @@ class EditableBaseListForm(QtWidgets.QWidget):
         # For updating the feature itself, strip out the editability attribute
         self.dataEdited.emit(self._no_editability_data(self.data))
 
-    def setData(self, data):
-        """
-        data should be a list of tuples. The first element of tuple
-        will be used as the field name and the second as the field
-        value. If the tuple has a third element that's False, the
-        field will be read-only. Otherwise, it'll be editable.
-
-        The field names should be unique and the same field names
-        should be provided each time: new fields and old ones will
-        be ignored.
-        """
-        self.data = data
-        if not self.fields:
-            self._createFields(data)
-
-        if not data:
-            return
-
-        for field_name, field_value, field_editable in self._interpreted_data(data):
-            setting_label, edit_widget = self.fields.get(field_name, (None, None))
-
-            if edit_widget:
-                if isinstance(field_value, bool):
-                    edit_widget.setChecked(field_value)
-                elif isinstance(field_value, str):
-                    edit_widget.setText(field_value)
-                else:
-                    raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
-
     def getData(self):
-        if not self.fields:
-            return None
-        output = []
-        for (field_name, (setting_label, edit_widget)) in self.fields.items():
-            if isinstance(edit_widget, QtWidgets.QCheckBox):
-                field_value = bool(edit_widget.checkState())
-                field_editable = True
-            elif isinstance(edit_widget, QtWidgets.QLineEdit):
-                field_value = edit_widget.text()
-                field_editable = not edit_widget.isReadOnly()
-            else:
-                raise(ValueError())
-
-
-            output.append((field_name, field_value, field_editable))
-
-        return output
+        return self.data
 
 class NonEditableBaseListForm(EditableBaseListForm):
     def __init__(self, *args, **kwargs):
