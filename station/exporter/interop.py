@@ -30,7 +30,9 @@ class InteropClient(Exporter):
             targetData = []
             for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color"]:
                 allocated = False
-                for key, value in target.data: # Add all marker features we care about
+                for field in target.data: # Add all marker features we care about
+                    key = field[0]
+                    value = field[1]
                     if key == data_column:
                         allocated = True
                         if value == "": # Convert empty strings to None

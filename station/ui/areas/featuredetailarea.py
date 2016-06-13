@@ -40,10 +40,12 @@ class FeatureDetailArea(QtWidgets.QWidget):
         Updates the attributes of the feature object being edited,
         using the data provided from the EditableBaseListForm.
         """
-        for i, (field_name, field_value) in enumerate(self.feature.data):
-            for data_name, data_value in data:
-                if field_name == data_name:
-                    self.feature.data[i] = (field_name, data_value)
+        for i, feature_field in enumerate(self.feature.data):
+            for data_field in data:
+                if feature_field[0] == data_field[0]:
+                    new_field = list(feature_field)
+                    new_field[1] = data_field[1]
+                    self.feature.data[i] = tuple(new_field)
                     break
         self.featureChanged.emit(self.feature)
 
@@ -51,11 +53,11 @@ class FeatureDetailArea(QtWidgets.QWidget):
         self.feature = feature
         display_data = feature.data.copy()
         if hasattr(feature, "dispLatLon"):
-            display_data.append(("Position", feature.dispLatLon(), False))
+            display_data.append(("Position", feature.dispLatLon(), [], False))
         if hasattr(feature, "dispMaxPositionDistance"):
-            display_data.append(("Error", feature.dispMaxPositionDistance(), False))
+            display_data.append(("Error", feature.dispMaxPositionDistance(), [], False))
         if hasattr(feature, "image") and feature.image:
-            display_data.append(("Image Name", str(feature.image.name), False))
+            display_data.append(("Image Name", str(feature.image.name), [], False))
         self.edit_form.setData(display_data)
         if self.feature.allowSubfeatures():
             self.add_subfeature_button.show()

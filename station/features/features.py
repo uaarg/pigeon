@@ -12,7 +12,9 @@ class BaseFeature:
 
     def __str__(self):
         if self.data:
-            for key, value in self.data:
+            for field in self.data:
+                key = field[0]
+                value = field[1]
                 if key == "Name":
                     if value:
                         return str(value)
@@ -65,7 +67,7 @@ class Feature(BaseFeature):
                             # is intended to be a crop of the original
                             # image right around the feature.
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
-        self.data = [("Name", name), ("Type", ""), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""),
+        self.data = [("Name", name), ("Type", "standard", ["standard", "qrc", "off_axis", "emergent"]), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""),
                     ("Alphanumeric", ""), ("Alpha_Color", ""), ("Notes", ""), ("Export", True)]
 
         # Holds references from external programs to this feature.

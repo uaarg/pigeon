@@ -32,26 +32,35 @@ class EditableBaseListForm(QtWidgets.QWidget):
 
     def _interpreted_data(self, data):
         """
-        Returns a list of fields where each field is a 3-element tuple.
-        Set the third element to True for input fields with only two
-        elements.
+        Returns a copy of the provided list of fields except with each
+        field extended to be a 4-element tuple if not already.
+        If the third element (choices) doesn't exist, sets it to an empty
+        list. If the fourth element (editable) doesn't exist, sets it
+        according to self.editable
         """
-        return [field if len(field) == 3 else (field[0], field[1], self.editable) for field in data]
+        output = []
+        for field in data:
+            if len(field) == 2:
+                field = (field[0], field[1], [], self.editable)
+            elif len(field) == 3:
+                field = (field[0], field[1], field[2], self.editable)
+            output.append(field)
 
-    def _no_editability_data(self, data):
-        """
-        Returns a list of fields with the editable property removed.
-        """
-        return [field if len(field) == 2 else (field[0], field[1]) for field in data]
+        return output
 
     def setData(self, data):
         """
         Sets or updates the widget with the provided data.
 
-        data should be a list of tuples. The first element of tuple
-        will be used as the field name and the second as the field
-        value. If the tuple has a third element that's False, the
-        field will be read-only. Otherwise, it'll be editable.
+        data should be a list of tuples:
+          * The first element of the tuple will be used as the field name.
+          * The second element of the tuple as the field value.
+          * If the tuple has a third element, it should be a list of strings
+            and a selector UI element will be populated with these values.
+          * If the tuple has a fourth element, it determines whether the
+            field is editable or not: True means editable, False means readonly.
+            If this element does not exist, the detault provided when
+            instantiating this class will be used.
         """
         if not data:
             return
@@ -59,7 +68,7 @@ class EditableBaseListForm(QtWidgets.QWidget):
         self.data = data
 
         # Creating the widgets
-        for (i, (field_name, field_value, field_editable)) in enumerate(self._interpreted_data(data)):
+        for (i, (field_name, field_value, field_choices, field_editable)) in enumerate(self._interpreted_data(data)):
             label = QtWidgets.QLabel(self)
             label.setText(translate(self.__class__.__name__, field_name))
 
@@ -67,17 +76,27 @@ class EditableBaseListForm(QtWidgets.QWidget):
                 edit_widget = QtWidgets.QCheckBox(self)
                 edit_widget.setChecked(field_value)
 
-                def state_changed_closure(field_name, edit_widget):
+                def state_changed_closure(field_name):
                     return lambda state: self._updateData(field_name, bool(state))
-                edit_widget.stateChanged.connect(state_changed_closure(field_name, edit_widget))
+                edit_widget.stateChanged.connect(state_changed_closure(field_name))
             elif isinstance(field_value, str):
-                edit_widget = QtWidgets.QLineEdit(self)
-                edit_widget.setReadOnly(not field_editable)
-                edit_widget.setText(field_value)
+                if field_choices and field_editable:
+                    edit_widget = QtWidgets.QComboBox(self)
+                    edit_widget.addItems(field_choices)
+                    edit_widget.setCurrentText(field_value)
 
-                def state_changed_closure(field_name, edit_widget):
-                    return lambda: self._updateData(field_name, edit_widget.text())
-                edit_widget.editingFinished.connect(state_changed_closure(field_name, edit_widget))
+                    def state_changed_closure(field_name, field_choices):
+                        return lambda index: self._updateData(field_name, field_choices[index])
+                    edit_widget.currentIndexChanged.connect(state_changed_closure(field_name, field_choices))
+
+                else:
+                    edit_widget = QtWidgets.QLineEdit(self)
+                    edit_widget.setReadOnly(not field_editable)
+                    edit_widget.setText(field_value)
+
+                    def state_changed_closure(field_name, edit_widget):
+                        return lambda: self._updateData(field_name, edit_widget.text())
+                    edit_widget.editingFinished.connect(state_changed_closure(field_name, edit_widget))
             else:
                 raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
 
@@ -103,13 +122,13 @@ class EditableBaseListForm(QtWidgets.QWidget):
         """
         Updates the feature with changes made by the user.
         """
-        for (i, (existing_field_name, existing_field_value, field_editable)) in enumerate(self._interpreted_data(self.data)):
+        for (i, (existing_field_name, existing_field_value, _, _)) in enumerate(self._interpreted_data(self.data)):
             if existing_field_name == field_name:
-                self.data[i] = (field_name, field_value)
-                break
+                data = list(self.data[i])
+                data[1] = field_value
+                self.data[i] = tuple(data)
 
-        # For updating the feature itself, strip out the editability attribute
-        self.dataEdited.emit(self._no_editability_data(self.data))
+        self.dataEdited.emit(self.data)
 
     def getData(self):
         return self.data

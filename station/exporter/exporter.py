@@ -177,13 +177,15 @@ class KMLExporter(Exporter):
 
         elif isinstance(arg, Marker):
             feature_full_desc = ""
-            for field, value in arg.data:
+            for key, value in arg.data:
                 # use the str representation of the feature rather than what's in the name field
                 # this is done just to exclude the Name from the full description
-                if field == "Name":
+                key = field[0]
+                value = field[1]
+                if key == "Name":
                     feature_name = str(arg)
                 else:
-                    feature_full_desc += "%s: %s\n" % (field, str(value))
+                    feature_full_desc += "%s: %s\n" % (key, str(value))
 
                 pos = arg.position
                 output = KML.Placemark(
@@ -277,7 +279,9 @@ class CSVExporter(Exporter):
             currentMarkerList.append(feature.position.lat) # Slaps position in the row list
             currentMarkerList.append(feature.position.lon)
             for data_column in ["Colour", "Letter", "Notes"]:
-                for key, value in feature.data:
+                for field in feature.data:
+                    key = field[0]
+                    value = field[1]
                     if key == data_column:
                         currentMarkerList.append(value)
                         break
@@ -314,7 +318,9 @@ class AUVSICSVExporter(Exporter):
             currentMarkerList.append(latlonDDMMSS[0]) # Slaps position in the row list
             currentMarkerList.append(latlonDDMMSS[1])
             for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
-                for key, value  in marker.data: # Add all marker features we care about
+                for field  in marker.data: # Add all marker features we care about
+                    key = field[0]
+                    value = field[1]
                     if key == data_column:
                         currentMarkerList.append(value)
                         break
@@ -328,13 +334,6 @@ class AUVSICSVExporter(Exporter):
             thumbnailName = "Targ_" + str(TargetCount)
             marker.picture.save(output_path + thumbnailName, "JPG")
             currentMarkerList.insert( 9,thumbnailName + ".jpg")
-
-            TypeIndex = titleList.index("Type")
-            targ_type = currentMarkerList.pop(NameIndex)
-            currentMarkerList.insert(1, targ_type)
-            titleList.pop(NameIndex)
-            titleList.insert(1, "Type")
-
 
             if (TargetCount == 1):
                 spamWriter.writerow(titleList) #write list as a csv row
@@ -378,7 +377,9 @@ class ExportManager:
     def featuresToExport(self, features):
         exportable = []
         for feature in features:
-            for key, value in feature.data:
+            for field in feature.data:
+                key = field[0]
+                value = field[1]
                 if key == "Export":
                     if value:
                         exportable.append(feature)
