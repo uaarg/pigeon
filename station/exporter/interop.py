@@ -27,25 +27,27 @@ class InteropClient(Exporter):
     def runner(self):
         self.interoplink = Connection()
         for target in self.rawdata:
+            targetData = []
+            for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color"]:
+                allocated = False
+                for key, value  in target.data: # Add all marker features we care about
+                    if key == data_column: 
+                        allocated = True
+                        targetData.append(value)
+                if not allocated: 
+                    targetData.append("")
+            
             target_data = {
-                # 'type':str(target.type),
-                # 'latitude':float(target.lon),
-                # 'longitude':float(target.lon),
-                # 'orientation':str(target.orentation),
-                # 'shape':str(target.shape),
-                # 'background_color':str(target.bgcolor),
-                # 'alphanumeric':str(target.alphanumeric),
-                # 'alphanumeric_color':str(target.alphanumeric_color)
-                "type": "standard",
-                "latitude": 38.1478,
-                "longitude": -76.4275,
-                "orientation": "n",
-                "shape": "star",
-                "background_color": "orange",
-                "alphanumeric": "X",
-                "alphanumeric_color": "black"
+                "type": targetData[0],
+                "latitude": target.position.lat,
+                "longitude": target.position.lon,
+                "orientation": targetData[1],
+                "shape": targetData[2],
+                "background_color": targetData[3],
+                "alphanumeric": targetData[4],
+                "alphanumeric_color": targetData[5]
             }
-
+            print(target_data)
             if 'interoperability' in target.external_refs:
                 target_id = target.external_refs['interoperability']['id']
                 target_data = target.external_refs['interoperability']

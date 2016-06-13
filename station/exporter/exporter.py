@@ -313,14 +313,14 @@ class AUVSICSVExporter(Exporter):
             latlonDDMMSS = marker.position.dispLatLonDDMMSS()
             currentMarkerList.append(latlonDDMMSS[0]) # Slaps position in the row list
             currentMarkerList.append(latlonDDMMSS[1])
-            for data_column in ["Name", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
+            for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
                 for key, value  in marker.data: # Add all marker features we care about
                     if key == data_column:
                         currentMarkerList.append(value)
                         break
                 else:
                     currentMarkerList.append("")
-            titleList.extend(("Name", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"))
+            titleList.extend(("Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"))
 
 
 
@@ -329,11 +329,11 @@ class AUVSICSVExporter(Exporter):
             marker.picture.save(output_path + thumbnailName, "JPG")
             currentMarkerList.insert( 9,thumbnailName + ".jpg")
 
-            NameIndex = titleList.index("Name")
+            TypeIndex = titleList.index("Type")
             targ_type = currentMarkerList.pop(NameIndex)
             currentMarkerList.insert(1, targ_type)
             titleList.pop(NameIndex)
-            titleList.insert(1, "Target Type")
+            titleList.insert(1, "Type")
 
 
             if (TargetCount == 1):
