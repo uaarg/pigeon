@@ -30,13 +30,15 @@ class InteropClient(Exporter):
             targetData = []
             for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color"]:
                 allocated = False
-                for key, value  in target.data: # Add all marker features we care about
-                    if key == data_column: 
+                for key, value in target.data: # Add all marker features we care about
+                    if key == data_column:
                         allocated = True
+                        if value == "": # Convert empty strings to None
+                            value = None
                         targetData.append(value)
-                if not allocated: 
+                if not allocated:
                     targetData.append("")
-            
+
             target_data = {
                 "type": targetData[0],
                 "latitude": target.position.lat,
@@ -47,10 +49,9 @@ class InteropClient(Exporter):
                 "alphanumeric": targetData[4],
                 "alphanumeric_color": targetData[5]
             }
-            print(target_data)
+
             if 'interoperability' in target.external_refs:
                 target_id = target.external_refs['interoperability']['id']
-                target_data = target.external_refs['interoperability']
                 self.interoplink.updateTarget(target_data, target_id)
             else:
                 target_id = self.interoplink.submitTarget(target_data)
@@ -64,7 +65,6 @@ class Connection:
     def __init__(self):
         self.loginsucess = False
         self.s = requests.Session()
-        self.lasttele = 0
         self.json_decoder = json.JSONDecoder()
         data = {"username": username, "password": password}
         loginurl = "/api/login"
@@ -75,15 +75,6 @@ class Connection:
         except requests.exceptions.ConnectionError as e:
             print("Failed to login to interop server")
             pass
-
-    def getobstacleinfo(self):
-        ob = self.s.get(baseurl + "/api/obstacles")
-        objects = ast.literal_eval(ob.text)
-        return objects
-
-    def updatetelemetry(self, tele):
-        tl = self.s.post(baseurl + "/api/telemetry", tele)
-        print(tl.status_code)
 
     def submitTarget(self, target_data):
         """
@@ -109,7 +100,7 @@ class Connection:
         """
 
         thumbnail_url = baseurl + "/api/targets/" + str(target_id) + "/image"
-        
+
         # Upload thumbnail
         with open(image_path, 'rb') as image_data:
             response = self.s.post(thumbnail_url, image_data)
