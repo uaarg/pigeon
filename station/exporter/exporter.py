@@ -362,11 +362,11 @@ class ExportManager:
     def __init__(self, path):
         self.path = path
         self.options = [
-                            ("KML", self._generateExporterFunc(KMLExporter)),
-                            ("CSV Normal", self._generateExporterFunc(CSVExporter)),
-                            ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter)),
-                            ("AUVSI Interop", self._generateExporterFunc(InteropClient)),
-                            ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI)),
+                            ("KML", self._generateExporterFunc(KMLExporter), None),
+                            ("CSV Normal", self._generateExporterFunc(CSVExporter), None),
+                            ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter), None),
+                            ("AUVSI Interop", self._generateExporterFunc(InteropClient), "Ctrl+E"),
+                            ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI), None),
                        ]
 
     def _generateExporterFunc(self, exporter):

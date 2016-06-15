@@ -8,8 +8,10 @@ username = "testuser"
 password = "testpass"
 
 from features import Marker
-
 from .common import Exporter
+
+import logging
+logger = logging.getLogger(__name__)
 
 class InteropClient(Exporter):
     def __init__(self):
@@ -54,7 +56,7 @@ class InteropClient(Exporter):
 
             if 'interoperability' in target.external_refs:
                 target_id = target.external_refs['interoperability']['id']
-                self.interoplink.updateTarget(target_data, target_id)
+                self.interoplink.updateTarget(target_id, target_data)
             else:
                 target_id = self.interoplink.submitTarget(target_data)
                 if target_id:
@@ -86,12 +88,15 @@ class Connection:
         response = self.s.post(baseurl + "/api/targets", json.dumps(target_data))
 
         if not response.status_code == requests.codes.created: # 201
-            print("Target not created; server responded: {} {}".format(response.status_code, response.text))
+            msg = "Target not created; server responded: {} {}".format(response.status_code, response.text)
             return None
 
         # Parse response and get id
         response_dict = self.json_decoder.decode(response.text)
         target_id = response_dict['id']
+
+        msg = "Target {} created: server responded: {}".format(target_id, response.text)
+        logger.info(msg)
 
         return target_id
 
@@ -108,10 +113,14 @@ class Connection:
             response = self.s.post(thumbnail_url, image_data)
 
         if not response.status_code == requests.codes.ok: # 200
-            print("Image thumbnail not uploaded; server responded: {} {}".format(response.status_code, response.text))
+            msg = "Image thumbnail not uploaded; server responded with code {}: {}".format(response.status_code, response.text)
+            logger.error(msg)
             return None
 
-    def updateTarget(self, target_data, target_id):
+        msg = "Image thumbnail {} uploaded: server responded: {}".format(target_id, response.text)
+        logger.info(msg)
+
+    def updateTarget(self, target_id, target_data):
         """
         Updates the data for a target whose information has already
         been uploaded to the interoperability server.
@@ -119,5 +128,9 @@ class Connection:
         response = self.s.put(baseurl + "/api/targets/" + str(target_id), json.dumps(target_data))
 
         if not response.status_code == requests.codes.ok: # 200
-            print("Target not updated; server responded: {} {}".format(response.status_code, response.text))
+            msg = "Target not updated; server responded with code {}: {}".format(response.status_code, response.text)
+            logger.error(msg)
             return None
+
+        msg = "Target {} updated: server responded: {}".format(target_id, response.text)
+        logger.info(msg)
