@@ -211,16 +211,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def createNewMarker(self, image, point):
         marker = Marker(image, point=(point.x(), point.y()))
+        if marker.position:
+            offset_position = position_at_offset(marker.position, float(self.settings_data["Nominal Target Size"]), 0)
+            offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
 
-        offset_position = position_at_offset(marker.position, float(self.settings_data["Nominal Target Size"]), 0)
-        offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
-        offset_pixels = max(abs(offset_pixel_x - point.x()), abs(offset_pixel_y - point.y()))
+            if offset_pixel_x and offset_pixel_y:
+                offset_pixels = max(abs(offset_pixel_x - point.x()), abs(offset_pixel_y - point.y()))
 
-        # Calculate thumbnail size and crop
-        cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
-        marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
+                # Calculate thumbnail size and crop
+                cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
+                marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
 
-        self.addFeature(marker)
+            self.addFeature(marker)
 
     def collectSubfeature(self, feature):
         self.collect_subfeature_for = feature
