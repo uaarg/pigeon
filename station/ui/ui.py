@@ -163,11 +163,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.export_manager:
             menu = self.menubar.addMenu('&Export')
-            for option_name, option_action in self.export_manager.options:
+            for option_name, option_action, shortcut in self.export_manager.options:
                 action_widget = QtWidgets.QAction(option_name, self)
                 def closure(action):
                     return lambda enabled: action(self.features)
                 action_widget.triggered.connect(closure(option_action))
+                if shortcut:
+                    action_widget.setShortcut(shortcut)
                 menu.addAction(action_widget)
 
     def ExitFcn(self):

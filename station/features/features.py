@@ -67,8 +67,17 @@ class Feature(BaseFeature):
                             # is intended to be a crop of the original
                             # image right around the feature.
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
-        self.data = [("Name", name), ("Type", "standard", ["standard", "qrc", "off_axis", "emergent"]), ("Orientation", ""), ("Shape", ""), ("Bkgnd_Color", ""),
-                    ("Alphanumeric", ""), ("Alpha_Color", ""), ("Notes", ""), ("Export", True)]
+        self.data = [
+            ("Name", name),
+            ("Type", "", ["", "standard", "qrc", "off_axis", "emergent"]),
+            ("Shape", "", ["", "circle", "semicircle", "quarter_circle", "triangle", "square", "rectangle", "trapezoid", "pentagon", "hexagon", "heptagon", "octagon", "star", "cross"]),
+            ("Orientation", "", ["", "N", "NE", "E", "SE", "S", "SW", "W", "NW"]),
+            ("Bkgnd_Color", "", ["", "white", "black", "gray", "red", "blue", "green", "yellow", "purple", "brown", "orange"]),
+            ("Alphanumeric", ""),
+            ("Alpha_Color", "", ["", "white", "black", "gray", "red", "blue", "green", "yellow", "purple", "brown", "orange"]),
+            ("Notes", ""),
+            ("Export", True)
+        ]
 
         # Holds references from external programs to this feature.
         # An external program should register its own entry in this dictionary;
