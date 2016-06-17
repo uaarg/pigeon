@@ -146,6 +146,15 @@ class Image:
                      self.geoReferencePoint(*point_b)]
         return geo.PositionCollection(positions).length()
 
+    def heading(self, point_a, point_b):
+        """
+        Returns the heading between the two points on the ground referred to
+        by the provided pixel locations.
+        """
+        positions = [self.geoReferencePoint(*point_a),
+                     self.geoReferencePoint(*point_b)]
+        return geo.heading_between_positions(positions[0], positions[1])
+
     def getImageOutline(self):
         """
         Returns a PositionCollection that describes the area of the

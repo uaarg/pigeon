@@ -70,14 +70,14 @@ class Position:
         """
         return "%.6f, %.6f" % (self.lat, self.lon)
 
-    def dispLatLonDDMMSS(self): 
-        """ 
+    def dispLatLonDDMMSS(self):
+        """
         Returns the Latitude and Longitude in DD:MM:SS form for US 2016 competition
         """
 
         if (self.lat > 0):
             latHemisphere = "N"
-        else: 
+        else:
             latHemisphere = "S"
 
         latDD = int(abs(self.lat))
@@ -92,12 +92,12 @@ class Position:
 
         if (self.lon > 0):
             lonHemisphere = "E"
-        else: 
+        else:
             lonHemisphere = "W"
 
         lonDD = int(abs(self.lon))
         lonMM = 60*(abs(self.lon)-lonDD)
-        lonSS = 60*(lonMM-int(lonMM)) 
+        lonSS = 60*(lonMM-int(lonMM))
 
         lonDD = str("%03.0f" % lonDD)
         lonMM = str("%02.0f" % lonMM)
@@ -571,3 +571,30 @@ def position_at_offset(position, distance, angle):
     """
     lon, lat, back_azimuth = geod.fwd(position.lon, position.lat, angle, distance)
     return Position(lat, lon)
+
+def heading_between_positions(position_a, position_b):
+    """
+    Calculates the heading from position_a to position_b.
+
+    position_a, position_b - Position objects.
+    Returns a positive angle in degrees from 0 to 360 clockwise from north.
+    """
+
+    (az_ab, az_ba, dist) = geod.inv(position_a.lon, position_a.lat,
+                                    position_b.lon, position_b.lat)
+
+    def normalize_angle(angle, mininum=0, maximum=360):
+            i = 0
+            while angle >= maximum:
+                i += 1
+                angle -= 360
+                if i > 10:
+                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+            while angle < mininum:
+                i += 1
+                angle += 360
+                if i > 10:
+                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+            return angle
+
+    return normalize_angle(az_ab)

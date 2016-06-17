@@ -37,7 +37,10 @@ class Ruler(QtCore.QLine):
             self.setP2(point) # set second point
             distance = image.distance([self.x1(), self.y1()],
                                       [self.x2(), self.y2()])
+            angle = image.heading([self.x1(), self.y1()],
+                                  [self.x2(), self.y2()])
             print("Ruler is "+ str(distance)+ "m long.") # Add angle???
+            print(angle)
             self.showRuler(point,1)
 
         elif self.num_clicks == 3: # Even click
