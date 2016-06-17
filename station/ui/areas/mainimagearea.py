@@ -7,6 +7,8 @@ from ..ui import icons
 from image import Image
 from features import Feature
 
+from .ruler import Ruler
+
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
@@ -50,29 +52,8 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = {}
         self.image_area.pixmap_label_marker_dropped.connect(self._moveFeatureById)
 
-        self.ruler = QtCore.QLine()
-
-    def updateRuler(self, image, point):
-        if (self.ruler.dx() ==0 ) and (self.ruler.dy() == 0): # on first click
-            print("Got to first click")
-            self.ruler.setP1(point)  # Set new point
-            print('Point 1 x = ' + str(point.x()) +'\n y = '+ str(point.y()))
-            point.setX(point.x()+1) # Set changes to prep for second click
-            point.setY(point.y()+1)
-            print('Point 1 (+1,+1) x = ' + str(point.x()) +'\n y = '+ str(point.y()))
-            self.ruler.setP2(point)
-            print('dx = ' + str(self.ruler.dx()) +'\n dy = '+ str(self.ruler.dy()))
-        elif (self.ruler.dx() == 1) and (self.ruler.dy() == 1): # on second click
-            print('Got to second click')
-            self.ruler.setP2(point) # set second point
-            distance = image.distance([self.ruler.x1(), self.ruler.y1()],
-                                      [self.ruler.x2(), self.ruler.y2()])
-            #datPainter = QtGui.QPainter() # Probably need to add pixmap to this event, RJA, E.I.T.
-            #datPainter.begin(self)
-            #self._drawLine(datPainter, self.ruler, 'Ruler')
-            #datPainter.end()
-            print("Ruler is "+ str(distance)+ "m long.") # Add angle???
-        self.showRuler(point)
+        self.ruler = Ruler()
+        self.ruler.bindimagearea(self.image_area)
 
     def showImage(self, image):
         self._clearFeatures()

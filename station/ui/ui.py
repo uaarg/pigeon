@@ -68,7 +68,7 @@ class UI(QtCore.QObject, QueueMixin):
         signal.signal(signal.SIGINT,self.ExitFcn)
 
         # Hooking up some inter-component behaviour
-        self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.updateRuler)
+        self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.ruler.click)
         self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
 
     def run(self):
