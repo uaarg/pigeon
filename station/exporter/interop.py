@@ -3,6 +3,9 @@ import ast
 from time import time
 import threading
 import json
+# baseurl = "http://10.10.130.43"
+# username = "U_Alberta"
+# password = "2689456278"
 baseurl = "http://localhost"
 username = "testuser"
 password = "testpass"
@@ -30,7 +33,7 @@ class InteropClient(Exporter):
         self.interoplink = Connection()
         for target in self.rawdata:
             targetData = []
-            for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color"]:
+            for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
                 allocated = False
                 for field in target.data: # Add all marker features we care about
                     key = field[0]
@@ -43,16 +46,37 @@ class InteropClient(Exporter):
                 if not allocated:
                     targetData.append("")
 
-            target_data = {
-                "type": targetData[0],
-                "latitude": target.position.lat,
-                "longitude": target.position.lon,
-                "orientation": targetData[1],
-                "shape": targetData[2],
-                "background_color": targetData[3],
-                "alphanumeric": targetData[4],
-                "alphanumeric_color": targetData[5]
-            }
+            if targetData[0] == "qrc" or targetData[0] == "emergent":
+                target_data = {
+                    "type": targetData[0],
+                    "latitude": target.position.lat,
+                    "longitude": target.position.lon,
+                    "description": targetData[6]
+                }
+
+            elif targetData[0] == "off_axis":
+                target_data = {
+                    "type": targetData[0],
+                    "orientation": targetData[1],
+                    "shape": targetData[2],
+                    "background_color": targetData[3],
+                    "alphanumeric": targetData[4],
+                    "alphanumeric_color": targetData[5],
+                    "description": targetData[6]
+                }
+
+            else:
+                target_data = {
+                    "type": targetData[0],
+                    "latitude": target.position.lat,
+                    "longitude": target.position.lon,
+                    "orientation": targetData[1],
+                    "shape": targetData[2],
+                    "background_color": targetData[3],
+                    "alphanumeric": targetData[4],
+                    "alphanumeric_color": targetData[5],
+                    "description": targetData[6]
+                }
 
             if 'interoperability' in target.external_refs:
                 target_id = target.external_refs['interoperability']['id']
@@ -89,6 +113,8 @@ class Connection:
 
         if not response.status_code == requests.codes.created: # 201
             msg = "Target not created; server responded: {} {}".format(response.status_code, response.text)
+            logger.error(msg)
+            print(msg)
             return None
 
         # Parse response and get id
@@ -97,6 +123,7 @@ class Connection:
 
         msg = "Target {} created: server responded: {}".format(target_id, response.text)
         logger.info(msg)
+        print(msg)
 
         return target_id
 
@@ -115,10 +142,12 @@ class Connection:
         if not response.status_code == requests.codes.ok: # 200
             msg = "Image thumbnail not uploaded; server responded with code {}: {}".format(response.status_code, response.text)
             logger.error(msg)
+            print(msg)
             return None
 
         msg = "Image thumbnail {} uploaded: server responded: {}".format(target_id, response.text)
         logger.info(msg)
+        print(msg)
 
     def updateTarget(self, target_id, target_data):
         """
@@ -130,7 +159,9 @@ class Connection:
         if not response.status_code == requests.codes.ok: # 200
             msg = "Target not updated; server responded with code {}: {}".format(response.status_code, response.text)
             logger.error(msg)
+            print(msg)
             return None
 
         msg = "Target {} updated: server responded: {}".format(target_id, response.text)
         logger.info(msg)
+        print(msg)

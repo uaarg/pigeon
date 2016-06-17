@@ -42,6 +42,7 @@ class ThumbnailArea(QtWidgets.QWidget):
 
         item = ListImageItem(image.pixmap_loader, self.contents)
         item.image = image
+        item.setToolTip(image.name)
 
         if self.settings_data.get("Follow Images", False):
             item.setSelected(True)
