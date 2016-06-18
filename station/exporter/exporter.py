@@ -4,6 +4,7 @@ into various formats.
 """
 
 import datetime
+import os
 
 from lxml import etree
 from pykml.factory import KML_ElementMaker as KML
@@ -126,9 +127,8 @@ class KMLExporter(Exporter):
             schema = Schema("ogckml22.xsd")
             schema.assertValid(doc)
 
-        with open(output_path + "features.kml", "wb") as output_file:
+        with open(os.path.join(output_path, "features.kml") , "wb") as output_file:
             output_file.write(etree.tostring(self.doc, pretty_print=True))
-
 
     def classToKML(self, arg, **kwargs):
         """
@@ -267,7 +267,7 @@ class CSVExporter(Exporter):
 
     def writeMarkersCSV(self, features, output_path):
         #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "markerResults.csv", 'w+')
+        self.CSVFileObject = open(os.path.join(output_path, "markerResults.csv") , 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter=',', quotechar='|')
 
@@ -301,7 +301,7 @@ class AUVSICSVExporter(Exporter):
 
     def writeAUVSIMarkersCSV(self, PointsOfIntrest, output_path):
         #Created File Object for csv file
-        self.CSVFileObject = open(output_path + "UAARG.csv", 'w+')
+        self.CSVFileObject = open(os.path.join(output_path, "UAARG.csv") , 'w+')
         # creates fileObject
         spamWriter = CSV.writer(self.CSVFileObject, delimiter='\t')
 
@@ -326,13 +326,12 @@ class AUVSICSVExporter(Exporter):
                         break
                 else:
                     currentMarkerList.append("")
+            print(currentMarkerList)
             titleList.extend(("Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"))
-
-
 
             titleList.insert(9,"Image Name")
             thumbnailName = "Targ_" + str(TargetCount)
-            marker.picture.save(output_path + thumbnailName, "JPG")
+            marker.picture.save(os.path.join(output_path, thumbnailName), "JPG")
             currentMarkerList.insert( 9,thumbnailName + ".jpg")
 
             if (TargetCount == 1):
