@@ -16,6 +16,7 @@ from .areas import InfoArea
 from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
+from .areas import AboutPage
 
 from geo import position_at_offset
 
@@ -177,7 +178,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ExitingCB()
 
     def AboutPopup(self):
-        print("You pressed Ctrl+S, popup is not working yet")
+        self.about = AboutPage()
+        self.about.show()
+        #self.about.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
