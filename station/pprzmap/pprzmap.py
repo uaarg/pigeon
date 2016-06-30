@@ -5,13 +5,14 @@ from .ivylinker import CommandSender
 
 
 PPRZ_SRC = getenv("PAPARAZZI_SRC", path.normpath(path.join(path.dirname(path.abspath(__file__)), '~/paparazzi/')))
+PIGEON_SRC = '~/pigeon/'
 PAPARAZZI_HOME = PPRZ_SRC
 PAPARAZZI_SRC = PPRZ_SRC
 sys.path.append(PPRZ_SRC + "/sw/ext/pprzlink/lib/v1.0/python")
 
 class pprzMAP:
     def __init__(self):
-        envvar = "export PAPARAZZI_HOME="+PAPARAZZI_SRC+";export PAPARAZZI_SRC="+PAPARAZZI_SRC
+        envvar = "export PAPARAZZI_HOME="+PAPARAZZI_SRC+";export PAPARAZZI_SRC="+PAPARAZZI_SRC+";export PIGEON_SRC="+PIGEON_SRC
         system(envvar)
         self.ivylink = CommandSender(verbose=True)
         self.lastimgnum = None
@@ -33,7 +34,7 @@ class pprzMAP:
 
 
     def gcs(self):
-        system(PAPARAZZI_SRC+"/sw/ground_segment/cockpit/gcs -layout map_only.xml -b 127.255.255.255:2010")
+        system(PIGEON_SRC+ "/station/pprzmap/gcs -layout map_only.xml -b 127.255.255.255:2010")
 
     def draw_outline(self, image):
         outline = image.getImageOutline()
