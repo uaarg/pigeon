@@ -41,7 +41,7 @@ class UI(QtCore.QObject, QueueMixin):
         # Exiting Program from the Terminal
         self.app.exit()
 
-    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, pprzMAP, ground_control_points=[]):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -50,7 +50,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, export_manager, self.app.exit)
+        self.main_window = MainWindow(self.settings_data, self.features, export_manager, pprzMAP, self.app.exit)
 
         self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
         self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
@@ -84,11 +84,13 @@ class UI(QtCore.QObject, QueueMixin):
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
 
-    def __init__(self, settings_data={}, features=[], export_manager=None, exitfcnCB= None):
+    def __init__(self, settings_data={}, features=[], export_manager=None, pprzMAP = None, exitfcnCB= None):
         super().__init__()
         self.settings_data = settings_data
         self.features = features
         self.export_manager = export_manager
+        self.pprzMAP = pprzMAP()
+        self.pprzMAP_running = False
         self.ExitingCB = exitfcnCB
 
         # State
@@ -158,9 +160,13 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action.setShortcut('Ctrl+A')
         about_action.triggered.connect(self.AboutPopup)
 
+        start_pprzmap = QtWidgets.QAction("Start Paparazzi Map", self)
+        start_pprzmap.triggered.connect(self.StartpprzMAP)
+
         menu = self.menubar.addMenu('&File')
         menu.addAction(about_action)
         menu.addAction(exit_action)
+        menu.addAction(start_pprzmap)
 
         if self.export_manager:
             menu = self.menubar.addMenu('&Export')
@@ -175,12 +181,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def ExitFcn(self):
         print("You pressed Ctrl+Q, now exiting")
+        self.pprzMAP.delete_all()
         self.ExitingCB()
 
     def AboutPopup(self):
         self.about = AboutPage()
         self.about.show()
         #self.about.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+    def StartpprzMAP(self):
+        self.pprzMAP_running = True
+        self.pprzMAP.start()
+
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
@@ -206,6 +218,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
+        if self.pprzMAP_running == True:
+            self.pprzMAP.draw_outline(image)
 
     def addFeature(self, feature):
         self.features.append(feature)

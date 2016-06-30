@@ -272,6 +272,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
             self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):
+        self.setTooTip("Hi How are you")
         if self.moveable and (event.pos() - self.drag_start_position).manhattanLength() < QtWidgets.QApplication.startDragDistance():
             return # Requiring the mouse to have moved a small distance before counting it as a drag
 
@@ -282,7 +283,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         drag.setHotSpot(QtCore.QPoint(int(self.size[0]/2), self.size[1]/2))
         drag.setPixmap(self.pixmap().scaled(self.size[0], self.size[1]))
 
-        self.hide()
+        #self.hide()
 
         drop_action = drag.exec_()
         if drop_action:

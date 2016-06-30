@@ -9,8 +9,10 @@ from ui import UI
 import image
 import settings
 import features
+
 from comms.uav import UAV
 from exporter import ExportManager
+from pprzmap import pprzMAP
 
 __version__ = "0.3"
 
@@ -29,6 +31,7 @@ class GroundStation:
                      export_manager=export_manager,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
+                     pprzMAP=pprzMAP,
                      ground_control_points=ground_control_points)
 
     def checkMandatorySettings(self):

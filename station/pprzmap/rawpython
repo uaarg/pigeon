@@ -1,0 +1,27 @@
+import ivylinker
+
+ivylink = ivylinker.CommandSender(verbose=True)
+
+# add new circle
+ob = {'latitude1': 43.4624607, 'longitude1': 1.2723454,'latitude2': 43.462462, 'longitude2': 1.272341,'latitude3': 43.462462, 'longitude3': 1.272343,'latitude4': 43.462465, 'longitude4': 1.272342, 'sphere_radius': 413, 'altitude_msl': 139, 'shape':0}
+ivylink.add_obstacle_dict("update",1, ob)
+
+# delete circle
+ivylink.add_obstacle_dict("delete",1, ob)
+
+
+# add new polygon
+pg = {'latitude1': 43.4628289, 'longitude1': 1.2713900,'latitude2': 43.4639376, 'longitude2': 1.2729566,'latitude3': 43.4635014, 'longitude3': 1.2744798,'latitude4': 43.4627440, 'longitude4': 1.2732220, 'sphere_radius': 413, 'altitude_msl': 139, 'shape':1}
+ivylink.add_obstacle_dict("update",1, pg)
+
+# delete polygon
+ivylink.add_obstacle_dict("delete",1, pg)
+
+
+ivylink.shutdown()
+
+exit()
+
+
+
+add_mission_command(msg_id = "MISSION_GOTO_WP_LLA", ac_id=5, insert = "0", wp_lat=434624607, wp_lon=12723454, wp_alt=700, duration =60)
