@@ -12,7 +12,7 @@ import features
 from comms.uav import UAV
 from exporter import ExportManager
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 class GroundStation:
     def __init__(self, uav_ivybus=None):
@@ -24,12 +24,24 @@ class GroundStation:
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
 
+        about_text = """Pigeon
+
+Pigeon is UAARG's ground imaging software. It can be used to control
+the onboard imaging computer, view downloaded images, and make features
+within those images. Marked features can be analyzed and exported.
+
+Copyright (c) 2016 UAARG
+
+Version: %s
+""" % __version__
+
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
                      export_manager=export_manager,
                      image_queue=self.image_watcher.queue,
                      uav=self.uav,
-                     ground_control_points=ground_control_points)
+                     ground_control_points=ground_control_points,
+                     about_text=about_text)
 
     def checkMandatorySettings(self):
         for mandatory_field in ["Monitor Folder"]:
@@ -43,7 +55,6 @@ class GroundStation:
         return self.settings_data
 
     def saveSettings(self, settings_data):
-        self.settings_data = settings_data
         settings.save(settings_data)
         self._propagateSettings()
 

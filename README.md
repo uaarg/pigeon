@@ -11,7 +11,9 @@ Implemented Features:
 * Monitors the folder for new images added to it
 * Displays a scrollable list of images
 * Displays a main image as selected from the scrollable list
-* Settings area for specifying and saving settings
+* Settings area for specifying and saving common settings
+* Settings Window for specifying and saving all settings (under
+  the Edit menu)
 * Displays program state and currently viewed image info in an
   information area
 * Plots pre-set ground control points in images by doing inverse
@@ -21,6 +23,7 @@ Implemented Features:
 * Left click on the main image to create a new marker
 * Created markers are shown in a list on the right and can be edited
   in the marker detail area below this list
+* Various Export options under the Export menu
 
 Future Features:
 ----------------
@@ -44,7 +47,7 @@ Input
 Output
 ------
 * UI for manually viewing images
-* Marker list as a csv file
+* Marker list as a csv file (Exporting)
 
 
 Installation

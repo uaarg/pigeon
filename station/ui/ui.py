@@ -2,12 +2,13 @@ import sys
 import logging
 import signal # For exiting pigeon from terminal
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from features import BaseFeature, Feature, Marker
 
 from .common import QueueMixin
+from .commonwidgets import NonEditableBaseListForm
 from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
@@ -16,7 +17,7 @@ from .areas import InfoArea
 from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
-from .areas import AboutPage
+from .areas import SettingsArea
 
 from geo import position_at_offset
 
@@ -24,6 +25,9 @@ THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
 FEATURE_AREA_MIN_WIDTH = 300
+
+def noop():
+    pass
 
 class UI(QtCore.QObject, QueueMixin):
     """
@@ -35,27 +39,21 @@ class UI(QtCore.QObject, QueueMixin):
     implemented. Or, more likely: a mock UI instance could be used in
     unit testing for easy testing of the rest of the application.
     """
-    settings_changed = QtCore.pyqtSignal()
+    settings_changed = QtCore.pyqtSignal(dict)
 
-    def ExitFcn (self, signum, fram):
-        # Exiting Program from the Terminal
-        self.app.exit()
-
-    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, ground_control_points=[]):
+    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, ground_control_points=[], about_text=""):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
         self.uav = uav
+        self.save_settings = save_settings
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, export_manager, self.app.exit)
+        self.main_window = MainWindow(self.settings_data, self.features, export_manager, about_text, self.app.exit)
 
-        self.main_window.info_area.settings_area.settings_load_requested.connect(lambda: self.main_window.info_area.settings_area.setSettings(load_settings()))
-        self.main_window.info_area.settings_area.settings_load_requested.connect(self.settings_changed.emit)
-        self.main_window.info_area.settings_area.settings_save_requested.connect(save_settings)
-        self.main_window.info_area.settings_area.settings_save_requested.connect(self.settings_changed.emit)
+        self.main_window.settings_save_requested.connect(self.settings_changed.emit)
 
         self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(self.main_window.collectSubfeature)
 
@@ -66,14 +64,21 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
         self.connectQueue(image_queue, self.addImage)
-        signal.signal(signal.SIGINT,self.ExitFcn)
+        signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
         # Hooking up some inter-component behaviour
         self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.ruler.click)
-        self.settings_changed.connect(lambda: self.main_window.main_image_area._drawPlanePlumb())
+
+        self.settings_changed.connect(self.save_settings)
+        self.settings_changed.connect(lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
+        self.settings_changed.connect(lambda changed_data: self.main_window.info_area.settings_area.setSettings(self.settings_data))
+        def update_settings_window_settings():
+            if self.main_window.settings_window:
+                self.main_window.settings_window.settings_area.setSettings(self.settings_data)
+        self.settings_changed.connect(update_settings_window_settings)
+
 
     def run(self):
-        self.main_window.info_area.settings_area.settings_load_requested.emit()
         self.main_window.show()
         self.startQueueMonitoring()
         return self.app.exec_()
@@ -81,15 +86,62 @@ class UI(QtCore.QObject, QueueMixin):
     def addImage(self, image):
         self.main_window.addImage(image)
 
+class AboutWindow(QtWidgets.QWidget):
+    def __init__(self, *args, about_text="", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setObjectName("about_window")
+        self.setFixedSize(QtCore.QSize(550, 200))
+        self.setWindowTitle(translate("About Window", "About"))
+
+        frame_rect = self.frameGeometry()
+        center_point = QtWidgets.QApplication.desktop().availableGeometry().center()
+        frame_rect.moveCenter(center_point)
+        self.move(frame_rect.topLeft())
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+        about_label = QtWidgets.QLabel(about_text, self)
+        about_label.setAlignment(Qt.Qt.AlignCenter)
+        self.layout.addWidget(about_label)
+
+class SettingsWindow(QtWidgets.QWidget):
+    settings_save_requested = QtCore.pyqtSignal(dict)
+
+    def __init__(self, *args, settings_data={}, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setObjectName("settings_window")
+        self.setMinimumSize(QtCore.QSize(400, 300))
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        size_policy.setHorizontalStretch(1)
+        size_policy.setVerticalStretch(1)
+        self.setSizePolicy(size_policy)
+        self.setWindowTitle(translate("Settings Window", "Settings"))
+
+        frame_rect = self.frameGeometry()
+        center_point = QtWidgets.QApplication.desktop().availableGeometry().center()
+        frame_rect.moveCenter(center_point)
+        self.move(frame_rect.topLeft())
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.settings_area = SettingsArea(self, settings_data=settings_data, fields_to_display=sorted(settings_data.keys()))
+        self.layout.addWidget(self.settings_area)
+        self.layout.setAlignment(self.settings_area, Qt.Qt.AlignCenter)
+
+        self.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
+
 class MainWindow(QtWidgets.QMainWindow):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
+    settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self, settings_data={}, features=[], export_manager=None, exitfcnCB= None):
+    def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop):
         super().__init__()
         self.settings_data = settings_data
         self.features = features
         self.export_manager = export_manager
-        self.ExitingCB = exitfcnCB
+        self.about_text = about_text
+        self.exit_cb = exit_cb
+
+        self.about_window = None
+        self.settings_window = None
 
         # State
         self.collect_subfeature_for = None
@@ -144,26 +196,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.featureChanged.connect(self.main_image_area.updateFeature) # Update the feature in the main image window
         self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
 
+        self.info_area.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
+
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def initMenuBar(self):
         self.menubar = self.menuBar()
 
-        exit_action = QtWidgets.QAction("Exit Pigeon :(", self)
-        exit_action.setShortcut('Ctrl+Q')
-        exit_action.triggered.connect(self.ExitFcn)
+        menu = self.menubar.addMenu("&File")
 
-        about_action = QtWidgets.QAction("About Pigeon", self)
-        about_action.setShortcut('Ctrl+A')
-        about_action.triggered.connect(self.AboutPopup)
+        exit_action = QtWidgets.QAction("Exit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.triggered.connect(self.exit_cb)
 
-        menu = self.menubar.addMenu('&File')
-        menu.addAction(about_action)
         menu.addAction(exit_action)
 
         if self.export_manager:
-            menu = self.menubar.addMenu('&Export')
+            menu = self.menubar.addMenu("&Export")
             for option_name, option_action, shortcut in self.export_manager.options:
                 action_widget = QtWidgets.QAction(option_name, self)
                 def closure(action):
@@ -173,14 +223,27 @@ class MainWindow(QtWidgets.QMainWindow):
                     action_widget.setShortcut(shortcut)
                 menu.addAction(action_widget)
 
-    def ExitFcn(self):
-        print("You pressed Ctrl+Q, now exiting")
-        self.ExitingCB()
+        menu = self.menubar.addMenu("&Edit")
+        settings_action = QtWidgets.QAction("Settings", self)
+        settings_action.triggered.connect(self.showSettingsWindow)
+        menu.addAction(settings_action)
 
-    def AboutPopup(self):
-        self.about = AboutPage()
-        self.about.show()
-        #self.about.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        menu = self.menubar.addMenu("&Help")
+
+        about_action = QtWidgets.QAction("About Pigeon", self)
+        about_action.setShortcut("Ctrl+A")
+        about_action.triggered.connect(self.showAboutWindow)
+
+        menu.addAction(about_action)
+
+    def showAboutWindow(self):
+        self.about_window = AboutWindow(about_text=self.about_text)
+        self.about_window.show()
+
+    def showSettingsWindow(self):
+        self.settings_window = SettingsWindow(settings_data=self.settings_data)
+        self.settings_window.show()
+        self.settings_window.settings_save_requested.connect(self.settings_save_requested.emit)
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image.path)
@@ -237,3 +300,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.collect_subfeature_for = None
         else:
             self.createNewMarker(image, point)
+
+    def closeEvent(self, event):
+        self.exit_cb() # Terminating the whole program if the main window is closed

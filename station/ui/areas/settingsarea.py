@@ -3,52 +3,37 @@ translate = QtCore.QCoreApplication.translate
 
 from ..commonwidgets import EditableBaseListForm, BoldQLabel
 
-class SettingsArea(QtWidgets.QWidget):
+class SettingsArea(EditableBaseListForm):
     """
-    Provides a simple form for displaying and editing settings.
+    Provides a simple form for displaying and editing common settings.
     The settings should be provided in settings_data, a dictionary of
     strings and bools (only supported types at the moment). The
     dictionary keys should be strings and as the setting label.
     """
 
     settings_save_requested = QtCore.pyqtSignal(dict)
-    settings_load_requested = QtCore.pyqtSignal()
 
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, settings_data={}, fields_to_display=True, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.layout = QtWidgets.QVBoxLayout()
+        self.fields_to_display = fields_to_display
 
-        self.title = BoldQLabel(self)
-        self.title.setText(translate("SettingsArea", "Settings:"))
-        self.layout.addWidget(self.title)
+        self.setSettings(settings_data)
 
-        self.edit_form = EditableBaseListForm(self)
-        self.layout.addWidget(self.edit_form)
+        self.dataEdited.connect(lambda: self.settings_save_requested.emit(self.getSettings()))
 
-        self.setLayout(self.layout)
-
-        self.buttons_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(self.buttons_layout)
-
-        self.load_button = QtWidgets.QPushButton(translate("SettingsArea", "Load"), self)
-        self.save_button = QtWidgets.QPushButton(translate("SettingsArea", "Save"), self)
-        self.buttons_layout.addWidget(self.load_button)
-        self.buttons_layout.addWidget(self.save_button)
-
-        self.load_button.clicked.connect(self.settings_load_requested)
-        self.save_button.clicked.connect(lambda: self.settings_save_requested.emit(self.getSettings()))
-
+    def _title(self):
+        return "Settings:"
 
     def setSettings(self, settings_data):
-        # Sorting for consistency in the UI between sessions
-        sorted_settings_data = sorted(settings_data.items())
-        data = [(field_name, field_value) for field_name, field_value in sorted_settings_data]
-            # Converting the dictinary to a list of tuples because this is what the EditableBaseListForm needs
-        self.edit_form.setData(data)
+        if self.fields_to_display is True:
+            fields_to_display = sorted(settings_data.keys())
+        else:
+            fields_to_display = self.fields_to_display
+        data = [(field_name, settings_data[field_name]) for field_name in fields_to_display]
+        self.setData(data)
 
     def getSettings(self):
-        data = self.edit_form.getData()
-        settings_data = {row[0]:row[1] for row in data}
-        return settings_data
+        data = self.getData()
+        settings = {row[0]:row[1] for row in data}
+        return settings
