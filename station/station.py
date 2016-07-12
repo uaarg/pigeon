@@ -30,10 +30,12 @@ Pigeon is UAARG's ground imaging software. It can be used to control
 the onboard imaging computer, view downloaded images, and make features
 within those images. Marked features can be analyzed and exported.
 
-Copyright (c) 2016 UAARG
+Running in "%(run_directory)s"
 
-Version: %s
-""" % __version__
+Version: %(version)s
+
+Copyright (c) 2016 UAARG
+""" % {"version": __version__, "run_directory": os.getcwd()}
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,

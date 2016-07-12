@@ -90,7 +90,7 @@ class AboutWindow(QtWidgets.QWidget):
     def __init__(self, *args, about_text="", **kwargs):
         super().__init__(*args, **kwargs)
         self.setObjectName("about_window")
-        self.setFixedSize(QtCore.QSize(550, 200))
+        self.setFixedSize(QtCore.QSize(550, 250))
         self.setWindowTitle(translate("About Window", "About"))
 
         frame_rect = self.frameGeometry()

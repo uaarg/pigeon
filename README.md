@@ -80,6 +80,23 @@ From the station directory, do:
 python3 test.py
 
 
+Installtion
+-----------
+If you'd like to create a launcher for Pigeon that you can ex. put
+on the desktop or access through your application launcher, from
+the station directory, do:
+scons install
+
+You can then launch the program through the GUI. Note that this
+creates a launcher pointing to that station folder: it doesn't
+install binaries to a central location. So any code changes or
+git pulling you do will be reflected instantly, and moving your
+git repository will break things.
+
+To uninstall, do:
+scons install -c
+
+
 Utilities
 ---------
 Various utility programs exist in the utils directory. They are

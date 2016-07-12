@@ -1,0 +1,31 @@
+import os
+
+env = Environment()
+
+desktop_file_contents = """#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Encoding=UTF-8
+Name=Pigeon
+MimeType=
+GenericName=Image Viewer
+Exec=%(exec)s
+Icon=%(icon)s
+Path=%(path)s
+Type=Application
+Terminal=false
+Comment=UAARG Ground Imaging Software
+""" % {"exec":os.path.realpath("station.py"),
+       "icon":os.path.realpath("data/icons/Pigeon.png"),
+       "path":os.path.realpath(".")}
+
+desktop_file = "/dev/shm/Pigeon.desktop"
+
+with open(desktop_file, "w") as f:
+    f.write(desktop_file_contents)
+os.chmod(desktop_file, 0o777)
+
+desktop_file_location = os.path.expanduser("~/.local/share/applications/")
+env.Install(desktop_file_location, desktop_file)
+
+env.Alias("install", [desktop_file_location])
