@@ -6,6 +6,10 @@
 *.py[cod]
 __pycache__/
 
+# SCons
+# Ignore database files
+.sconsign.dblite
+
 # Data
 *.log
 *.kml
