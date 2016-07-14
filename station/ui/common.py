@@ -119,10 +119,13 @@ class BasePixmapLabel(QtWidgets.QLabel):
             self.features.remove(feature)
 
     def _processDropEvent(self, event):
-        id_, pos_offset_x, pos_offset_y = event.mimeData().data(internal_pimap_label_marker_mimetype).split("-")
+        # Offset to account for cursor size:
+        pos_offset_x = 20
+        pos_offset_y = 20
         offset_point = QtCore.QPoint(event.pos().x() + int(int(pos_offset_x)/2), event.pos().y() + int(int(pos_offset_y)/2))
         mapped_drop_point = self.pointOnOriginal(offset_point)
         if mapped_drop_point:
+            id_ = event.mimeData().data(internal_pimap_label_marker_mimetype)
             return (id_, mapped_drop_point)
         else:
             return None
@@ -272,12 +275,14 @@ class PixmapLabelMarker(QtWidgets.QLabel):
             self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):
+        if not self.moveable:
+            return
         if self.moveable and (event.pos() - self.drag_start_position).manhattanLength() < QtWidgets.QApplication.startDragDistance():
             return # Requiring the mouse to have moved a small distance before counting it as a drag
 
         drag = QtGui.QDrag(self)
         mime_data = QtCore.QMimeData()
-        mime_data.setData(internal_pimap_label_marker_mimetype, "%s-%s-%s" % (self.id_, self.size[0], self.size[1]))
+        mime_data.setData(internal_pimap_label_marker_mimetype, str(self.id_))
         drag.setMimeData(mime_data)
         drag.setHotSpot(QtCore.QPoint(int(self.size[0]/2), self.size[1]/2))
         drag.setPixmap(self.pixmap().scaled(self.size[0], self.size[1]))
