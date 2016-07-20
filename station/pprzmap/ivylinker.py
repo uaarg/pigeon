@@ -34,21 +34,20 @@ class CommandSender(object):
     def __del__(self):
         self.shutdown()
 
-    def add_shape_dict(self, status, obstacle_id, obmsg, color):
+    def add_shape(self, status, obstacle_id, shape, linecolor, fillcolor, radius, latarr, lonarr, text, opacity ):
         msg = PprzMessage("ground", "SHAPE")
+        lonarr = [int(lon * 1e7) for lon in lonarr]
+        latarr = [int(lon * 1e7) for lon in latarr]
         msg['id'] = obstacle_id
-        msg['color'] = color
+        msg['fillcolor'] = fillcolor
+        msg['linecolor'] = linecolor
         msg['status'] = 0 if status=="update" else 1
-        msg['shape'] = int(obmsg.get("shape"))
-        msg['lat1'] = int(obmsg.get("latitude1") * 10000000.)
-        msg['lon1'] = int(obmsg.get("longitude1") * 10000000.)
-        msg['lat2'] = int(obmsg.get("latitude2") * 10000000.)
-        msg['lon2'] = int(obmsg.get("longitude2") * 10000000.)
-        msg['lat3'] = int(obmsg.get("latitude3") * 10000000.)
-        msg['lon3'] = int(obmsg.get("longitude3") * 10000000.)
-        msg['lat4'] = int(obmsg.get("latitude4") * 10000000.)
-        msg['lon4'] = int(obmsg.get("longitude4") * 10000000.)
-        msg['radius'] = int(obmsg.get("sphere_radius") if "sphere_radius" in obmsg else obmsg.get("cylinder_radius"))
-        msg['alt'] = int(obmsg.get("altitude_msl")*1000 if "altitude_msl" in obmsg else obmsg.get("cylinder_height") *1000)
-        #print("Sending message: %s" % msg)
+        msg['shape'] = shape
+        msg['latarr'] = latarr
+        msg['lonarr'] = lonarr
+        msg['radius'] = int(radius)
+        msg['text'] = text
+        msg['opacity'] = opacity
+
+        print("Sending message: %s" % msg)
         self._interface.send(msg)

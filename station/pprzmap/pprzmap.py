@@ -43,27 +43,19 @@ class pprzMAP:
         self.corner3 = outline.positions[2].latLon()
         self.corner4 = outline.positions[3].latLon()
 
-        pg = {
-        'latitude1': self.corner1[0],
-        'longitude1': self.corner1[1],
-        'latitude2': self.corner2[0],
-        'longitude2': self.corner2[1],
-        'latitude3': self.corner3[0],
-        'longitude3': self.corner3[1],
-        'latitude4': self.corner4[0],
-        'longitude4': self.corner4[1],
-        'sphere_radius': 413,
-        'altitude_msl': 139,
-        'shape':1
-        }
+
+
+        self.latarr = [self.corner1[0], self.corner2[0],self.corner3[0],self.corner4[0]];
+        self.lonarr = [self.corner1[1], self.corner2[1],self.corner3[1],self.corner4[1]];
 
         if self.lastimgnum != None:
-            self.ivylink.add_shape_dict("update",self.lastimgnum,self.lastimgdat,"red")
+            self.ivylink.add_shape("update", self.lastimgnum, 1, "red", "blue", 100, self.lastimglatarr, self.lastimglonarr, "NULL", 1 )
 
-        self.ivylink.add_shape_dict("update",image.name,pg, "yellow")
+        self.ivylink.add_shape("update", image.name, 1, "yellow", "blue", 100, self.latarr, self.lonarr, image.name, 1 )
         self.lastimgnum = image.name
-        self.lastimgdat = pg
+        self.lastimglatarr = self.latarr
+        self.lastimglonarr = self.lonarr
 
     def delete_all(self):
         for i in range(1,200):
-            self.ivylink.add_shape_dict("delete",i,self.lastimgdat, "yellow")
+            self.ivylink.add_shape("delete", self.lastimgnum, 1, "yellow", "blue", 100, self.lastimglatarr, self.lastimglonarr, "NULL", 1 )
