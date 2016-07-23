@@ -19,6 +19,8 @@ class Ruler(QtCore.QObject):
         self.line = QtCore.QLine()
         self.draggable = False
         self.num_clicks = 0
+        self.moved = False
+        self.calculated = False
 
     def bindimagearea(self, imagearea):
         self.image_area = imagearea
@@ -47,24 +49,26 @@ class Ruler(QtCore.QObject):
             self.pixmap_label_marker_1.show()
             self.num_clicks = 1
             return
-        if self.num_clicks == 1:
-            self.num_clicks = 2
-            return
-        if self.num_clicks == 2:
+
+        if self.calculated:
             self.clear()
-            self.num_clicks = 0
+            self.calculated = False;
+            self.num_clicks = 0;
+            self.moved = False
+
+        if self.num_clicks == 1:
+            self.draggable = True
+            self.calc(image,point)
             return
 
 
     def release(self, image, point):
         self.draggable = False
-        if self.num_clicks == 2:
+        if self.moved:
             self.calc(image,point)
-            self.num_clicks = 2
-            return
 
     def move(self, image, point):
-        num_clicks = 2
+        self.moved = True
         self.calc(image, point)
 
     def calc(self, image, point):
