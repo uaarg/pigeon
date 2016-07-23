@@ -226,11 +226,13 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.offset = offset
         self.moveable = moveable
         self.id_ = id_
+        self.text = None
 
-        pixmap = QtGui.QPixmap(icon)
-        if pixmap.isNull():
-            raise ValueError("Unable to load icon at %s." % icon)
-        self.setPixmap(pixmap)
+        if self.text == None:
+            pixmap = QtGui.QPixmap(icon)
+            if pixmap.isNull():
+                raise ValueError("Unable to load icon at %s." % icon)
+            self.setPixmap(pixmap)
 
         self.setScaledContents(True)
         self.hide()

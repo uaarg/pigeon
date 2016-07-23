@@ -64,9 +64,27 @@ class Ruler(QtCore.QObject):
 
         self.pixmap_label_markerSTR[ind].show()
 
+        self.rulertext = PixmapLabelMarker(self.image_area, icons.airplane, size=(200, 20), id_="its aruler", moveable=True)
+        self.rulertext.setText("SDFLSDDFJSDLKFJDSKLJFLD")
+        self.rulertext.setStyleSheet("QLabel {background-color: white;}")
+        self.image_area.addPixmapLabelFeature(self.rulertext)
+
+        self.rulertext.moveTo(point)
+        self.rulertext.show()
+
+    def moverulertext(self,point):
+        self.point2 = point
+        self.line.setP2(point) # set second point
+        self.distance = image.distance([self.line.x1(), self.line.y1()],
+                                  [self.line.x2(), self.line.y2()])
+        self.angle = image.heading([self.line.x1(), self.line.y1()],
+                              [self.line.x2(), self.line.y2()])
+        self.rulertext.moveTo(point)
+
     def hideRuler(self):
         '''
         Hides the endpoints of the ruler when called
         '''
         for marker in self.pixmap_label_markerSTR:
             marker.hide()
+        self.rulertext.hide()
