@@ -217,7 +217,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
     Class for markers (points) that can be put on a PixmapLabel
     (or anything that inherits from BasePixmapLabel).
     """
-    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0), moveable=False, id_=None):
+    def __init__(self, parent, icon, size=(20, 20), offset=QtCore.QPoint(0, 0), moveable=False, id_=None, isruler = False):
         super().__init__(parent)
 
         self.parent = parent
@@ -226,9 +226,9 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.offset = offset
         self.moveable = moveable
         self.id_ = id_
-        self.text = None
+        self.isruler = isruler
 
-        if self.text == None:
+        if not self.isruler:
             pixmap = QtGui.QPixmap(icon)
             if pixmap.isNull():
                 raise ValueError("Unable to load icon at %s." % icon)

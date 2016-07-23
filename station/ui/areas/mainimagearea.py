@@ -19,6 +19,7 @@ class MainImageArea(QtWidgets.QWidget):
         self.settings_data = settings_data
         self.features = features
 
+
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
@@ -88,28 +89,6 @@ class MainImageArea(QtWidgets.QWidget):
 
         elif self.plumbline:
             self.plumbline.hide()
-#
-#    def _drawLine(self, datPainter, line, drwType ):
-#        '''
-#        This is the
-#        Used to draw the connecting line between any two points.
-#        '''
-#
-#        if drwType == 'Ruler': # For the line of the ruler
-#            pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DashDotDotLine)
-#        elif drwType == 'Border': # For the border of a Meta-Marker between markers
-#            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
-#        elif drwType == '':
-#            print('Type of Line is not supported!!')
-#
-#        datPainter.setPen(pen)
-#        datPainter.drawLine(line.x1(), line.x2(), line.y1(), line.y2())
-
-#    def paintEvent(self, e):
-#        datPainter = QtGui.QPainter()
-#        datPainter.begin(self)
-#        self._drawLine(datPainter, self.ruler, 'Ruler')
-#        datPainter.end()
 
     def _clearFeatures(self):
         for pixmap_label_marker in self.feature_pixmap_label_markers.values():
@@ -170,9 +149,22 @@ class MainImageArea(QtWidgets.QWidget):
         #pixmap_label_marker.setToolTip(str(feature))
         pixmap_label_marker.show()
 
-    def mouseReleaseEvent(self, event):
+    def mousePressEvent(self, event):
         """
         Called by Qt when the user clicks on the image.
+
+        Emitting an image_right_clicked event with the point if it was a
+        right click.
+        """
+        if event.button() == QtCore.Qt.RightButton:
+            point = QtCore.QPoint(event.x(), event.y())
+            point = self.image_area.pointOnOriginal(point)
+            if point:
+                self.ruler.press(self.image,point)
+
+    def mouseReleaseEvent(self, event):
+        """
+        Called by Qt when the user releases clicks on the image.
 
         Emitting an image_right_clicked event with the point if it was a
         right click.
@@ -182,4 +174,11 @@ class MainImageArea(QtWidgets.QWidget):
         if event.button() == QtCore.Qt.LeftButton and point:
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
-            self.image_right_clicked.emit(self.image, point)
+            self.ruler.release(self.image,point)
+
+    def mouseMoveEvent(self, event):
+        if self.ruler.draggable:
+            point = QtCore.QPoint(event.x(), event.y())
+            point = self.image_area.pointOnOriginal(point)
+            if point:
+                self.ruler.move(self.image,point)

@@ -67,7 +67,7 @@ class UI(QtCore.QObject, QueueMixin):
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
         # Hooking up some inter-component behaviour
-        self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.ruler.click)
+        #self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.ruler.click)
 
         self.settings_changed.connect(self.save_settings)
         self.settings_changed.connect(lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
@@ -197,7 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
 
         self.info_area.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
-        self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
+        #self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -301,9 +301,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.collect_subfeature_for = None
         else:
             self.createNewMarker(image, point)
-
-    def updaterulerarea(self, ruler):
-        self.info_area.updateRuler(self.main_image_area.ruler)
 
     def closeEvent(self, event):
         self.exit_cb() # Terminating the whole program if the main window is closed
