@@ -37,13 +37,15 @@ class InfoArea(QtWidgets.QFrame):
         self.controls_area = ControlsArea(self)
         self.state_area = StateArea(self, editable=False)
         self.image_info_area = ImageInfoArea(self, editable=False)
+        self.ruler_area = NonEditableBaseListForm()
         self.settings_area = SettingsArea(self, settings_data=settings_data, fields_to_display=["Follow Images", "Plane Plumbline"])
 
         self.layout.addWidget(self.controls_area)
         self.layout.addWidget(self.state_area)
         self.layout.addWidget(self.image_info_area)
         self.layout.addWidget(self.settings_area)
-
+        self.layout.addWidget(self.ruler_area)
+        self.ruler_area.hide()
         self.last_image_time = None
         self.image_count = 0
 
@@ -90,3 +92,12 @@ class InfoArea(QtWidgets.QFrame):
         data = [("Image Count", str(self.image_count)),
                 ("Time since last image", last_image_time_ago),]
         self.state_area.setData(data)
+
+    def ruler_updated(self, num_clicks, distance, angle):
+        if num_clicks == 0:
+            self.ruler_area.hide()
+        else:
+            data = [("Ruler Length", str(distance)),
+                ("Ruler Angle", str(angle))]
+            self.ruler_area.setData(data)
+            self.ruler_area.show()

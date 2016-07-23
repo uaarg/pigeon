@@ -7,16 +7,18 @@ from ..ui import icons
 
 from image import Image
 
-class Ruler(QtCore.QLine):
+class Ruler(QtCore.QObject):
     """
     Measures the real-world distance and angle between two points in a single Image.
     """
-
+    ruler_updated = QtCore.pyqtSignal(int,str,str)
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.num_clicks = 0
         self.firstinit = False
-
+        self.distance = "None"
+        self.angle = 0
+        self.line = QtCore.QLine()
 
     def bindimagearea(self, imagearea):
         self.image_area = imagearea
@@ -27,22 +29,24 @@ class Ruler(QtCore.QLine):
         self.num_clicks += 1
         if self.num_clicks == 1: # Odd click
             self.point1 = point
-            self.setP1(point)  # Set new point
+            self.line.setP1(point)  # Set new point
             self.showRuler(point,0)
 
         elif self.num_clicks == 2: # Even click
             self.point2 = point
-            self.setP2(point) # set second point
-            distance = image.distance([self.x1(), self.y1()],
-                                      [self.x2(), self.y2()])
-            angle = image.heading([self.x1(), self.y1()],
-                                  [self.x2(), self.y2()])
-            print("Distance: {:f} m, Angle: {:f} degrees".format(distance, angle))
+            self.line.setP2(point) # set second point
+            self.distance = image.distance([self.line.x1(), self.line.y1()],
+                                      [self.line.x2(), self.line.y2()])
+            self.angle = image.heading([self.line.x1(), self.line.y1()],
+                                  [self.line.x2(), self.line.y2()])
             self.showRuler(point,1)
 
         elif self.num_clicks == 3: # Even click
             self.num_clicks = 0
             self.hideRuler()
+            self.distance = "None"
+            self.angle = 0
+        self.ruler_updated.emit(self.num_clicks, str(self.distance),str(self.angle))
 
     def showRuler(self, point, ind):
         '''
@@ -50,11 +54,11 @@ class Ruler(QtCore.QLine):
         '''
         #pixmap_label_markerSTR = str(point.x() + point.y())
         if self.firstinit == False:
-            self.pixmap_label_markerSTR.append(PixmapLabelMarker(self.image_area, icons.end_point, offset=QtCore.QPoint(-9, -19)))
+            self.pixmap_label_markerSTR.append(PixmapLabelMarker(self.image_area, icons.ruler, offset=QtCore.QPoint(-9, -19)))
             if ind == 1:
                 self.firstinit = True
 
-        self.pixmap_label_markerSTR[ind] = PixmapLabelMarker(self.image_area, icons.end_point, offset=QtCore.QPoint(-9, -19))
+        self.pixmap_label_markerSTR[ind] = PixmapLabelMarker(self.image_area, icons.ruler, offset=QtCore.QPoint(-9, -19))
         self.image_area.addPixmapLabelFeature(self.pixmap_label_markerSTR[ind])
         self.pixmap_label_markerSTR[ind].moveTo(point)
 

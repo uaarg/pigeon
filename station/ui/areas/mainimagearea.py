@@ -88,28 +88,28 @@ class MainImageArea(QtWidgets.QWidget):
 
         elif self.plumbline:
             self.plumbline.hide()
+#
+#    def _drawLine(self, datPainter, line, drwType ):
+#        '''
+#        This is the
+#        Used to draw the connecting line between any two points.
+#        '''
+#
+#        if drwType == 'Ruler': # For the line of the ruler
+#            pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DashDotDotLine)
+#        elif drwType == 'Border': # For the border of a Meta-Marker between markers
+#            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
+#        elif drwType == '':
+#            print('Type of Line is not supported!!')
+#
+#        datPainter.setPen(pen)
+#        datPainter.drawLine(line.x1(), line.x2(), line.y1(), line.y2())
 
-    def _drawLine(self, datPainter, line, drwType ):
-        '''
-        This is the
-        Used to draw the connecting line between any two points.
-        '''
-
-        if drwType == 'Ruler': # For the line of the ruler
-            pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DashDotDotLine)
-        elif drwType == 'Border': # For the border of a Meta-Marker between markers
-            pen = QtGui.QPen(QtCore.Qt.black, 2, QtCore.Qt.SolidLine)
-        elif drwType == '':
-            print('Type of Line is not supported!!')
-
-        datPainter.setPen(pen)
-        datPainter.drawLine(line.x1(), line.x2(), line.y1(), line.y2())
-
-    def paintEvent(self, e):
-        datPainter = QtGui.QPainter()
-        datPainter.begin(self)
-        self._drawLine(datPainter, self.ruler, 'Ruler')
-        datPainter.end()
+#    def paintEvent(self, e):
+#        datPainter = QtGui.QPainter()
+#        datPainter.begin(self)
+#        self._drawLine(datPainter, self.ruler, 'Ruler')
+#        datPainter.end()
 
     def _clearFeatures(self):
         for pixmap_label_marker in self.feature_pixmap_label_markers.values():
