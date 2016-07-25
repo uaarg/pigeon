@@ -46,7 +46,7 @@ Main Image Area
 ---------------
 * Left click to create a marker which will be added to the Marker List on the right.
 * Markers can be dragged around to change their location.
-* Right click on the image to access the ruler functionality. This is still under development.
+* Right click on the image to place a point down on the image. A second right click will place another point and calculate the distance/angle of the point relative to the first. Points can be dragged on creation, for dynamic distance/angle update.
 
 Marker Area
 ----------------
