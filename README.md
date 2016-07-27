@@ -12,18 +12,16 @@ Implemented Features:
 * Displays a scrollable list of images
 * Displays a main image as selected from the scrollable list
 * Settings area for specifying and saving common settings
-* Settings Window for specifying and saving all settings (under
-  the Edit menu)
-* Displays program state and currently viewed image info in an
-  information area
-* Plots pre-set ground control points in images by doing inverse
-  geo-referencing
-* Right click on the main image to have the lat/lon printed in the
-  terminal
+* Settings Window for specifying and saving all settings (under the Edit menu)
+* Displays program state and currently viewed image info in an information area
+* Plots pre-set ground control points in images by doing inverse geo-referencing
+* Right click on the main image to have the lat/lon printed in the terminal
 * Left click on the main image to create a new marker
-* Created markers are shown in a list on the right and can be edited
-  in the marker detail area below this list
+* Created markers are shown in a list on the right and can be edited in the
+  marker detail area below this list
 * Various Export options under the Export menu
+* Start of multi-operator functionality: features can be synced with other
+  pigeon instances over an ivybus
 
 Future Features:
 ----------------
@@ -80,7 +78,7 @@ From the station directory, do:
 python3 test.py
 
 
-Installtion
+Installation
 -----------
 If you'd like to create a launcher for Pigeon that you can ex. put
 on the desktop or access through your application launcher, from

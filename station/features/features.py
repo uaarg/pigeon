@@ -1,5 +1,8 @@
 import os
 import json
+import pickle
+import base64
+import uuid
 
 from geo import Position, PositionCollection
 
@@ -9,6 +12,9 @@ class BaseFeature:
     """
     picture = None
     data = []
+
+    def __init__(self):
+        self.id = str(uuid.uuid4())[:8] # Unique identifier for this feature accross all Pigeon instances
 
     def __str__(self):
         if self.data:
@@ -26,6 +32,26 @@ class BaseFeature:
     def allowSubfeatures(self):
         return False
 
+    def updateSubfeature(self, feature):
+        """
+        Updates the subfeature matching the provided feature (by id)
+        and returns True. If not match is found, returns False instead.
+        """
+        return False
+
+    def serialize(self):
+        old_picture = self.picture
+        self.picture = None # Not pickling the picture
+        data = base64.b64encode(pickle.dumps(self)).decode("ascii")
+        self.picture = old_picture
+        print(data)
+        return data
+
+    @classmethod
+    def deserialize(cls, dumped):
+        return pickle.loads(base64.b64decode(dumped))
+
+
 class PointOfInterest(BaseFeature):
     """
     Class for each point in an image that's interesting.
@@ -35,6 +61,8 @@ class PointOfInterest(BaseFeature):
     or part of a feature.
     """
     def __init__(self, image, position, icon_name, icon_size, name=""):
+        super().__init__()
+
         self.image = image
         self.position = position
         self.icon_name = icon_name
@@ -63,6 +91,7 @@ class Feature(BaseFeature):
     on the ground. Might be a point, an area, etc...
     """
     def __init__(self, name=""):
+        super().__init__()
         self.picture = None # To be set later by the UI. This picture
                             # is intended to be a crop of the original
                             # image right around the feature.
@@ -127,12 +156,12 @@ class Point(Feature):
         image, if the provided id_ is for this Point. If it is, returns True.
         Otherwise, returns False.
         """
-        if id_ in [str(id(instance)) for instance in self.instances.values()]:
+        if id_ in [instance.id for instance in self.instances.values()]:
             self.updatePoint(image, point)
             return True
-        elif id_ in [str(id(instance)) for instance in self.viewed_instances.values()]:
+        elif id_ in [instance.id for instance in self.viewed_instances.values()]:
             for instance_image, instance in self.viewed_instances.items():
-                if str(id(instance)) == id_:
+                if instance.id == id_:
                     self.instances[image] = self.viewed_instances[instance_image]
                     self.updatePoint(image, point)
                     return True
@@ -183,6 +212,13 @@ class Point(Feature):
 
     def allowSubfeatures(self):
         return True
+
+    def updateSubfeature(self, feature):
+        for image, instance in self.instances.items():
+            if instance.id == feature.id:
+                self.instances[image] = feature
+                return True
+        return False
 
 class GroundControlPoint(Point):
     icon_name = "x"

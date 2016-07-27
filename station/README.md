@@ -19,13 +19,15 @@ Settings
 * All settings are available in the Settings Window. Got to "Edit" in the menu bar then "Settings".
 * Making any changes applies the settings immediately and persists them (aka saves to disk).
 * Current settings:
-    * Monitor Folder: Specifies the directory to be watched for new images. Can be an absolute or relative path. No error checking is done on the path yet.
-    * Follow Images: Specifies whether new images should be automatically shown in the main display area upon addition.
-    * Plane Plumbline: Specifies whether a plane icon should be drawn on the image at the location directly below the plane.
-    * Load Existing Images: Specified whether to load all images from the monitor folder on startup. Doesn't re-scan the folder if enabled: applies to the next launch.
     * Feature Export Path: Specified the path where the exporters should save their file exports.
-    * UAV Network: the ivybus network to connect to the onboard imaging software over. Format is subnet:port. Ex: 127:2010 or 192.168.99:2010 etc...
+    * Follow Images: Specifies whether new images should be automatically shown in the main display area upon addition.
+    * Instance Name: The name of this Pigeon instance for multi-operator support (in progress). Setting to your name makes sense.
+    * Load Existing Images: Specified whether to load all images from the monitor folder on startup. Doesn't re-scan the folder if enabled: applies to the next launch.
+    * Monitor Folder: Specifies the directory to be watched for new images. Can be an absolute or relative path. No error checking is done on the path yet.
     * Nominal Target Size: The expected size of features in meters. Used for automatic thumnail creating for new features.
+    * Pigeon Network: the ivybus network to connect to other Pigeon instances for multi-operator support. Format is subnet:port. Ex: 127:2010 or 192.168.99:2010 etc...
+    * Plane Plumbline: Specifies whether a plane icon should be drawn on the image at the location directly below the plane.
+    * UAV Network: the ivybus network to connect to the onboard imaging software over. Format is subnet:port. Ex: 127:2010 or 192.168.99:2010 etc...
 
 Thumbnail Area
 --------------
@@ -49,7 +51,7 @@ Main Image Area
 * Right click on the image to place a point down on the image. A second right click will place another point and calculate the distance/angle of the point relative to the first. Points can be dragged on creation, for dynamic distance/angle update.
 
 Marker Area
-----------------
+-----------
 * Select a marker from the list to have it's details be shown in the Marker Detail Area below the list.
 * Make changes to any of the editable fields in the Marker Detail Area to store this information on the marker (no need to save)
 * Markers in the list will appear as "(unnamed)" until a name is set for that marker.
@@ -58,3 +60,9 @@ Marker Area
 * Just like ground control points, markers are plotted in all images using inverse geo-referencing.
 * If a marker is moved in an image other than the one it was created in, that creates a new "subfeature", aka an instance of the marker.
 * To add a new instance of a marker in an image where inverse geo-referencing wasn' accurate enough to already show the marker (or you just don't want to use drag and drop), simply click on "Add Subfeature" then the location in the main image where you can see that feature.
+
+Multi-Operator
+--------------
+* Work has been started on multi-operator support. This means running multiple pigeon instances (usually on different computers) and having data be shared between them.
+* Right now, it's basically a feature-sync mechanism. Any features created or changed by one Pigeon are sent to other instances connected to the ivybus.
+* To use, configure the "Pigeon Network" setting so that the two Pigeons can talk (the default should work if they are on the same computer). Then, just start making and changing features.

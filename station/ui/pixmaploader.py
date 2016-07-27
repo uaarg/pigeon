@@ -35,6 +35,16 @@ class PixmapLoader:
 
         self.slightly_large_size_factor = 2
 
+    def __getstate__(self):
+        """
+        Called during pickling.
+        """
+        state = self.__dict__.copy()
+        state["pixmap"] = None
+        state["hold_original"] = False
+        state["used_sizes"] = []
+        return state
+
     def getPixmapForSize(self, size):
         """
         Returns a pixmap for the requested size. This is the most

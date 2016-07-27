@@ -7,21 +7,50 @@ import json
 import logging
 
 location = os.path.join(*["data", "settings.json"])
-settings_data = {
+default_settings_data = {
     "Plane Plumbline": True,
     "Load Existing Images": True,
     "Monitor Folder": "data/images",
-    "UAV Network": "127:2010",
+    "UAV Network": "127:2011",
+    "Pigeon Network": "127:2010",
     "Follow Images": True,
     "Feature Export Path": "data/exports/",
-    "Nominal Target Size": "2.5"
-} # Global settings data. These are the defaults.
+    "Nominal Target Size": "2.5",
+    "Instance Name": "",
+}
+
+settings_data = default_settings_data.copy() # Global settings data.
 
 
 logger = logging.getLogger(__name__)
 
 def _update_global_dict(new_data):
     settings_data.update(new_data)
+
+def _handleMigrations():
+    """
+    Handling data structure changes here. That is, taking old style settings,
+    and turning them into new-style. This is often required to avoid
+    requiring users to manually change or clear their settings. In
+    order for this to work, a few rules need to be followed:
+
+    1. Add an appropriate migration here anytime you change the
+       default_settings_data in an incompatible fashion (ex. renaming
+       a field).
+    2. Don't remove any existing migrations.
+    3. Add your migration to the end.
+    4. Your migration shouldn't do anything if called a second time.
+
+    Note that this doesn't handle users going backwards: using a newer
+    settings file with an older version of Pigeon. They are on their
+    own in this case (so should clear their settings if they run into
+    any issues).
+    """
+
+    # 1 - Moving UAV Network to different port
+    custom_uav_network = settings_data.get("UAV Network")
+    if custom_uav_network == "127:2010":
+        settings_data["UAV Network"] = "127:2011"
 
 def load():
     """
@@ -36,6 +65,8 @@ def load():
         logger.debug("No custom settings to load.")
     else:
         logger.debug("Loaded settings.")
+
+    _handleMigrations()
     return settings_data
 
 def save(settings):
@@ -45,8 +76,10 @@ def save(settings):
     settings will be updated with these new ones.
     """
     _update_global_dict(settings)
+
+    different_data = {key: value for key, value in settings_data.items() if value != default_settings_data.get(key)}
     with open(location, "w") as settings_file:
-        json.dump(settings_data, settings_file, indent=4)
+        json.dump(different_data, settings_file, indent=4)
 
     logger.debug("Saved settings.")
     return settings_data

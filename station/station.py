@@ -10,16 +10,18 @@ import image
 import settings
 import features
 from comms.uav import UAV
+from comms.stations import Stations
 from exporter import ExportManager
 
 __version__ = "0.4"
 
 class GroundStation:
-    def __init__(self, uav_ivybus=None):
+    def __init__(self, uav_ivybus=None, stations_ivybus=None):
         super().__init__()
         self.loadSettings()
         self.image_watcher = image.Watcher()
-        self.uav = UAV(uav_ivybus)
+        self.stations = Stations(bus=stations_ivybus, instance_name=self.settings_data.get("Instance Name"))
+        self.uav = UAV(bus=uav_ivybus, instance_name=self.settings_data.get("Instance Name"))
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
@@ -41,6 +43,7 @@ Copyright (c) 2016 UAARG
                      load_settings=self.loadSettings,
                      export_manager=export_manager,
                      image_queue=self.image_watcher.queue,
+                     feature_io_queue=self.stations.feature_io_queue,
                      uav=self.uav,
                      ground_control_points=ground_control_points,
                      about_text=about_text)
@@ -76,16 +79,21 @@ Copyright (c) 2016 UAARG
 
         if self.settings_data["Load Existing Images"] == True:
             self.image_watcher.loadExistingImages(self.settings_data["Monitor Folder"])
-        self.image_watcher.start()
         self.uav.start()
+        self.stations.start()
+        self.image_watcher.start()
 
         self.ui.run() # This runs until the user exits the GUI
         self.image_watcher.stop()
+        self.stations.stop()
         self.uav.stop()
 
 def get_args():
     parser = argparse.ArgumentParser(description="pigeon ground imaging software. For analyzing and geo-referencing aerial imagery")
-    parser.add_argument("-b", dest="ivy_bus", type=str, default=None, help="The subnet and port number to use when connecting to the UAV through ivybus (default: '127:2010')")
+    parser.add_argument("-b", "--ivy-bus", type=str, default=None,
+                              help="The subnet and port number to use when connecting to other pigeon instances through ivybus (default: '127:2010')")
+    parser.add_argument("-ub", "--uav-ivy-bus", type=str, default="127:2011",
+                              help="The subnet and port number to use when connecting to the uav through ivybus (default: '127:2011')")
 
     args = parser.parse_args()
     args.ivy_bus = args.ivy_bus or os.environ.get("IVYBUS")
@@ -101,7 +109,7 @@ def main():
     args = get_args()
     logger.info("Arguments: %s" % args)
 
-    ground_station = GroundStation(uav_ivybus=args.ivy_bus)
+    ground_station = GroundStation(uav_ivybus=args.uav_ivy_bus, stations_ivybus=args.ivy_bus)
     ground_station.run()
 
     logger.info("Finished")

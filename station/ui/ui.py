@@ -41,11 +41,12 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, save_settings, load_settings, export_manager, image_queue, uav, ground_control_points=[], about_text=""):
+    def __init__(self, save_settings, load_settings, export_manager, image_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points # For all features, not just GCP's
+        self.feature_io_queue = feature_io_queue
         self.uav = uav
         self.save_settings = save_settings
 
@@ -63,11 +64,14 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVConnectedChangedCb(self.main_window.info_area.controls_area.uav_connection_changed.emit)
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
+        self.connectQueue(self.feature_io_queue.in_queue, self.applyFeatureSync)
+
         self.connectQueue(image_queue, self.addImage)
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
         # Hooking up some inter-component behaviour
-        #self.main_window.main_image_area.image_right_clicked.connect(self.main_window.main_image_area.ruler.click)
+        self.main_window.featureChangedLocally.connect(lambda feature: self.feature_io_queue.out_queue.put(feature))
+        self.main_window.featureAddedLocally.connect(lambda feature: self.feature_io_queue.out_queue.put(feature))
 
         self.settings_changed.connect(self.save_settings)
         self.settings_changed.connect(lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
@@ -85,6 +89,21 @@ class UI(QtCore.QObject, QueueMixin):
 
     def addImage(self, image):
         self.main_window.addImage(image)
+
+    def applyFeatureSync(self, feature):
+        for i, existing_feature in enumerate(self.features):
+            if existing_feature.id == feature.id:
+                self.features[i] = feature
+                self.main_window.featureChanged.emit(feature)
+                break
+            else:
+                if existing_feature.updateSubfeature(feature):
+                    self.main_window.featureChanged.emit(feature)
+                    break
+        else:
+            self.features.append(feature)
+            self.main_window.featureAdded.emit(feature)
+
 
 class AboutWindow(QtWidgets.QWidget):
     def __init__(self, *args, about_text="", **kwargs):
@@ -129,7 +148,11 @@ class SettingsWindow(QtWidgets.QWidget):
         self.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
 
 class MainWindow(QtWidgets.QMainWindow):
-    featureChanged = QtCore.pyqtSignal(BaseFeature)
+    featureChanged = QtCore.pyqtSignal(BaseFeature) # For anytime a feature is changed (including by other Pigeon istances: they would trigger this signal).
+    featureChangedLocally = QtCore.pyqtSignal(BaseFeature) # For anytime this Pigeon instance triggers feature change: will result in syncing to other Pigeons.
+    featureAdded = QtCore.pyqtSignal(BaseFeature) # Same as featureChanged but for new features.
+    featureAddedLocally = QtCore.pyqtSignal(BaseFeature) # Same as featureChangedLocally but for new featuers.
+
     settings_save_requested = QtCore.pyqtSignal(dict)
 
     def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop):
@@ -184,20 +207,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
-        # Hooking up some inter-component benhaviour
+        # Hooking up some inter-component behaviour.
         self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
-        # self.feature_area.selectedFeatureChanged.connect(lambda new_item, old_item: print("selectedFeatureChanged TODO: implement"))
         self.main_image_area.image_clicked.connect(self.handleMainImageClick)
-
-        self.feature_area.feature_detail_area.featureChanged.connect(self.featureChanged.emit) # Feature's details can be changed
-        self.main_image_area.featureChanged.connect(self.featureChanged.emit)  # Feature's position can be changed when it's dragged
-
-        self.featureChanged.connect(self.feature_area.updateFeature) # Update the feature in the list
-        self.featureChanged.connect(self.main_image_area.updateFeature) # Update the feature in the main image window
-        self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
 
         self.info_area.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
         #self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
+
+        # Hooking up feature inter-component behaviour. Listing all things we could do to change a feature and hooking them up internally and externally
+        for slot in [self.feature_area.feature_detail_area.featureChanged, # Feature's details can be changed
+                     self.main_image_area.featureChanged,                  # Feature's position can be changed when it's dragged
+                    ]:
+            slot.connect(self.featureChanged.emit)        # To let other components within this Pigeon know.
+            slot.connect(self.featureChangedLocally.emit) # To let other Pigeon's know.
+
+        # These are the components that need to know when a feature is changed:
+        self.featureChanged.connect(self.feature_area.updateFeature)                     # Update the feature in the list
+        self.featureChanged.connect(self.main_image_area.updateFeature)                  # Update the feature in the main image window
+        self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
+
+        # And things that need to know when a new feature is added, whether initiated by this Pigeon or another instance:
+        for signal in [self.featureAdded, self.featureAddedLocally]:
+            signal.connect(lambda feature: self.features.append(feature))
+            signal.connect(self.main_image_area.addFeature)
+            signal.connect(self.feature_area.addFeature)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -271,11 +304,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
 
-    def addFeature(self, feature):
-        self.features.append(feature)
-        self.main_image_area.addFeature(feature)
-        self.feature_area.addFeature(feature)
-
     def createNewMarker(self, image, point):
         marker = Marker(image, point=(point.x(), point.y()))
         if marker.position:
@@ -289,7 +317,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
                 marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
 
-            self.addFeature(marker)
+            self.featureAddedLocally.emit(marker)
 
     def collectSubfeature(self, feature):
         self.collect_subfeature_for = feature

@@ -99,20 +99,20 @@ class MainImageArea(QtWidgets.QWidget):
         if feature in self.features: # Only drawing top-level features, not subfeatures
             # Cleaning up any UI elements already drawn for this feature if they exist:
             for feature_point in feature.visiblePoints(self.image):
-                old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(str(id(feature_point)), None)
+                old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(feature_point.id, None)
                 if old_pixmap_label_marker:
                     old_pixmap_label_marker.hide()
 
                 pixel_x, pixel_y = feature_point.point_on_image
                 if pixel_x and pixel_y:
                     point = QtCore.QPoint(pixel_x, pixel_y)
-                    pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature_point.icon_name], feature_point.icon_size, moveable=True, id_=str(id(feature_point)))
+                    pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature_point.icon_name], feature_point.icon_size, moveable=True, id_=feature_point.id)
                     self.image_area.addPixmapLabelFeature(pixmap_label_marker)
                     pixmap_label_marker.moveTo(point)
                     pixmap_label_marker.setToolTip(str(feature))
                     pixmap_label_marker.show()
 
-                    self.feature_pixmap_label_markers[str(id(feature_point))] = pixmap_label_marker
+                    self.feature_pixmap_label_markers[feature_point.id] = pixmap_label_marker
 
 
     def _drawFeatures(self):

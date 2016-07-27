@@ -149,7 +149,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
         if event.mimeData().hasFormat(internal_pimap_label_marker_mimetype):
             id_, mapped_drop_point = self._processDropEvent(event)
             if mapped_drop_point:
-                self.pixmap_label_marker_dropped.emit(str(int(id_)), mapped_drop_point)
+                self.pixmap_label_marker_dropped.emit(bytes(id_).decode("ascii"), mapped_drop_point)
                 event.acceptProposedAction()
 
     def addPixmapLabelFeature(self, feature):

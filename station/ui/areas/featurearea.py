@@ -12,7 +12,7 @@ class FeatureArea(QtWidgets.QFrame):
     def __init__(self, *args, settings_data={}, minimum_width=250,**kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
-        self.features = {} # Mapping from features to items.
+        self.features = {} # Mapping from feature id's to items.
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
@@ -54,7 +54,7 @@ class FeatureArea(QtWidgets.QFrame):
             item.setSizeHint(0, self.icon_size)
         item.setText(0, str(feature))
 
-        self.features[feature] = item
+        self.features[feature.id] = item
 
         if not parent:
             self.showFeature(feature)
@@ -64,12 +64,13 @@ class FeatureArea(QtWidgets.QFrame):
 
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
-        self.feature_tree.setCurrentItem(self.features[feature])
+        self.feature_tree.setCurrentItem(self.features[feature.id])
 
     def updateFeature(self, feature, parent=None):
-        item = self.features.get(feature)
+        item = self.features.get(feature.id)
         if item:
             item.setText(0, str(feature))
+            item.feature = feature
             for subfeature in feature.subfeatures():
                 self.updateFeature(subfeature, item)
         else:
