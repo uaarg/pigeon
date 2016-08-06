@@ -14,22 +14,48 @@ logger = logging.getLogger(__name__)
 supported_image_formats = ["bmp", "gif", "jpg", "jpeg", "png", "pbm", "pgm", "ppm", "xbm", "xpm"]
 supported_info_formats = ["txt"]
 
+images = {} # Dictionary of images by id so we can avoid creating duplicates.
 
-class Image:
-    def __init__(self, name, image_path, info_path):
-        self.name = name
-        self.path = image_path
-        self.info_path = info_path
+class Image(object):
+    @staticmethod
+    def parseFilePath(path): # This is static method because it doesn't need access to the instance and
+                             # we want to be able to call it from __new__() (when the instance doesn't
+                             # exist yet). It's basically just a normal function, but belonging to this
+                             # class.
+        """
+        Parses a filepath, returning a tuple with four parts:
+        * The directory of the file (ex. /home/bob/)
+        * The complete filename (ex. hello.txt)
+        * The name part of the filename (ex. hello)
+        * The extension part of the filename (ex. txt)
+        """
+        head, tail = os.path.split(path)
+        filename, extension = os.path.splitext(tail)
+        return (head, tail, filename, extension)
 
+    def __new__(cls, *args): # __new__() is what actually makes a new instance of a class. Called immediately
+                             # before __init__(). Overriding it so that we can reuse an existing instance instead
+                             # of creating a new one when the id is the same. Needed for multi-operator support
+                             # since images objects can be created two different ways: as part of a feature and
+                             # when a new image file is found. We want the two to end up refering to the same object
+        _, id_, _, _ = cls.parseFilePath(args[0]) # The filename is the id
+
+        existing_image = images.get(id_)
+        if existing_image:
+            return existing_image
+        else:
+            image = super().__new__(cls)
+            images[id_] = image
+            return image
+
+
+    def __init__(self, image_path, info_path):
+        self._parsePaths(image_path, info_path)
         self._readInfo()
         self._prepareProperties()
 
         self.width = None # Automatically set later when image read
         self.height = None # Automatically set later when  image read
-        self.field_of_view_horiz = 63.3
-        self.field_of_view_vert = 48.9
-
-
         self.georeference = None
 
     def __str__(self):
@@ -37,6 +63,34 @@ class Image:
 
     def __repr__(self):
         return "Image(name=%r)" % self.name
+
+    def __getstate__(self):
+        """
+        Called during pickling. Removing the attributes that are no longer valid on another machine.
+        """
+        state = self.__dict__.copy()
+        state["path"] = None
+        state["info_path"] = None
+        return state
+
+    def __getnewargs__(self):
+        """
+        Called during pickling. Saves the args to be provided to __new__() during unpickling.
+        Necessary so that __new__() knows the information it needs to tell if this image
+        exists already or not.
+        """
+        return (self.filename, self.info_filename)
+
+    def _parsePaths(self, image_path, info_path):
+        """
+        Parses the image and info paths and stores the needed attributes.
+        """
+        self.path = image_path
+        _, self.filename, self.name, _ = self.parseFilePath(image_path)
+        self.id = self.name
+
+        self.info_path = info_path
+        _, self.info_filename, _, _ = self.parseFilePath(info_path)
 
     def _readInfo(self):
         """
@@ -103,7 +157,10 @@ class Image:
         if not self.height:
             raise(Exception("Can't geo-reference image. Missing image height."))
 
-        self.camera_specs = geo.CameraSpecs(self.width, self.height, self.field_of_view_horiz, self.field_of_view_vert)
+        field_of_view_horiz = 63.3 # Hardcoded for now. Should come from the UAV in the info file eventually.
+        field_of_view_vert = 48.9
+
+        self.camera_specs = geo.CameraSpecs(self.width, self.height, field_of_view_horiz, field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)
 
     def _requireGeo(self):
@@ -134,7 +191,6 @@ class Image:
         Returns None, None if the point isn't in the image.
         """
         self._requireGeo()
-
         return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
 
     def distance(self, point_a, point_b):
@@ -142,6 +198,7 @@ class Image:
         Returns the distance between the two points on the ground
         refered to by the provided pixel locations.
         """
+        self._requireGeo()
         positions = [self.geoReferencePoint(*point_a),
                      self.geoReferencePoint(*point_b)]
         return geo.PositionCollection(positions).length()
@@ -151,6 +208,7 @@ class Image:
         Returns the heading between the two points on the ground referred to
         by the provided pixel locations.
         """
+        self._requireGeo()
         positions = [self.geoReferencePoint(*point_a),
                      self.geoReferencePoint(*point_b)]
         return geo.heading_between_positions(positions[0], positions[1])
@@ -200,13 +258,13 @@ class Watcher:
                 if extension.lower() in supported_image_formats:
                     info_pathname = self.pending_infos.pop(filename, False)
                     if info_pathname:
-                        self._createImage(filename, event.pathname, info_pathname)
+                        self._createImage(event.pathname, info_pathname)
                     else:
                         self.pending_images[filename] = event.pathname
                 elif extension.lower() in supported_info_formats:
                     image_pathname = self.pending_images.pop(filename, False)
                     if image_pathname:
-                        self._createImage(filename, image_pathname, event.pathname)
+                        self._createImage(image_pathname, event.pathname)
                     else:
                         self.pending_infos[filename] = event.pathname
 
@@ -219,13 +277,13 @@ class Watcher:
 
         self.watches = None
 
-    def createImage(self, filename, image_pathname, info_pathname):
+    def createImage(self, image_pathname, info_pathname):
         try:
-            new_image = Image(filename, image_pathname, info_pathname)
-        except Exception as e:
-            logger.error("Unable to import image %s: %s" % (filename, e))
+            new_image = Image(image_pathname, info_pathname)
+        except (KeyError, ValueError) as e:
+            logger.error("Unable to import image %s: %s" % (image_pathname, e))
         else:
-            logger.info("Imported image %s" % filename)
+            logger.info("Imported image %s" % image_pathname)
             self.queue.put(new_image)
 
     def loadExistingImages(self, path):
@@ -259,13 +317,13 @@ class Watcher:
             if extension.lower() in supported_image_formats:
                 info_pathname = self.pending_infos.pop(filename, False)
                 if info_pathname:
-                    self.createImage(filename, fullpath, info_pathname)
+                    self.createImage(fullpath, info_pathname)
                 else:
                     self.pending_images[filename] = fullpath
             elif extension.lower() in supported_info_formats:
                 image_pathname = self.pending_images.pop(filename, False)
                 if image_pathname:
-                    self.createImage(filename, image_pathname, fullpath)
+                    self.createImage(image_pathname, fullpath)
                 else:
                     self.pending_infos[filename] = fullpath
 

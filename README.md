@@ -20,8 +20,8 @@ Implemented Features:
 * Created markers are shown in a list on the right and can be edited in the
   marker detail area below this list
 * Various Export options under the Export menu
-* Start of multi-operator functionality: features can be synced with other
-  pigeon instances over an ivybus
+* Start of multi-operator functionality: features and images can be synced with
+  other pigeon instances over an ivybus
 
 Future Features:
 ----------------
@@ -76,6 +76,9 @@ Running the Tests
 -------------
 From the station directory, do:
 python3 test.py
+
+To run a particular test, test case, or module, add it as an argument. Ex:
+python3 test.py testimage.WatcherTestCase.testImageAdded
 
 
 Installation

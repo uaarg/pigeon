@@ -64,5 +64,8 @@ Marker Area
 Multi-Operator
 --------------
 * Work has been started on multi-operator support. This means running multiple pigeon instances (usually on different computers) and having data be shared between them.
-* Right now, it's basically a feature-sync mechanism. Any features created or changed by one Pigeon are sent to other instances connected to the ivybus.
-* To use, configure the "Pigeon Network" setting so that the two Pigeons can talk (the default should work if they are on the same computer). Then, just start making and changing features.
+* Right now, features and images are synced. Any features created or changed by one Pigeon are sent to other instances connected to the ivybus. New images found by one Pigeon instance are also sent to others (put into their monitoring folder).
+* To use, configure the "Pigeon Network" setting so that the two Pigeons can talk (the default should work if they are on the same computer). Then, just start making and changing features or adding images to the monitored folder of one Pigeon.
+* Not yet supported:
+    * Syncing of feature icons (and therefore exports that rely on these are broken)
+    * Catching up instances that were started late: they'll miss out on image and features that have already been synced. Make another change to a feature to sync it.

@@ -8,7 +8,7 @@ WARNING = logging.WARNING
 INFO = logging.INFO
 DEBUG = logging.DEBUG
 
-def initialize(file_level=logging.DEBUG, console_level=logging.ERROR, filename="log"):
+def initialize(file_level=logging.DEBUG, console_level=logging.CRITICAL, filename="log"):
 
     log_file = os.path.join(*["data", filename + os.extsep + "log"])
 

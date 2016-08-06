@@ -41,7 +41,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, save_settings, load_settings, export_manager, image_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
+    def __init__(self, save_settings, load_settings, export_manager, image_in_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -66,7 +66,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.connectQueue(self.feature_io_queue.in_queue, self.applyFeatureSync)
 
-        self.connectQueue(image_queue, self.addImage)
+        self.connectQueue(image_in_queue, self.addImage)
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
         # Hooking up some inter-component behaviour
@@ -101,7 +101,6 @@ class UI(QtCore.QObject, QueueMixin):
                     self.main_window.featureChanged.emit(feature)
                     break
         else:
-            self.features.append(feature)
             self.main_window.featureAdded.emit(feature)
 
 

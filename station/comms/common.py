@@ -8,13 +8,13 @@ def configure_ivy_logging():
 class CommonIvyComms:
     def __init__(self, bus=None, instance_name=None):
         self.bus = bus
-        self.instance_name = instance_name or "unnamed %s" % str(uuid.uuid4())[:4]
+        self.instance_name = instance_name or "unnamed-%s" % str(uuid.uuid4())[:4]
 
         configure_ivy_logging()
 
-        instance_name = "pigeon-%s" % self.instance_name
-        instance_name.replace(" ", "_") # Ivy seems to do weird things when there's a space. Ex. receiving it's own messages.
-        self.ivy_server = IvyServer(instance_name, "", self._onConnectionChange)
+        self.instance_name = "pigeon-%s" % self.instance_name
+        self.instance_name.replace(" ", "_") # Ivy seems to do weird things when there's a space. Ex. receiving it's own messages.
+        self.ivy_server = IvyServer(self.instance_name, "", self._onConnectionChange)
 
     def _onConnectionChange(self, *args, **kwargs):
         pass

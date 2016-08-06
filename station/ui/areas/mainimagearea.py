@@ -96,9 +96,12 @@ class MainImageArea(QtWidgets.QWidget):
         self.feature_pixmap_label_markers = {}
 
     def _drawFeature(self, feature):
-        if feature in self.features: # Only drawing top-level features, not subfeatures
-            # Cleaning up any UI elements already drawn for this feature if they exist:
+        if not self.image:
+            return # Don't need to draw anything if we don't have an image to draw on
+
+        if feature.id in [feature.id for feature in self.features]: # Only drawing top-level features, not subfeatures
             for feature_point in feature.visiblePoints(self.image):
+                # Cleaning up any UI elements already drawn for this feature if they exist:
                 old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(feature_point.id, None)
                 if old_pixmap_label_marker:
                     old_pixmap_label_marker.hide()

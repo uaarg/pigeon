@@ -40,15 +40,23 @@ class BaseFeature:
         return False
 
     def serialize(self):
+        """
+        Returns a string that can be used to re-create this object using deserialize().
+
+        Subclasses should not need to re-implement. Uses pickle to automatically get
+        everything.
+        """
         old_picture = self.picture
-        self.picture = None # Not pickling the picture
-        data = base64.b64encode(pickle.dumps(self)).decode("ascii")
-        self.picture = old_picture
-        print(data)
+        self.picture = None # Not pickling the picture. TODO: need a way to re-create the picture.
+        data = base64.b64encode(pickle.dumps(self)).decode("ascii") # Ivybus expects a normal string but pickle gives a binary string. So b64 encoding.
+        self.picture = old_picture # Restoring the picture for us to keep: don't want to lose it forever.
         return data
 
     @classmethod
     def deserialize(cls, dumped):
+        """
+        Returns a new instance of this class from a string created using serialize().
+        """
         return pickle.loads(base64.b64decode(dumped))
 
 

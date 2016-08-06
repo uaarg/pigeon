@@ -63,6 +63,8 @@ def load():
             _update_global_dict(json.load(settings_file))
     except FileNotFoundError:
         logger.debug("No custom settings to load.")
+    except ValueError as e:
+        logger.debug("Custom settings file corrupt: %s" % e)
     else:
         logger.debug("Loaded settings.")
 
