@@ -125,6 +125,8 @@ A few notes about contributing:
   anything: if the tests don't pass, it means you broke something
   somehow (or, someone else commited a break, in which case find who
   and get them to fix it).
+* Documentation is in the doc folder. .odg files can be opened in
+  LibreOffice Draw.
 
 
 Code Conventions

@@ -6,6 +6,7 @@ from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from features import BaseFeature, Feature, Marker
+from geo import position_at_offset
 
 from .common import QueueMixin
 from .commonwidgets import NonEditableBaseListForm
@@ -18,8 +19,6 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
-
-from geo import position_at_offset
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60

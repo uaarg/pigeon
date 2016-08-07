@@ -6,7 +6,7 @@ import argparse
 
 import log
 from ui import UI
-import image
+from image import Watcher
 import settings
 import features
 from comms.uav import UAV
@@ -20,7 +20,7 @@ class GroundStation:
     def __init__(self, uav_ivybus=None, stations_ivybus=None):
         super().__init__()
         self.loadSettings()
-        self.image_watcher = image.Watcher()
+        self.image_watcher = Watcher()
         self.stations = Stations(bus=stations_ivybus,
                                  instance_name=self.settings_data.get("Instance Name"),
                                  settings_data=self.settings_data)
