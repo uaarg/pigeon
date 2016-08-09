@@ -56,9 +56,6 @@ class FeatureArea(QtWidgets.QFrame):
 
         self.features[feature.id] = item
 
-        if not parent:
-            self.showFeature(feature)
-
         for subfeature in feature.subfeatures():
             self.addFeature(subfeature, item)
 

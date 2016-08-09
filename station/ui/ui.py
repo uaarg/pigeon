@@ -230,6 +230,8 @@ class MainWindow(QtWidgets.QMainWindow):
             signal.connect(self.main_image_area.addFeature)
             signal.connect(self.feature_area.addFeature)
 
+        self.featureAddedLocally.connect(self.feature_area.showFeature)
+
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
 
