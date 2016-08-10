@@ -4,13 +4,14 @@ import pickle
 import base64
 import uuid
 
-from geo import Position, PositionCollection
+from geo import Position, PositionCollection, position_at_offset
+from image import ImageCrop
 
 class BaseFeature:
     """
     Base class for features and feature-like things.
     """
-    picture = None
+    picture_crop = None
     data = []
 
     def __init__(self):
@@ -46,10 +47,7 @@ class BaseFeature:
         Subclasses should not need to re-implement. Uses pickle to automatically get
         everything.
         """
-        old_picture = self.picture
-        self.picture = None # Not pickling the picture. TODO: need a way to re-create the picture.
         data = base64.b64encode(pickle.dumps(self)).decode("ascii") # Ivybus expects a normal string but pickle gives a binary string. So b64 encoding.
-        self.picture = old_picture # Restoring the picture for us to keep: don't want to lose it forever.
         return data
 
     @classmethod
@@ -100,9 +98,6 @@ class Feature(BaseFeature):
     """
     def __init__(self, name=""):
         super().__init__()
-        self.picture = None # To be set later by the UI. This picture
-                            # is intended to be a crop of the original
-                            # image right around the feature.
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
         self.data = [
             ("Name", name),
@@ -227,6 +222,24 @@ class Point(Feature):
                 self.instances[image] = feature
                 return True
         return False
+
+    def setPictureCrop(self, image, size):
+        point_of_interest = self.instances.get(image)
+        if point_of_interest:
+            position = point_of_interest.position
+            if position:
+                pixel_x, pixel_y = image.invGeoReferencePoint(position)
+                offset_position = position_at_offset(position, float(size), 0)
+                offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
+
+                if offset_pixel_x and offset_pixel_y:
+                    offset_pixels = max(abs(offset_pixel_x - pixel_x), abs(offset_pixel_y - pixel_y))
+
+                    self.picture_crop = ImageCrop(image, (pixel_x, pixel_y), offset_pixels)
+
+                    # # Calculate thumbnail size and crop
+                    # cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
+                    # marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
 
 class GroundControlPoint(Point):
     icon_name = "x"

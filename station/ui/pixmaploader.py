@@ -10,8 +10,8 @@ class PixmapLoader:
     requested size. Tries to optimize performance by balancing
     memory usage and disk access.
     """
-    def __init__(self, image_path):
-        self.image_path = image_path
+    def __init__(self, image):
+        self.image = image
         self.pixmap = None # This is where the pixmap is cached in memory
         self.image_width = None
         self.image_height = None
@@ -140,10 +140,12 @@ class PixmapLoader:
             self._loadOriginalPixmap()
 
     def _loadOriginalPixmap(self):
-        self.pixmap = QtGui.QPixmap(self.image_path)
+        if not self.image.path:
+            raise(ValueError("Don't have a path to load image."))
+        self.pixmap = QtGui.QPixmap(self.image.path)
         if self.pixmap.isNull():
             self.pixmap = None
-            raise(ValueError("Failed to load image at %s" % self.image_path))
+            raise(ValueError("Failed to load image at %s" % self.image.path))
         self.image_width = self.pixmap.width()
         self.image_height = self.pixmap.height()
 

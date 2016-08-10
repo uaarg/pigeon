@@ -6,7 +6,6 @@ from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
 from features import BaseFeature, Feature, Marker
-from geo import position_at_offset
 
 from .common import QueueMixin
 from .commonwidgets import NonEditableBaseListForm
@@ -280,7 +279,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_window.settings_save_requested.connect(self.settings_save_requested.emit)
 
     def addImage(self, image):
-        image.pixmap_loader = PixmapLoader(image.path)
+        image.pixmap_loader = PixmapLoader(image)
 
         # Recording the width and height of the image for other code to use:
         image.width = image.pixmap_loader.width()
@@ -306,18 +305,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def createNewMarker(self, image, point):
         marker = Marker(image, point=(point.x(), point.y()))
-        if marker.position:
-            offset_position = position_at_offset(marker.position, float(self.settings_data["Nominal Target Size"]), 0)
-            offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
-
-            if offset_pixel_x and offset_pixel_y:
-                offset_pixels = max(abs(offset_pixel_x - point.x()), abs(offset_pixel_y - point.y()))
-
-                # Calculate thumbnail size and crop
-                cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
-                marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
-
-            self.featureAddedLocally.emit(marker)
+        marker.setPictureCrop(image, self.settings_data["Nominal Target Size"])
+        self.featureAddedLocally.emit(marker)
 
     def collectSubfeature(self, feature):
         self.collect_subfeature_for = feature

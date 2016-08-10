@@ -16,7 +16,7 @@ from geo import Position, PositionCollection
 from features import Marker
 
 import csv as CSV # For CSV Exporter
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
 from .interop import InteropClient
@@ -331,7 +331,12 @@ class AUVSICSVExporter(Exporter):
 
             titleList.insert(9,"Image Name")
             thumbnailName = "Targ_" + str(TargetCount)
-            marker.picture.save(os.path.join(output_path, thumbnailName), "JPG")
+
+            cropping_rect = QtCore.QRect(QtCore.QPoint(*marker.picture_crop.top_left), QtCore.QPoint(*marker.picture_crop.bottom_right))
+            original_picture = marker.picture_crop.image.pixmap_loader.getPixmapForSize(None)
+            picture = original_picture.copy(cropping_rect)
+
+            picture.save(os.path.join(output_path, thumbnailName), "JPG")
             currentMarkerList.insert( 9,thumbnailName + ".jpg")
 
             if (TargetCount == 1):

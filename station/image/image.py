@@ -73,6 +73,11 @@ class Image(object):
         state["info_path"] = None
         return state
 
+    def __setstate__(self, data):
+        # Only setting the __dict__ if self is a new instance:
+        if not hasattr(self, "id"):
+            self.__dict__ = data
+
     def __getnewargs__(self):
         """
         Called during pickling. Saves the args to be provided to __new__() during unpickling.
@@ -355,3 +360,37 @@ class Watcher:
         destroys it.
         """
         self.notifier.stop()
+
+
+class ImageCrop:
+    """
+    Represents a cropped area of a particular image.
+    """
+    def __init__(self, image, center, offset):
+        self.image = image
+        self.center = center
+        self.offset = offset
+
+    @property
+    def min_x(self):
+        return self.center[0] - self.offset
+
+    @property
+    def max_x(self):
+        return self.center[0] + self.offset
+
+    @property
+    def min_y(self):
+        return self.center[1] - self.offset
+
+    @property
+    def max_y(self):
+        return self.center[1] + self.offset
+
+    @property
+    def top_left(self):
+        return (self.min_x, self.min_y)
+
+    @property
+    def bottom_right(self):
+        return (self.max_x, self.max_y)
