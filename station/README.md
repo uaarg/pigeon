@@ -21,7 +21,7 @@ Settings
 * Current settings:
     * Feature Export Path: Specified the path where the exporters should save their file exports.
     * Follow Images: Specifies whether new images should be automatically shown in the main display area upon addition.
-    * Instance Name: The name of this Pigeon instance for multi-operator support (in progress). Setting to your name makes sense.
+    * Instance Name: The name of this Pigeon instance for multi-operator support (Beta). Setting to your name makes sense.
     * Load Existing Images: Specified whether to load all images from the monitor folder on startup. Doesn't re-scan the folder if enabled: applies to the next launch.
     * Monitor Folder: Specifies the directory to be watched for new images. Can be an absolute or relative path. No error checking is done on the path yet.
     * Nominal Target Size: The expected size of features in meters. Used for automatic thumnail creating for new features.
@@ -63,9 +63,8 @@ Marker Area
 
 Multi-Operator
 --------------
-* Work has been started on multi-operator support. This means running multiple pigeon instances (usually on different computers) and having data be shared between them.
+* A beta version of multi-operator support has been finished. This means running multiple pigeon instances (usually on different computers) and having data be shared between them.
 * Right now, features and images are synced. Any features created or changed by one Pigeon are sent to other instances connected to the ivybus. New images found by one Pigeon instance are also sent to others (put into their monitoring folder).
 * To use, configure the "Pigeon Network" setting so that the two Pigeons can talk (the default should work if they are on the same computer). Then, just start making and changing features or adding images to the monitored folder of one Pigeon.
 * Not yet supported:
-    * Syncing of feature icons (and therefore exports that rely on these are broken)
     * Catching up instances that were started late: they'll miss out on image and features that have already been synced. Make another change to a feature to sync it.
