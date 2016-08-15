@@ -114,6 +114,52 @@ and see all the options.
   view, etc... (use command line arguments to specify what you want).
 
 
+Security
+--------
+A brief overview of some security considerations of Pigeon, and in particular
+station.py are listed here:
+* First, the obvious: station.py launches an HTTP server which serves up the
+  image and info files imported into Pigeon. This data should not be considered
+  private. Also, features and associated meta-data are made available on the
+  network so this data is effectively public too.
+* Given the significant amount of network communication needed for some
+  of the features (in particular, multi-operator), there is a significant
+  attack area.
+* Any vulnerabilities in the ivybus library or Python's built-in http server
+  (http.server.HTTPServer) would be exposed. Remotely received data is
+  also unpickled, albeit with a whitelist of allowed classes. There's two
+  potential failure points here:
+  1. The pickling protocal has a way to avoid this whitelist.
+  2. A whitelisted class exposes more than it should (ex. keeping a reference
+     to the os module).
+* Potential exploits include:
+  * Remote code execution
+  * Exposing private information such as local files
+  * Privilege escalation.
+* Anybody on the specified network can attempt exploits. By default, this
+  is just localhost, so other programs running on this maching could attempt
+  privilege escalation. When this network setting is changed, other machines
+  can attempt exploits.
+* The locally saved settings.json file provides a significant amount of control
+  over how station.py behaves. Anyone with permission to edit this (ex. another
+  use in the group depending on file permissions) could change the monitored
+  folder to somewhere that they don't already have access to, etc...
+* Denial of service: there's no rate limiting, so this kind of attack should
+  be very easy to perform.
+* Although the developers have thought about security and attempted to avoid
+  any vulnerabilities, there has been no security audit or other testing so
+  the answer to "is pigeon safe" is: ¯\_(ツ)_/¯
+* Obscurity: this is huge source of protection. At the time of writting this,
+  Pigeon is closed source and not widely used.
+* Mitigation:
+  * Don't run as root.
+  * Ideally, only open up to trusted networks (ex. behind a firewall, etc...).
+  * All network communication should be logged so investigate any suspicious
+    behaviour.
+  * Ensure the file permissions of settings.json are appropriate for your
+    environment.
+
+
 Contributing
 ------------
 A few notes about contributing:

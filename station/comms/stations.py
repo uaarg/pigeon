@@ -4,7 +4,7 @@ from threading import Thread
 import queue
 import time
 
-from features import BaseFeature
+from features import BaseFeature, FeatureDeserializeSecurityError
 
 from .common import CommonIvyComms
 
@@ -97,8 +97,12 @@ class Stations(CommonIvyComms):
 
     def _handleFeatureSync(self, agent, data):
         logger.info("Received a feature from %s." % agent)
-        feature = BaseFeature.deserialize(data)
-        self.feature_io_queue.in_queue.put(feature)
+        try:
+            feature = BaseFeature.deserialize(data)
+        except FeatureDeserializeSecurityError as e:
+            logger.error("Failed to deserialize feature from %s for potential security reasons: %s Raw data:\n '%s'" % (agent, e, data))
+        else:
+            self.feature_io_queue.in_queue.put(feature)
 
     def _handleImageFileSync(self, agent, url):
         logger.info("Received an image url from %s: %s" % (agent, url))

@@ -3,9 +3,44 @@ import json
 import pickle
 import base64
 import uuid
+import io
 
 from geo import Position, PositionCollection, position_at_offset
 from image import ImageCrop
+
+class FeatureDeserializeSecurityError(Exception):
+    pass
+
+class WhiteListUnpickler(pickle.Unpickler):
+    """
+    Only allows unpickling of certain classes. Provides some security
+    from remote code execution. For details see:
+    https://docs.python.org/3.4/library/pickle.html#restricting-globals
+
+    Add classes set as attributes of BaseFeature or any subclasses here.
+    """
+    allowed_classes = [("image.image", "Image"),
+                       ("image.image", "ImageCrop"),
+                       ("geo.geo", "Orientation"),
+                       ("geo.geo", "Position"),
+                       ("geo.geo", "GeoReference"),
+                       ("geo.geo", "CameraSpecs"),
+                       ("ui.pixmaploader", "PixmapLoader"),
+                       ("features.features", "BaseFeature"),
+                       ("features.features", "PointOfInterest"),
+                       ("features.features", "Marker"),
+                       ("features.features", "Feature"),
+                       ("features.features", "GroundControlPoint"),
+                      ]
+
+    def find_class(self, module, name):
+        if (module, name) in self.allowed_classes:
+            return super().find_class(module, name)
+        else:
+            raise FeatureDeserializeSecurityError("Not allowed to unpickle %s.%s because it hasn't been listed as safe. Either it should be added to the whitelist or an intrusion was just prevented." % (module, name))
+
+def loads_whitelisted(string):
+    return WhiteListUnpickler(io.BytesIO(string)).load()
 
 class BaseFeature:
     """
@@ -55,7 +90,7 @@ class BaseFeature:
         """
         Returns a new instance of this class from a string created using serialize().
         """
-        return pickle.loads(base64.b64decode(dumped))
+        return loads_whitelisted(base64.b64decode(dumped))
 
 
 class PointOfInterest(BaseFeature):

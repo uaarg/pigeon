@@ -14,7 +14,7 @@ from comms.stations import Stations
 from comms.imagereplicate import ImageReplicator
 from exporter import ExportManager
 
-__version__ = "0.5"
+__version__ = "0.5.1"
 
 class GroundStation:
     def __init__(self, uav_ivybus=None, stations_ivybus=None):
