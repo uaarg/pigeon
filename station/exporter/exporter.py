@@ -19,7 +19,7 @@ import csv as CSV # For CSV Exporter
 from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
-from .interop import InteropClient
+from .interop_exporter import InteropClient
 
 
 class KMLExporter(Exporter):
