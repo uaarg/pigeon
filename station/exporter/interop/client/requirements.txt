@@ -1,4 +1,0 @@
-futures
-nose
-requests
-LatLon
