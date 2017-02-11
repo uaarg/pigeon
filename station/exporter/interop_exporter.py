@@ -4,6 +4,8 @@ from time import time
 import threading
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from PyQt5.QtCore import QRect, QPoint
+
 from . import interop
 # baseurl = "http://10.10.130.43"
 # username = "U_Alberta"
@@ -164,7 +166,6 @@ class InteropClientV2(Exporter):
                 logger.info(msg)
                 print(msg)
 
-
 class InteropClient(Exporter):
     def __init__(self):
         self.path = None
@@ -235,7 +236,8 @@ class InteropClient(Exporter):
                 if target_id:
                     target.external_refs['interoperability'] = {}
                     target.external_refs['interoperability']['id'] = target_id
-                    target.picture.save('target.jpg')
+
+                    target.thumbnail.save('target.jpg')
                     self.interoplink.submitTargetThumbnail(target_id, 'target.jpg')
 
 class Connection:

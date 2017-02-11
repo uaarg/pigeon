@@ -47,6 +47,7 @@ class BaseFeature:
     Base class for features and feature-like things.
     """
     picture_crop = None
+    thumbnail = None
     data = []
 
     def __init__(self):
@@ -272,9 +273,6 @@ class Point(Feature):
 
                     self.picture_crop = ImageCrop(image, (pixel_x, pixel_y), offset_pixels)
 
-                    # # Calculate thumbnail size and crop
-                    # cropping_rect = QtCore.QRect(point.x() - offset_pixels, point.y() - offset_pixels, offset_pixels * 2, offset_pixels * 2)
-                    # marker.picture = image.pixmap_loader.getPixmapForSize(None).copy(cropping_rect)
 
 class GroundControlPoint(Point):
     icon_name = "x"

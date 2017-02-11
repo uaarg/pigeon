@@ -54,6 +54,7 @@ class FeatureArea(QtWidgets.QFrame):
                 return None # Don't have the image yet: can't make a picture from the crop.
             else:
                 picture = original_picture.copy(cropping_rect)
+                feature.thumbnail = picture
                 icon = QtGui.QIcon(picture)
                 return icon
         else:
