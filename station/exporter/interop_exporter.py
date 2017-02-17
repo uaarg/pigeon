@@ -96,26 +96,6 @@ class InteropClientV2(Exporter):
                 logger.critical(msg)
                 print(msg)
                 return
-#            except interop.InteropError:
-#                msg = "Target {} update error: interop.InteropError".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except requests.Timeout:
-#                msg = "Target {} update error: requests.Timeout".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except ValueError or AttributeError:
-#                msg = "Target {} update error: Malformed response from server".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except:
-#                msg = "Target {} update error: Unanticipated error".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
             else:
                 msg = "Target {} updated successfully".format(target_id)
                 logger.info(msg)
@@ -131,26 +111,6 @@ class InteropClientV2(Exporter):
                 logger.critical(msg)
                 print(msg)
                 return
-#            except interop.InteropError:
-#                msg = "Target {} upload error: interop.InteropError".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except requests.Timeout:
-#                msg = "Target {} upload error: requests.Timeout".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except ValueError or AttributeError:
-#                msg = "Target {} upload error: Malformed response from server".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
-#            except:
-#                msg = "Target {} upload error: Unanticipated error".format(target_id)
-#                logger.critical(msg)
-#                print(msg)
-#                return
             else:
                 target_id = returned_target.id
                 msg = "Target {} uploaded successfully".format(target_id)
@@ -170,21 +130,6 @@ class InteropClientV2(Exporter):
                         logger.critical(msg)
                         print(msg)
                         return
-#                    except interop.InteropError:
-#                        msg = "Target {} thumbnail upload error: interop.InteropError".format(target_id)
-#                        logger.critical(msg)
-#                        print(msg)
-#                        return
-#                    except requests.Timeout:
-#                        msg = "Target {} thumbnail upload error: requests.Timeout".format(target_id)
-#                        logger.critical(msg)
-#                        print(msg)
-#                        return
-#                    except:
-#                        msg = "Target {} thumbnail upload error: Unanticipated error".format(target_id)
-#                        logger.critical(msg)
-#                        print(msg)
-#                        return
                     else:
                         msg = "Image thumbnail {} uploaded successfully".format(target_id)
                         logger.info(msg)
