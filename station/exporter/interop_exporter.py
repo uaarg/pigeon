@@ -36,7 +36,7 @@ class InteropClientV2(Exporter):
         for target in processed_targets:
             self.send_target(target)
 
-    def process_target(self, raw_target):
+    def __process_target(self, raw_target):
         """Processes relevant data into target objects"""
         targetData = []
         for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
@@ -89,82 +89,106 @@ class InteropClientV2(Exporter):
             # update target
             try:
                 self.client.put_target(target_id, target)
-            except interop.InteropError:
-                msg = "Target {} update error: interop.InteropError".format(target_id)
+            except Exception as exception:
+                name = type(exception).__name__
+                detail = exception.args[0]
+                msg = "Target {0} update error: {1}: {2}".format(target_id, name, detail)
                 logger.critical(msg)
                 print(msg)
                 return
-            except requests.Timeout:
-                msg = "Target {} update error: requests.Timeout".format(target_id)
-                logger.critical(msg)
+#            except interop.InteropError:
+#                msg = "Target {} update error: interop.InteropError".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except requests.Timeout:
+#                msg = "Target {} update error: requests.Timeout".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except ValueError or AttributeError:
+#                msg = "Target {} update error: Malformed response from server".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except:
+#                msg = "Target {} update error: Unanticipated error".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+            else:
+                msg = "Target {} updated successfully".format(target_id)
+                logger.info(msg)
                 print(msg)
-                return
-            except ValueError or AttributeError:
-                msg = "Target {} update error: Malformed response from server".format(target_id)
-                logger.critical(msg)
-                print(msg)
-                return
-            except:
-                msg = "Target {} update error: Unanticipated error".format(target_id)
-                logger.critical(msg)
-                print(msg)
-                return
-            msg = "Target {} updated successfully".format(target_id)
-            logger.info(msg)
-            print(msg)
         else:
             # upload target
             try:
                 returned_target = self.client.post_target(target).result()
-            except interop.InteropError:
-                msg = "Target {} upload error: interop.InteropError".format(target_id)
+            except Exception as exception:
+                name = type(exception).__name__
+                detail = exception.args[0]
+                msg = "Target {0} upload error: {1}: {2}".format(target_id, name, detail)
                 logger.critical(msg)
                 print(msg)
                 return
-            except requests.Timeout:
-                msg = "Target {} upload error: requests.Timeout".format(target_id)
-                logger.critical(msg)
-                print(msg)
-                return
-            except ValueError or AttributeError:
-                msg = "Target {} upload error: Malformed response from server".format(target_id)
-                logger.critical(msg)
-                print(msg)
-                return
-            except:
-                msg = "Target {} upload error: Unanticipated error".format(target_id)
-                logger.critical(msg)
-                print(msg)
-                return
-            target_id = returned_target.id
-            msg = "Target {} uploaded successfully".format(target_id)
-            logger.info(msg)
-            print(msg)
-            raw_target.external_refs['interoperability'] = {}
-            raw_target.external_refs['interoperability']['id'] = target_id
-            raw_target.picture.save('target.jpg')
-            # upload image
-            with open(image_path, 'rb') as image_data:
-                try:
-                    self.client.post_target_image(target_id, image_data)
-                except interop.InteropError:
-                    msg = "Target {} thumbnail upload error: interop.InteropError".format(target_id)
-                    logger.critical(msg)
-                    print(msg)
-                    return
-                except requests.Timeout:
-                    msg = "Target {} thumbnail upload error: requests.Timeout".format(target_id)
-                    logger.critical(msg)
-                    print(msg)
-                    return
-                except:
-                    msg = "Target {} thumbnail upload error: Unanticipated error".format(target_id)
-                    logger.critical(msg)
-                    print(msg)
-                    return
-                msg = "Image thumbnail {} uploaded successfully".format(target_id)
+#            except interop.InteropError:
+#                msg = "Target {} upload error: interop.InteropError".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except requests.Timeout:
+#                msg = "Target {} upload error: requests.Timeout".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except ValueError or AttributeError:
+#                msg = "Target {} upload error: Malformed response from server".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+#            except:
+#                msg = "Target {} upload error: Unanticipated error".format(target_id)
+#                logger.critical(msg)
+#                print(msg)
+#                return
+            else:
+                target_id = returned_target.id
+                msg = "Target {} uploaded successfully".format(target_id)
                 logger.info(msg)
                 print(msg)
+                raw_target.external_refs['interoperability'] = {}
+                raw_target.external_refs['interoperability']['id'] = target_id
+                raw_target.picture.save('target.jpg')
+                # upload image
+                with open(image_path, 'rb') as image_data:
+                    try:
+                        self.client.post_target_image(target_id, image_data)
+                    except Exception as exception:
+                        name = type(exception).__name__
+                        detail = exception.args[0]
+                        msg = "Target {0} thumbnail upload error: {1}: {2}".format(target_id, name, detail)
+                        logger.critical(msg)
+                        print(msg)
+                        return
+#                    except interop.InteropError:
+#                        msg = "Target {} thumbnail upload error: interop.InteropError".format(target_id)
+#                        logger.critical(msg)
+#                        print(msg)
+#                        return
+#                    except requests.Timeout:
+#                        msg = "Target {} thumbnail upload error: requests.Timeout".format(target_id)
+#                        logger.critical(msg)
+#                        print(msg)
+#                        return
+#                    except:
+#                        msg = "Target {} thumbnail upload error: Unanticipated error".format(target_id)
+#                        logger.critical(msg)
+#                        print(msg)
+#                        return
+                    else:
+                        msg = "Image thumbnail {} uploaded successfully".format(target_id)
+                        logger.info(msg)
+                        print(msg)
 
 class InteropClient(Exporter):
     def __init__(self):
