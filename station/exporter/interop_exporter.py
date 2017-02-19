@@ -23,25 +23,28 @@ logger = logging.getLogger(__name__)
 class InteropClientV2(Exporter):
     """Newer version that uses the provided library rather than rolling
     our own."""
-    def __init__(self, username, password):
+    def __init__(self):
         self.path = None
-        self.client = interop.AsyncClient(username, password, timeout=1, workers=8)
+        # change this
+        baseurl = "http://localhost:8000"
+        username = "testuser"
+        password = "testpass"
+        self.client = interop.Client(baseurl, username, password, timeout=1)
     
-    def export(self, raw_target, path):
+    def export(self, features, path):
         self.path = path + "interopSent.json"
-        targets = [target for target in raw_target if isinstance(feature, Marker)]
-        processed_targets = []
-        for target in targets:
-            processed_targets.append(self.process_target(target))
-        for target in processed_targets:
-            self.send_target(target)
+        self.features = features
+        for feature in self.features:
+            if isinstance(feature, Marker):
+                self.__process_target(feature)
+                self.send_target(feature)
 
-    def __process_target(self, raw_target):
+    def __process_target(self, feature):
         """Processes relevant data into target objects"""
         targetData = []
         for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
             allocated = False
-            for field in raw_target.data: # Add all marker features we care about
+            for field in feature.data: # Add all marker features we care about
                 key = field[0]
                 value = field[1]
                 if key == data_column:
@@ -51,16 +54,30 @@ class InteropClientV2(Exporter):
                     targetData.append(value)
             if not allocated:
                 targetData.append("")
+            lat = feature.position.lat
+            lon = feature.position.lon
         if targetData[0] == "qrc" or targetData[0] == "emergent":
-            target = interop.types.Target(
+            interop_target = interop.interop_types.Target(
                 type = targetData[0],
-                latitude = target.position.lat,
-                longitude = target.position.lon,
+                latitude = lat,
+                longitude = lon,
                 description = targetData[6]
             )
         elif targetData[0] == "off_axis":
-            target = interop.types.Target(
+            interop_target = interop.interop_types.Target(
                 type = targetData[0],
+                orientation = targetData[1],
+                shape = targetData[2],
+                background_color = targetData[3],
+                alphanumeric = targetData[4],
+                alphanumeric_color = targetData[5],
+                description = targetData[6]
+            )
+        elif targetData[0] == "standard":
+            interop_target = interop.interop_types.Target(
+                type = targetData[0],
+                latitude = lat,
+                longitude = lon,
                 orientation = targetData[1],
                 shape = targetData[2],
                 background_color = targetData[3],
@@ -69,32 +86,24 @@ class InteropClientV2(Exporter):
                 description = targetData[6]
             )
         else:
-            target = interop.types.Target(
-                type = targetData[0],
-                latitude = target.position.lat,
-                longitude = target.position.lon,
-                orientation = targetData[1],
-                shape = targetData[2],
-                background_color = targetData[3],
-                alphanumeric = targetData[4],
-                alphanumeric_color = targetData[5],
-                description = targetData[6]
-            )
-        return target
+            msg = "Invalid feature/target type!"
+            msg = logger.critical(msg)
+            feature.external_refs['interop_target'] = None
+            return
+        feature.external_refs['interop_target'] = interop_target
         
-    def send_target(self, raw_target):
-        """Sends target data using the async interop library."""
-        if 'interoperability' in raw_target.external_refs:
-            target_id = raw_target.external_refs['interoperability']['id']
+    def send_target(self, feature):
+        """Sends target data using the interop client library."""
+        if 'interoperability' in feature.external_refs:
+            target_id = feature.external_refs['interoperability']['id']
             # update target
             try:
-                self.client.put_target(target_id, target)
+                self.client.put_target(target_id, feature.external_refs['interop_target'])
             except Exception as exception:
                 name = type(exception).__name__
                 detail = exception.args[0]
                 msg = "Target {0} update error: {1}: {2}".format(target_id, name, detail)
                 logger.critical(msg)
-                print(msg)
                 return
             else:
                 msg = "Target {} updated successfully".format(target_id)
@@ -103,23 +112,23 @@ class InteropClientV2(Exporter):
         else:
             # upload target
             try:
-                returned_target = self.client.post_target(target).result()
+                returned_target = self.client.post_target(feature.external_refs['interop_target'])
             except Exception as exception:
                 name = type(exception).__name__
                 detail = exception.args[0]
-                msg = "Target {0} upload error: {1}: {2}".format(target_id, name, detail)
+                msg = "New target upload error: {0}: {1}".format(name, detail)
                 logger.critical(msg)
-                print(msg)
                 return
             else:
                 target_id = returned_target.id
                 msg = "Target {} uploaded successfully".format(target_id)
                 logger.info(msg)
                 print(msg)
-                raw_target.external_refs['interoperability'] = {}
-                raw_target.external_refs['interoperability']['id'] = target_id
-                raw_target.picture.save('target.jpg')
+                feature.external_refs['interoperability'] = {}
+                feature.external_refs['interoperability']['id'] = target_id
+                feature.thumbnail.save('target.jpg')
                 # upload image
+                image_path = 'target.jpg'
                 with open(image_path, 'rb') as image_data:
                     try:
                         self.client.post_target_image(target_id, image_data)
@@ -128,7 +137,6 @@ class InteropClientV2(Exporter):
                         detail = exception.args[0]
                         msg = "Target {0} thumbnail upload error: {1}: {2}".format(target_id, name, detail)
                         logger.critical(msg)
-                        print(msg)
                         return
                     else:
                         msg = "Image thumbnail {} uploaded successfully".format(target_id)
