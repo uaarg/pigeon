@@ -65,5 +65,5 @@ class FeatureDetailArea(QtWidgets.QWidget):
             self.add_subfeature_button.hide()
 
     def updateFeature(self, feature):
-        if feature == self.feature:
+        if feature.id == self.feature.id:
             self.showFeature(feature)

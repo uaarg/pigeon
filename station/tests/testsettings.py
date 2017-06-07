@@ -1,5 +1,6 @@
 import unittest
 import os
+import shutil
 
 import settings
 
@@ -10,37 +11,34 @@ def delete_file(location):
         pass
 
 class SettingsTestCase(unittest.TestCase):
+    settings_backup_path = os.path.join(*["data", "settings_backup_for_unittests.json"])
+
     def setUp(self):
-        self.old_config = settings.load().copy() # Backup up any existing settings
+        shutil.copy(settings.location, self.settings_backup_path)
 
     def tearDown(self):
-        settings.save(self.old_config) # Restoring the old, backed up settings
+        shutil.copy(self.settings_backup_path, settings.location)
+        delete_file(self.settings_backup_path)
 
     def testLoadSave(self):
         """
-        Tests both load and save by saving something and then 
+        Tests both load and save by saving something and then
         loading it back.
         """
-
-        correct_data = {"key1": "val1",
-                        "key2": 3.14159,
-                        "key3": [1,2,3,4],
-                        "key4": True}
-
-        settings.save(correct_data.copy())
-
-        actual_data = settings.load()
-
-        self.assertEqual(correct_data, actual_data)
+        for value in [True, False]:
+            correct_data = {"Plane Plumbline": value}
+            settings.save(correct_data.copy())
+            actual_data = settings.load()
+            self.assertEqual(value, actual_data.get("Plane Plumbline"))
 
     def testLoadNoFile(self):
         """
-        If the settings file doesn't exist, loading data should return None.
+        If the settings file doesn't exist, loading data should return the defaults.
         """
         delete_file(settings.location)
 
         data = settings.load()
-        self.assertEqual(data, None)
+        self.assertNotEqual(data.get("Plane Plumbline"), None)
 
     def testSaveNoFile(self):
         """

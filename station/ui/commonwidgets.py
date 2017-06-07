@@ -75,6 +75,7 @@ class EditableBaseListForm(QtWidgets.QWidget):
             if isinstance(field_value, bool):
                 edit_widget = QtWidgets.QCheckBox(self)
                 edit_widget.setChecked(field_value)
+                edit_widget.setEnabled(field_editable)
 
                 def state_changed_closure(field_name):
                     return lambda state: self._updateData(field_name, bool(state))

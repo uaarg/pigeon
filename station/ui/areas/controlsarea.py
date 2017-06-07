@@ -1,9 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
+import datetime
 
 from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
 
 from ..ui import icons
+from ..common import format_duration_for_display
 
 def markMessageReceived(func=None):
     """

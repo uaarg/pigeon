@@ -12,7 +12,7 @@ class FeatureArea(QtWidgets.QFrame):
     def __init__(self, *args, settings_data={}, minimum_width=250,**kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
-        self.features = {} # Mapping from features to items.
+        self.features = {} # Mapping from feature id's to items.
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
@@ -45,31 +45,46 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_tree.currentItemChanged.connect(lambda current, previous: self.featureSelectionChanged.emit(current.feature))
         self.featureSelectionChanged.connect(self.feature_detail_area.showFeature)
 
-    def addFeature(self, feature, parent=None):
-        item = QtWidgets.QTreeWidgetItem(parent or self.feature_tree)
+    def _getFeatureIcon(self, feature):
+        if feature.picture_crop:
+            cropping_rect = QtCore.QRect(QtCore.QPoint(*feature.picture_crop.top_left), QtCore.QPoint(*feature.picture_crop.bottom_right))
+            try:
+                original_picture = feature.picture_crop.image.pixmap_loader.getPixmapForSize(None)
+            except ValueError:
+                return None # Don't have the image yet: can't make a picture from the crop.
+            else:
+                picture = original_picture.copy(cropping_rect)
+                feature.thumbnail = picture
+                icon = QtGui.QIcon(picture)
+                return icon
+        else:
+            return None
+
+    def _updateItem(self, item, feature):
         item.feature = feature
-        if feature.picture:
-            icon = QtGui.QIcon(feature.picture)
+        icon = self._getFeatureIcon(feature)
+        if icon:
             item.setIcon(0, icon)
             item.setSizeHint(0, self.icon_size)
         item.setText(0, str(feature))
 
-        self.features[feature] = item
-
-        if not parent:
-            self.showFeature(feature)
+    def addFeature(self, feature, parent=None):
+        item = QtWidgets.QTreeWidgetItem(parent or self.feature_tree)
+        self._updateItem(item, feature)
+        self.features[feature.id] = item
 
         for subfeature in feature.subfeatures():
             self.addFeature(subfeature, item)
 
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
-        self.feature_tree.setCurrentItem(self.features[feature])
+        self.feature_tree.setCurrentItem(self.features[feature.id])
+
 
     def updateFeature(self, feature, parent=None):
-        item = self.features.get(feature)
+        item = self.features.get(feature.id)
         if item:
-            item.setText(0, str(feature))
+            self._updateItem(item, feature)
             for subfeature in feature.subfeatures():
                 self.updateFeature(subfeature, item)
         else:

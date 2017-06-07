@@ -8,5 +8,3 @@ from .featuredetailarea import *
 from .featurearea import *
 
 from .mainimagearea import *
-
-from .popup import *

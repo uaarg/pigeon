@@ -37,7 +37,7 @@ class InfoArea(QtWidgets.QFrame):
         self.controls_area = ControlsArea(self)
         self.state_area = StateArea(self, editable=False)
         self.image_info_area = ImageInfoArea(self, editable=False)
-        self.settings_area = SettingsArea(self)
+        self.settings_area = SettingsArea(self, settings_data=settings_data, fields_to_display=["Follow Images", "Plane Plumbline"])
 
         self.layout.addWidget(self.controls_area)
         self.layout.addWidget(self.state_area)
@@ -54,7 +54,7 @@ class InfoArea(QtWidgets.QFrame):
         self.timer.start(1000)
 
     def setSettings(self, settings_data):
-        return self.settings_area.setData(settings_data)
+        return self.settings_area.setSettings(settings_data)
 
     def showImage(self, image):
         """

@@ -11,16 +11,17 @@ Implemented Features:
 * Monitors the folder for new images added to it
 * Displays a scrollable list of images
 * Displays a main image as selected from the scrollable list
-* Settings area for specifying and saving settings
-* Displays program state and currently viewed image info in an
-  information area
-* Plots pre-set ground control points in images by doing inverse
-  geo-referencing
-* Right click on the main image to have the lat/lon printed in the
-  terminal
+* Settings area for specifying and saving common settings
+* Settings Window for specifying and saving all settings (under the Edit menu)
+* Displays program state and currently viewed image info in an information area
+* Plots pre-set ground control points in images by doing inverse geo-referencing
+* Right click on the main image to have the lat/lon printed in the terminal
 * Left click on the main image to create a new marker
-* Created markers are shown in a list on the right and can be edited
-  in the marker detail area below this list
+* Created markers are shown in a list on the right and can be edited in the
+  marker detail area below this list
+* Various Export options under the Export menu
+* Start of multi-operator functionality: features and images can be synced with
+  other pigeon instances over an ivybus
 
 Future Features:
 ----------------
@@ -44,7 +45,7 @@ Input
 Output
 ------
 * UI for manually viewing images
-* Marker list as a csv file
+* Marker list as a csv file (Exporting)
 
 
 Installation
@@ -57,7 +58,7 @@ sudo apt-get install python3 python3-dev
 sudo apt-get install qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
 sudo apt-get install python3-shapely python3-pip
 sudo apt-get install libxml2-dev libxslt1-dev
-sudo pip3 install pyinotify pyproj pykml
+sudo pip3 install pyinotify pyproj pykml==0.1.0
 sudo pip3 install git+https://github.com/camlee/ivy-python
 sudo pip3 install requests
 ```
@@ -76,6 +77,26 @@ Running the Tests
 From the station directory, do:
 python3 test.py
 
+To run a particular test, test case, or module, add it as an argument. Ex:
+python3 test.py testimage.WatcherTestCase.testImageAdded
+
+
+Installation
+-----------
+If you'd like to create a launcher for Pigeon that you can ex. put
+on the desktop or access through your application launcher, from
+the station directory, do:
+scons install
+
+You can then launch the program through the GUI. Note that this
+creates a launcher pointing to that station folder: it doesn't
+install binaries to a central location. So any code changes or
+git pulling you do will be reflected instantly, and moving your
+git repository will break things.
+
+To uninstall, do:
+scons install -c
+
 
 Utilities
 ---------
@@ -93,6 +114,52 @@ and see all the options.
   view, etc... (use command line arguments to specify what you want).
 
 
+Security
+--------
+A brief overview of some security considerations of Pigeon, and in particular
+station.py are listed here:
+* First, the obvious: station.py launches an HTTP server which serves up the
+  image and info files imported into Pigeon. This data should not be considered
+  private. Also, features and associated meta-data are made available on the
+  network so this data is effectively public too.
+* Given the significant amount of network communication needed for some
+  of the features (in particular, multi-operator), there is a significant
+  attack area.
+* Any vulnerabilities in the ivybus library or Python's built-in http server
+  (http.server.HTTPServer) would be exposed. Remotely received data is
+  also unpickled, albeit with a whitelist of allowed classes. There's two
+  potential failure points here:
+  1. The pickling protocal has a way to avoid this whitelist.
+  2. A whitelisted class exposes more than it should (ex. keeping a reference
+     to the os module).
+* Potential exploits include:
+  * Remote code execution
+  * Exposing private information such as local files
+  * Privilege escalation.
+* Anybody on the specified network can attempt exploits. By default, this
+  is just localhost, so other programs running on this maching could attempt
+  privilege escalation. When this network setting is changed, other machines
+  can attempt exploits.
+* The locally saved settings.json file provides a significant amount of control
+  over how station.py behaves. Anyone with permission to edit this (ex. another
+  use in the group depending on file permissions) could change the monitored
+  folder to somewhere that they don't already have access to, etc...
+* Denial of service: there's no rate limiting, so this kind of attack should
+  be very easy to perform.
+* Although the developers have thought about security and attempted to avoid
+  any vulnerabilities, there has been no security audit or other testing so
+  the answer to "is pigeon safe" is: ¯\_(ツ)_/¯
+* Obscurity: this is huge source of protection. At the time of writting this,
+  Pigeon is closed source and not widely used.
+* Mitigation:
+  * Don't run as root.
+  * Ideally, only open up to trusted networks (ex. behind a firewall, etc...).
+  * All network communication should be logged so investigate any suspicious
+    behaviour.
+  * Ensure the file permissions of settings.json are appropriate for your
+    environment.
+
+
 Contributing
 ------------
 A few notes about contributing:
@@ -104,6 +171,8 @@ A few notes about contributing:
   anything: if the tests don't pass, it means you broke something
   somehow (or, someone else commited a break, in which case find who
   and get them to fix it).
+* Documentation is in the doc folder. .odg files can be opened in
+  LibreOffice Draw.
 
 
 Code Conventions

@@ -1,17 +1,12 @@
 import logging
-
 from ivy.ivy import IvyServer, ivylogger, IvyApplicationDisconnected
 
-import log
+from .common import CommonIvyComms
 
 logger = logging.getLogger(__name__)
 
 def noop():
     pass
-
-def configure_ivy_logging():
-    ivylogger.handlers = [] # Wipping out the existing handlers since we don't want anything going to them (ex. one might be stdout)
-
 
 class Command:
     def __init__(self, name, value):
@@ -28,7 +23,7 @@ class Command:
     def __eq__(self, other):
         return self.name == other.name and self.value == other.value
 
-class UAV:
+class UAV(CommonIvyComms):
     """
     Handles interfacing with the UAV by creating an ivybus connection
     and communicating over it.
@@ -45,40 +40,17 @@ class UAV:
 
     uav_name = "uavImaging"
 
-    def __init__(self, bus=None):
-        self.bus = bus
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.uav_connected = False
         self.on_uav_connected_changed_cbs = []
         self.command_ack_cbs = []
         self.uav_status_cbs = []
 
-        configure_ivy_logging()
-        self.ivy_server = IvyServer("pigeon", "", self._onConnectionChange)
         self._bindMsg(self._handleCommandResponse, self.command_response_regex)
         self._bindMsg(self._handleCommandSummary, self.command_summary_regex)
         self._bindMsg(self._handleUAVStatus, self.uav_status_regex)
-
-    def setBus(self, bus):
-        old_bus = self.bus
-        self.bus = bus
-        # Need to restart the server if the bus has changed and the server is already running:
-        if self.bus != old_bus and self.ivy_server._thread:
-            self.stop()
-            self.start()
-
-    def start(self):
-        """
-        Starts listening for ivy bus messages and enables sending of
-        messages.
-        """
-        self.ivy_server.start(self.bus)
-
-    def stop(self):
-        """
-        Stops the ivy bus server.
-        """
-        self.ivy_server.stop()
 
     def sendCommand(self, *args, **kwargs):
         """

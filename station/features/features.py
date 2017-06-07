@@ -1,14 +1,57 @@
 import os
 import json
+import pickle
+import base64
+import uuid
+import io
 
-from geo import Position, PositionCollection
+from geo import Position, PositionCollection, position_at_offset
+from image import ImageCrop
+
+class FeatureDeserializeSecurityError(Exception):
+    pass
+
+class WhiteListUnpickler(pickle.Unpickler):
+    """
+    Only allows unpickling of certain classes. Provides some security
+    from remote code execution. For details see:
+    https://docs.python.org/3.4/library/pickle.html#restricting-globals
+
+    Add classes set as attributes of BaseFeature or any subclasses here.
+    """
+    allowed_classes = [("image.image", "Image"),
+                       ("image.image", "ImageCrop"),
+                       ("geo.geo", "Orientation"),
+                       ("geo.geo", "Position"),
+                       ("geo.geo", "GeoReference"),
+                       ("geo.geo", "CameraSpecs"),
+                       ("ui.pixmaploader", "PixmapLoader"),
+                       ("features.features", "BaseFeature"),
+                       ("features.features", "PointOfInterest"),
+                       ("features.features", "Marker"),
+                       ("features.features", "Feature"),
+                       ("features.features", "GroundControlPoint"),
+                      ]
+
+    def find_class(self, module, name):
+        if (module, name) in self.allowed_classes:
+            return super().find_class(module, name)
+        else:
+            raise FeatureDeserializeSecurityError("Not allowed to unpickle %s.%s because it hasn't been listed as safe. Either it should be added to the whitelist or an intrusion was just prevented." % (module, name))
+
+def loads_whitelisted(string):
+    return WhiteListUnpickler(io.BytesIO(string)).load()
 
 class BaseFeature:
     """
     Base class for features and feature-like things.
     """
-    picture = None
+    picture_crop = None
+    thumbnail = None
     data = []
+
+    def __init__(self):
+        self.id = str(uuid.uuid4())[:8] # Unique identifier for this feature accross all Pigeon instances
 
     def __str__(self):
         if self.data:
@@ -26,6 +69,31 @@ class BaseFeature:
     def allowSubfeatures(self):
         return False
 
+    def updateSubfeature(self, feature):
+        """
+        Updates the subfeature matching the provided feature (by id)
+        and returns True. If not match is found, returns False instead.
+        """
+        return False
+
+    def serialize(self):
+        """
+        Returns a string that can be used to re-create this object using deserialize().
+
+        Subclasses should not need to re-implement. Uses pickle to automatically get
+        everything.
+        """
+        data = base64.b64encode(pickle.dumps(self)).decode("ascii") # Ivybus expects a normal string but pickle gives a binary string. So b64 encoding.
+        return data
+
+    @classmethod
+    def deserialize(cls, dumped):
+        """
+        Returns a new instance of this class from a string created using serialize().
+        """
+        return loads_whitelisted(base64.b64decode(dumped))
+
+
 class PointOfInterest(BaseFeature):
     """
     Class for each point in an image that's interesting.
@@ -35,6 +103,8 @@ class PointOfInterest(BaseFeature):
     or part of a feature.
     """
     def __init__(self, image, position, icon_name, icon_size, name=""):
+        super().__init__()
+
         self.image = image
         self.position = position
         self.icon_name = icon_name
@@ -63,9 +133,7 @@ class Feature(BaseFeature):
     on the ground. Might be a point, an area, etc...
     """
     def __init__(self, name=""):
-        self.picture = None # To be set later by the UI. This picture
-                            # is intended to be a crop of the original
-                            # image right around the feature.
+        super().__init__()
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
         self.data = [
             ("Name", name),
@@ -127,12 +195,12 @@ class Point(Feature):
         image, if the provided id_ is for this Point. If it is, returns True.
         Otherwise, returns False.
         """
-        if id_ in [str(id(instance)) for instance in self.instances.values()]:
+        if id_ in [instance.id for instance in self.instances.values()]:
             self.updatePoint(image, point)
             return True
-        elif id_ in [str(id(instance)) for instance in self.viewed_instances.values()]:
+        elif id_ in [instance.id for instance in self.viewed_instances.values()]:
             for instance_image, instance in self.viewed_instances.items():
-                if str(id(instance)) == id_:
+                if instance.id == id_:
                     self.instances[image] = self.viewed_instances[instance_image]
                     self.updatePoint(image, point)
                     return True
@@ -183,6 +251,28 @@ class Point(Feature):
 
     def allowSubfeatures(self):
         return True
+
+    def updateSubfeature(self, feature):
+        for image, instance in self.instances.items():
+            if instance.id == feature.id:
+                self.instances[image] = feature
+                return True
+        return False
+
+    def setPictureCrop(self, image, size):
+        point_of_interest = self.instances.get(image)
+        if point_of_interest:
+            position = point_of_interest.position
+            if position:
+                pixel_x, pixel_y = image.invGeoReferencePoint(position)
+                offset_position = position_at_offset(position, float(size), 0)
+                offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
+
+                if offset_pixel_x and offset_pixel_y:
+                    offset_pixels = max(abs(offset_pixel_x - pixel_x), abs(offset_pixel_y - pixel_y))
+
+                    self.picture_crop = ImageCrop(image, (pixel_x, pixel_y), offset_pixels)
+
 
 class GroundControlPoint(Point):
     icon_name = "x"
