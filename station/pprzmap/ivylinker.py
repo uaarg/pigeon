@@ -48,6 +48,4 @@ class CommandSender(object):
         msg['radius'] = int(radius)
         msg['text'] = text
         msg['opacity'] = opacity
-
-        print("Sending message: %s" % msg)
         self._interface.send(msg)

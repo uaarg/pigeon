@@ -39,7 +39,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, save_settings, load_settings, export_manager, image_in_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
+    def __init__(self, save_settings, load_settings, export_manager, image_in_queue, feature_io_queue, uav, pprzMAP, ground_control_points=[], about_text=""):
         super().__init__()
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
@@ -50,7 +50,7 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, export_manager, about_text, self.app.exit)
+        self.main_window = MainWindow(self.settings_data, self.features, export_manager,pprzMAP, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(self.settings_changed.emit)
 
@@ -159,8 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_manager = export_manager
         self.about_text = about_text
         self.exit_cb = exit_cb
-	self.pprzMAP = pprzMAP()
-        self.pprzMAP_running = False
+        self.pprzMAP = pprzMAP()
 
         self.about_window = None
         self.settings_window = None
@@ -245,13 +244,7 @@ class MainWindow(QtWidgets.QMainWindow):
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.exit_cb)
 
-        start_pprzmap = QtWidgets.QAction("Start Paparazzi Map", self)
-        start_pprzmap.triggered.connect(self.StartpprzMAP)
-
-        menu = self.menubar.addMenu('&File')
-
         menu.addAction(exit_action)
-        menu.addAction(start_pprzmap)
 
         if self.export_manager:
             menu = self.menubar.addMenu("&Export")
@@ -276,10 +269,6 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action.triggered.connect(self.showAboutWindow)
 
         menu.addAction(about_action)
-
-    def StartpprzMAP(self):
-        self.pprzMAP_running = True
-        self.pprzMAP.start()
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
@@ -314,8 +303,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
-	if self.pprzMAP_running == True:
-            self.pprzMAP.draw_outline(image)
+        self.pprzMAP.draw_outline(image)
 
 
     def createNewMarker(self, image, point):
@@ -335,4 +323,5 @@ class MainWindow(QtWidgets.QMainWindow):
             self.createNewMarker(image, point)
 
     def closeEvent(self, event):
+        self.pprzMAP.shutDown()
         self.exit_cb() # Terminating the whole program if the main window is closed
