@@ -10,9 +10,9 @@ from . import interop
 # baseurl = "http://10.10.130.43"
 # username = "U_Alberta"
 # password = "2689456278"
-baseurl = "http://localhost:8000"
-username = "testuser"
-password = "testpass"
+baseurl = "http://10.10.130.10:80"
+username = "alberta"
+password = "2771408451"
 
 from features import Marker
 from .common import Exporter
@@ -25,11 +25,7 @@ class InteropClientV2(Exporter):
     our own."""
     def __init__(self):
         self.path = None
-        # change this
-        baseurl = "http://localhost:8000"
-        username = "testuser"
-        password = "testpass"
-        self.client = interop.Client(baseurl, username, password, timeout=1)
+        self.client = interop.AsyncClient(baseurl, username, password, timeout=50)
     
     def export(self, features, path):
         self.path = path + "interopSent.json"
@@ -98,7 +94,7 @@ class InteropClientV2(Exporter):
             target_id = feature.external_refs['interoperability']['id']
             # update target
             try:
-                self.client.put_target(target_id, feature.external_refs['interop_target'])
+                response = self.client.put_target(target_id, feature.external_refs['interop_target']).result()
             except Exception as exception:
                 name = type(exception).__name__
                 detail = exception.args[0]
@@ -112,7 +108,7 @@ class InteropClientV2(Exporter):
         else:
             # upload target
             try:
-                returned_target = self.client.post_target(feature.external_refs['interop_target'])
+                returned_target = self.client.post_target(feature.external_refs['interop_target']).result()
             except Exception as exception:
                 name = type(exception).__name__
                 detail = exception.args[0]
@@ -131,7 +127,7 @@ class InteropClientV2(Exporter):
                 image_path = 'target.jpg'
                 with open(image_path, 'rb') as image_data:
                     try:
-                        self.client.post_target_image(target_id, image_data)
+                        response = self.client.post_target_image(target_id, image_data).result()
                     except Exception as exception:
                         name = type(exception).__name__
                         detail = exception.args[0]
