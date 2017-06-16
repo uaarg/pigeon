@@ -20,6 +20,7 @@ from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
 from .interop_exporter import InteropClientV2 as InteropClient
+from .interop_exporter import AUVSIJSONExporter
 
 
 class KMLExporter(Exporter):
@@ -361,7 +362,7 @@ class AUVSI(Exporter):
         self.csv_exporter.export(features, output_path)
         self.interop_exporter.export(features, output_path)
 
-
+    
 class ExportManager:
     def __init__(self, path):
         self.path = path
@@ -370,6 +371,7 @@ class ExportManager:
                             ("CSV Normal", self._generateExporterFunc(CSVExporter), None),
                             ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter), None),
                             ("AUVSI Interop", self._generateExporterFunc(InteropClient), "Ctrl+E"),
+                            ("AUVSI JSON", self._generateExporterFunc(AUVSIJSONExporter), None),
                             ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI), None),
                        ]
 

@@ -3,6 +3,7 @@ import ast
 from time import time
 import threading
 import json
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PyQt5.QtCore import QRect, QPoint
 
@@ -20,6 +21,79 @@ from .common import Exporter
 import logging
 logger = logging.getLogger(__name__)
 
+def process_target(feature):
+    """Processes relevant data into target objects"""
+    targetData = []
+    for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
+        allocated = False
+        for field in feature.data: # Add all marker features we care about
+            key = field[0]
+            value = field[1]
+            if key == data_column:
+                allocated = True
+                if value == "": # Convert empty strings to None
+                    value = None
+                targetData.append(value)
+        if not allocated:
+            targetData.append("")
+        lat = feature.position.lat
+        lon = feature.position.lon
+    if targetData[0] == "qrc" or targetData[0] == "emergent":
+        interop_target = interop.interop_types.Target(
+            type = targetData[0],
+            latitude = lat,
+            longitude = lon,
+            description = targetData[6]
+        )
+    elif targetData[0] == "off_axis":
+        interop_target = interop.interop_types.Target(
+            type = targetData[0],
+            orientation = targetData[1],
+            shape = targetData[2],
+            background_color = targetData[3],
+            alphanumeric = targetData[4],
+            alphanumeric_color = targetData[5],
+            description = targetData[6]
+        )
+    elif targetData[0] == "standard":
+        interop_target = interop.interop_types.Target(
+            type = targetData[0],
+            latitude = lat,
+            longitude = lon,
+            orientation = targetData[1],
+            shape = targetData[2],
+            background_color = targetData[3],
+            alphanumeric = targetData[4],
+            alphanumeric_color = targetData[5],
+            description = targetData[6]
+        )
+    else:
+        msg = "Invalid feature/target type!"
+        msg = logger.critical(msg)
+        feature.external_refs['interop_target'] = None
+        return
+    feature.external_refs['interop_target'] = interop_target
+
+class AUVSIJSONExporter(Exporter):
+    def export(self, features, output_path):
+        self.writeObjectFiles([feature for feature in features if isinstance(feature, Marker)], output_path)
+
+    def writeObjectFiles(self, features, output_path):
+        current_id = 1
+        for feature in features:
+            process_target(feature)
+
+            json_path = os.path.join(output_path, str(current_id) + ".json")
+            with open(json_path, 'w') as f:
+                json.dump(feature.external_refs['interop_target'].serialize(), f)
+
+            image_path = os.path.join(output_path, str(current_id) + ".jpg")
+            feature.thumbnail.save(image_path)
+
+            current_id += 1
+
+
+
 class InteropClientV2(Exporter):
     """Newer version that uses the provided library rather than rolling
     our own."""
@@ -32,61 +106,10 @@ class InteropClientV2(Exporter):
         self.features = features
         for feature in self.features:
             if isinstance(feature, Marker):
-                self.__process_target(feature)
+                process_target(feature)
                 self.send_target(feature)
 
-    def __process_target(self, feature):
-        """Processes relevant data into target objects"""
-        targetData = []
-        for data_column in ["Type", "Orientation", "Shape", "Bkgnd_Color", "Alphanumeric", "Alpha_Color", "Notes"]:
-            allocated = False
-            for field in feature.data: # Add all marker features we care about
-                key = field[0]
-                value = field[1]
-                if key == data_column:
-                    allocated = True
-                    if value == "": # Convert empty strings to None
-                        value = None
-                    targetData.append(value)
-            if not allocated:
-                targetData.append("")
-            lat = feature.position.lat
-            lon = feature.position.lon
-        if targetData[0] == "qrc" or targetData[0] == "emergent":
-            interop_target = interop.interop_types.Target(
-                type = targetData[0],
-                latitude = lat,
-                longitude = lon,
-                description = targetData[6]
-            )
-        elif targetData[0] == "off_axis":
-            interop_target = interop.interop_types.Target(
-                type = targetData[0],
-                orientation = targetData[1],
-                shape = targetData[2],
-                background_color = targetData[3],
-                alphanumeric = targetData[4],
-                alphanumeric_color = targetData[5],
-                description = targetData[6]
-            )
-        elif targetData[0] == "standard":
-            interop_target = interop.interop_types.Target(
-                type = targetData[0],
-                latitude = lat,
-                longitude = lon,
-                orientation = targetData[1],
-                shape = targetData[2],
-                background_color = targetData[3],
-                alphanumeric = targetData[4],
-                alphanumeric_color = targetData[5],
-                description = targetData[6]
-            )
-        else:
-            msg = "Invalid feature/target type!"
-            msg = logger.critical(msg)
-            feature.external_refs['interop_target'] = None
-            return
-        feature.external_refs['interop_target'] = interop_target
+
         
     def send_target(self, feature):
         """Sends target data using the interop client library."""
