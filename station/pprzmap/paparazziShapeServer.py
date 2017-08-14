@@ -36,7 +36,29 @@ class ShapeSender(object):
         msg['radius'] = d['radius']
         msg['text'] = d['text']
         msg['opacity'] = d['opacity']
-        self._interface.send(msg)        
+        self._interface.send(msg)
+        
+    def add_plane(self, payload):
+        d = json.loads(payload)
+        msg = PprzMessage("ground", "FLIGHT_PARAM")
+        
+        msg['ac_id'] = 3
+        msg['roll'] = 0
+        msg['pitch'] = 0
+        msg['heading'] = 0
+        msg['lat'] = d['latarr'][0] / 1e7
+        msg['long'] = d['lonarr'][0] / 1e7
+        
+        msg['speed'] = 0
+        msg['course'] = 0
+        msg['alt'] = 0
+        msg['climb'] = 0
+
+        msg['agl'] = 0
+        msg['unix_time'] = 0
+        msg['itow'] = 0
+        msg['airspeed'] = 0
+        self._interface.send(msg)       
         
 ss = ShapeSender()
 
@@ -45,7 +67,7 @@ class PUTHandler(BaseHTTPRequestHandler):
         print "got shape"
         length = int(self.headers['Content-Length'])
         content = self.rfile.read(length)
-        ss.add_shape(content)
+        ss.add_plane(content)
         self.send_response(200)
 
 def run_on(port):
