@@ -8,6 +8,7 @@ import os
 import logging
 
 import geo
+from math import degrees
 
 logger = logging.getLogger(__name__)
 
@@ -119,8 +120,8 @@ class Image(object):
         field_map = {"easting": "utm_east",
                      "northing": "utm_north",
                      "zone": "utm_zone",
-                     "height": "height",
-                     "alt": "alt",
+                     "height": "z",
+                     "alt": "z",
                      "pitch": "theta",
                      "roll": "phi",
                      "yaw": "psi"}
@@ -137,14 +138,14 @@ class Image(object):
             except (ValueError, OverflowError) as e:
                 raise(ValueError("%s for field '%s'" % (e, field)))
 
-        easting = float(self.info_data[field_map["easting"]])
-        northing = float(self.info_data[field_map["northing"]])
+        easting = float(self.info_data[field_map["easting"]]) / 100
+        northing = float(self.info_data[field_map["northing"]]) / 100
         zone = int(self.info_data[field_map["zone"]])
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
-        pitch = float(self.info_data[field_map["pitch"]]) * -1 # top of camera pointing towards plane tail
-        roll = float(self.info_data[field_map["roll"]]) * -1 # top of camera pointing towards plane tail
-        yaw = float(self.info_data[field_map["yaw"]]) + 180 # top of camera pointing towards plane tail;
+        pitch = degrees(float(self.info_data[field_map["pitch"]])) * -1 # top of camera pointing towards plane tail
+        roll = degrees(float(self.info_data[field_map["roll"]])) * -1 # top of camera pointing towards plane tail
+        yaw = degrees(float(self.info_data[field_map["yaw"]])) + 180 # top of camera pointing towards plane tail
         # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
@@ -162,8 +163,8 @@ class Image(object):
         if not self.height:
             raise(Exception("Can't geo-reference image. Missing image height."))
 
-        field_of_view_horiz = 63.3 # Hardcoded for now. Should come from the UAV in the info file eventually.
-        field_of_view_vert = 48.9
+        field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
+        field_of_view_vert = 48.25 
 
         self.camera_specs = geo.CameraSpecs(self.width, self.height, field_of_view_horiz, field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)

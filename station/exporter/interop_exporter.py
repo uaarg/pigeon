@@ -137,6 +137,7 @@ class InteropClientV2(Exporter):
                 detail = exception.args[0]
                 msg = "New target upload error: {0}: {1}".format(name, detail)
                 logger.critical(msg)
+                target_id = int(random.random() * 100)
                 return
             else:
                 target_id = returned_target.id
@@ -161,6 +162,10 @@ class InteropClientV2(Exporter):
                         msg = "Image thumbnail {} uploaded successfully".format(target_id)
                         logger.info(msg)
                         print(msg)
+
+            target_json = features.external_refs['interop_target'].serialize()
+            with open(json_path, 'w') as f:
+                json.dump(target_json, f)
 
 class InteropClient(Exporter):
     def __init__(self):
