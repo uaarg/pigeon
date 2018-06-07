@@ -542,8 +542,8 @@ def utm_to_DD(easting, northing, zone, hemisphere="northern"):
     """
 
     easting, northing, zone = float(easting), float(northing), int(zone)
-    # Easting and Northing ranges from https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
-    min_easting, max_easting = 167000, 833000
+    # Easting and Northing ranges from http://geokov.com/education/utm.aspx (used to be: https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html)
+    min_easting, max_easting = 166000, 834000
     if not (min_easting < easting < max_easting):
         raise(ValueError("Easting value of %s is out of bounds (%s to %s)." % (easting, min_easting, max_easting)))
     min_northing, max_northing = -9900000, 9400000
