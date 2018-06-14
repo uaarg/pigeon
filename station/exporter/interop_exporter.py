@@ -12,9 +12,9 @@ from . import interop
 # baseurl = "http://10.10.130.43"
 # username = "U_Alberta"
 # password = "2689456278"
-baseurl = "http://10.10.130.10:80"
-username = "alberta"
-password = "1681866885"
+baseurl = "http://localhost:80"
+username = "testuser"
+password = "testpass"
 
 from features import Marker
 from .common import Exporter
@@ -103,7 +103,7 @@ class InteropClientV2(Exporter):
         self.client = interop.AsyncClient(baseurl, username, password, timeout=50)
     
     def export(self, features, path):
-        self.path = path + "interopSent.json"
+        self.path = path + "/interopSent.json"
         self.features = features
         for feature in self.features:
             if isinstance(feature, Marker):
@@ -164,8 +164,8 @@ class InteropClientV2(Exporter):
                         logger.info(msg)
                         print(msg)
 
-            target_json = features.external_refs['interop_target'].serialize()
-            with open(json_path, 'w') as f:
+            target_json = feature.external_refs['interop_target'].serialize()
+            with open(self.path, 'w') as f:
                 json.dump(target_json, f)
 
 class InteropClient(Exporter):
