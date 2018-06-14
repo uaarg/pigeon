@@ -1,5 +1,6 @@
 import requests
 import ast
+import random
 from time import time
 import threading
 import json
@@ -13,7 +14,7 @@ from . import interop
 # password = "2689456278"
 baseurl = "http://10.10.130.10:80"
 username = "alberta"
-password = "2771408451"
+password = "1681866885"
 
 from features import Marker
 from .common import Exporter
@@ -261,7 +262,7 @@ class Connection:
         Uploads a new target to the interoperability server.
         Returns the ID assigned by the interop server upon successful upload.
         """
-        response = self.s.post(baseurl + "/api/targets", json.dumps(target_data))
+        response = self.s.post(baseurl + "/api/odlcs", json.dumps(target_data))
 
         if not response.status_code == requests.codes.created: # 201
             msg = "Target not created; server responded: {} {}".format(response.status_code, response.text)
@@ -285,7 +286,7 @@ class Connection:
         for the given target ID.
         """
 
-        thumbnail_url = baseurl + "/api/targets/" + str(target_id) + "/image"
+        thumbnail_url = baseurl + "/api/odlcs/" + str(target_id) + "/image"
 
         # Upload thumbnail
         with open(image_path, 'rb') as image_data:
@@ -306,7 +307,7 @@ class Connection:
         Updates the data for a target whose information has already
         been uploaded to the interoperability server.
         """
-        response = self.s.put(baseurl + "/api/targets/" + str(target_id), json.dumps(target_data))
+        response = self.s.put(baseurl + "/api/odlcs/" + str(target_id), json.dumps(target_data))
 
         if not response.status_code == requests.codes.ok: # 200
             msg = "Target not updated; server responded with code {}: {}".format(response.status_code, response.text)
