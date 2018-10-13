@@ -20,8 +20,8 @@ try:
 except NameError:
     pass # Python 3
 
-image_source_location = os.path.join(*["data", "images"])
-image_destination_location = os.path.join(*[os.pardir, "station", "data", "images"])
+image_source_location = os.path.join(*["data"])
+image_destination_location = os.path.join(*[os.pardir, "station", "..", "..", "processed"])
 image_name_format = "%s.jpg"
 info_name_format = "%s.txt"
 
@@ -37,6 +37,8 @@ def image_to_info(image_path):
 class UavImaging():
     def __init__(self):
         self.input_images = glob.glob(os.path.join(*[image_source_location, image_name_format % "*"]))
+        # Sorts the image by its name. So that sim actually looks realistic
+        self.input_images = sorted(self.input_images)
         self.output_images = []
         self.input_image_index = 0
         self.output_image_index = 1
@@ -81,7 +83,7 @@ class UavImaging():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Simulate transmission of images from a uav by simply copying them to the target directory.')
-    parser.add_argument("--transmission_rate", "-r", type=float, default=0.5, help="The number of images to transfer per second")
+    parser.add_argument("--transmission_rate", "-r", type=float, default=3, help="The number of images to transfer per second")
     parser.add_argument("--number_of_images", "-n", type=int, default=None, help="Stop after transmitting this many images")
     parser.add_argument("--wait", "-w", action="store_true", default=False, help="Don't cleanup immediately: wait for second KeyboardInterrupt")
     args = parser.parse_args()

@@ -110,7 +110,6 @@ def main():
 
     args = get_args()
     logger.info("Arguments: %s" % args)
-
     ground_station = GroundStation(uav_ivybus=args.uav_ivy_bus, stations_ivybus=args.ivy_bus)
     ground_station.run()
 

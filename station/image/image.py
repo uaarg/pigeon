@@ -145,7 +145,7 @@ class Image(object):
         alt = float(self.info_data[field_map["alt"]])
         pitch = degrees(float(self.info_data[field_map["pitch"]])) * -1 # top of camera pointing towards plane tail
         roll = degrees(float(self.info_data[field_map["roll"]])) * -1 # top of camera pointing towards plane tail
-        yaw = degrees(float(self.info_data[field_map["yaw"]])) + 180 # top of camera pointing towards plane tail
+        yaw = degrees(float(self.info_data[field_map["yaw"]])) # top of camera pointing towards plane tail
         # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
