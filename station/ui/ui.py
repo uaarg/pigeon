@@ -56,11 +56,16 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(self.main_window.collectSubfeature)
 
+        # Hooking up signals to UAV
+        # =========================
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
 
         self.uav.addUAVConnectedChangedCb(self.main_window.info_area.controls_area.uav_connection_changed.emit)
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
+
+        # Ivybus commander
+        pass
 
         self.connectQueue(self.feature_io_queue.in_queue, self.applyFeatureSync)
 
@@ -260,6 +265,24 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_action = QtWidgets.QAction("Settings", self)
         settings_action.triggered.connect(self.showSettingsWindow)
         menu.addAction(settings_action)
+
+        # Adds a dropdown with options to interface with Ivy Bus
+        # ======================================================
+        menu = self.menubar.addMenu("&IvyBus")
+
+        # Commands for increasing and decreasing shutter speed
+        ivy_up_shutter = QtWidgets.QAction("Increase Shutter Speed", self)
+        ivy_up_shutter.triggered.connect(lambda: print("Shutter Up"))
+        menu.addAction(ivy_up_shutter)
+
+        ivy_down_shutter = QtWidgets.QAction("Decrease Shutter Speed", self)
+        ivy_down_shutter.triggered.connect(lambda: print("Shutter Down"))
+        menu.addAction(ivy_down_shutter)
+
+        # Adds Ivy terminal to send commands from
+        ivy_terminal_action = QtWidgets.QAction("Terminal", self)
+        ivy_terminal_action.triggered.connect(lambda : print("test"))
+        menu.addAction(ivy_terminal_action)
 
         menu = self.menubar.addMenu("&Help")
 
