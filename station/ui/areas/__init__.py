@@ -8,3 +8,5 @@ from .featuredetailarea import *
 from .featurearea import *
 
 from .mainimagearea import *
+
+from .ivycommands import *
