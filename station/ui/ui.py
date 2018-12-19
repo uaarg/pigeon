@@ -18,7 +18,6 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
-from .areas import IvyCommander
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
@@ -66,7 +65,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
 
         # Ivybus commander
-        self.main_window.ivy_commander.send_command.connect(self.uav.sendCommand)
+        self.main_window.info_area.ivyControls.send_command.connect(self.uav.sendCommand)
 
         self.connectQueue(self.feature_io_queue.in_queue, self.applyFeatureSync)
 
@@ -162,7 +161,6 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.settings_data = settings_data
         self.features = features
-        self.ivy_commander = IvyCommander()
         self.export_manager = export_manager
         self.about_text = about_text
         self.exit_cb = exit_cb
@@ -267,39 +265,6 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_action = QtWidgets.QAction("Settings", self)
         settings_action.triggered.connect(self.showSettingsWindow)
         menu.addAction(settings_action)
-
-        # Adds a dropdown with options to interface with Ivy Bus
-        # ======================================================
-        menu = self.menubar.addMenu("&IvyBus")
-
-        # Commands for increasing and decreasing shutter speed
-        ivy_0_shutter = QtWidgets.QAction("Set Shutter Speed 0", self)
-        ivy_0_shutter.triggered.connect(self.ivy_commander.generate_set_shutter(0))
-        menu.addAction(ivy_0_shutter)
-
-        ivy_10_shutter = QtWidgets.QAction("Set Shutter Speed 10", self)
-        ivy_10_shutter.triggered.connect(self.ivy_commander.generate_set_shutter(10))
-        menu.addAction(ivy_10_shutter)
-
-        ivy_100_shutter = QtWidgets.QAction("Set Shutter Speed 100", self)
-        ivy_100_shutter.triggered.connect(self.ivy_commander.generate_set_shutter(100))
-        menu.addAction(ivy_100_shutter)
-
-        ivy_500_shutter = QtWidgets.QAction("Set Shutter Speed 500", self)
-        ivy_500_shutter.triggered.connect(self.ivy_commander.generate_set_shutter(500))
-        menu.addAction(ivy_500_shutter)
-
-        icy_1000_shutter = QtWidgets.QAction("Set Shutter Speed 1000", self)
-        icy_1000_shutter.triggered.connect(self.ivy_commander.generate_set_shutter(1000))
-        menu.addAction(icy_1000_shutter)
-
-        ivy_up_1_shutter = QtWidgets.QAction("Increment Shutter Speed 1", self)
-        ivy_up_1_shutter.triggered.connect(self.ivy_commander.generate_change_shutter(1))
-        menu.addAction(ivy_up_1_shutter)
-
-        ivy_down_1_shutter = QtWidgets.QAction("Decrement Shutter Speed 1", self)
-        ivy_down_1_shutter.triggered.connect(self.ivy_commander.generate_change_shutter(-1))
-        menu.addAction(ivy_down_1_shutter)
 
         menu = self.menubar.addMenu("&Help")
 

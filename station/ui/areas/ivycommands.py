@@ -1,14 +1,26 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
 
 class IvyCommander(QtWidgets.QWidget):
     """
     Sends various commands to the UAV via the ivybus.
     For commands, see transmissions.h in waldo
-    Not actually a real area in the ui. Its main funcitonality is in the topbar.
     """
-    
     # This is how we send commands in the plane. Hooked up in ui.py
     send_command = QtCore.pyqtSignal(str, str)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+
+        self.shutterSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.shutterSlider.setMinimum(0)
+        self.shutterSlider.setMaximum(1000)
+        self.shutterSlider.setValue(5)
+        self.shutterSlider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.shutterSlider.setTickInterval(50)
+        self.layout.addWidget(self.shutterSlider)
 
     def generate_change_shutter(self, amount = 1):
         """
@@ -28,9 +40,3 @@ class IvyCommander(QtWidgets.QWidget):
 
         set_shutter = lambda: self.send_command.emit("SHUTTER_SPEED", str(amount))
         return set_shutter
-
-    def custom_command(self):
-        """
-        Sends a typed up command to the UAV
-        """
-        pass
