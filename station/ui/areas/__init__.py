@@ -9,4 +9,4 @@ from .featurearea import *
 
 from .mainimagearea import *
 
-from .ivycommands import *
+from .ivycommandsarea import *

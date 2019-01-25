@@ -6,9 +6,9 @@ translate = QtCore.QCoreApplication.translate
 from ..commonwidgets import NonEditableBaseListForm
 from ..common import format_duration_for_display
 
-from .ivycommands import IvyCommander
 from . import ControlsArea
 from . import SettingsArea
+from .ivycommandsarea import IvyCommandsArea
 
 class ImageInfoArea(NonEditableBaseListForm):
     #Define title here again if need be
@@ -55,7 +55,7 @@ class InfoArea(QtWidgets.QFrame):
         self.pigeonTab.layout.addWidget(self.state_area)
         self.pigeonTab.layout.addWidget(self.settings_area)
 
-        self.ivyControls = IvyCommander(self)
+        self.ivyControls = IvyCommandsArea(self)
         self.ivyTab.layout.addWidget(self.ivyControls)
 
         # Add parent widgets to info area
@@ -74,7 +74,7 @@ class InfoArea(QtWidgets.QFrame):
     def createTab(self, name):
         """
         Creates and returns a tab with a layout widget
-        Also assigns tab to its proper parent
+        Also assigns tab to its proper parent (Tab Widget)
         """
         tab = QtWidgets.QWidget()
         tab.layout = QtWidgets.QVBoxLayout(tab)

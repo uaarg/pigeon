@@ -59,6 +59,7 @@ class UI(QtCore.QObject, QueueMixin):
         # Hooking up signals to UAV
         # =========================
         self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
+        self.uav.addCommandAckedCb(self.main_window.info_area.ivyControls.receive_command_ack.emit)
         self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
 
         self.uav.addUAVConnectedChangedCb(self.main_window.info_area.controls_area.uav_connection_changed.emit)
