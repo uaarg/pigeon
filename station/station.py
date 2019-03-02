@@ -73,6 +73,9 @@ Copyright (c) 2016 UAARG
         if self.settings_data.get("UAV Network"):
             self.uav.setBus(self.settings_data["UAV Network"])
 
+        if self.settings_data.get("Pigeon Network"):
+            self.stations.setBus(self.settings_data["Pigeon Network"])            
+
     def run(self):
         self._propagateSettings()
 
