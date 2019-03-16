@@ -20,8 +20,10 @@ try:
 except NameError:
     pass # Python 3
 
-image_source_location = os.path.join(*["data"])
-image_destination_location = os.path.join(*[os.pardir, "station", "..", "..", "processed"])
+image_source_location = os.path.join(*["data", "images"])
+
+# Change this based on where you want images to go to!!
+image_destination_location = os.path.join(*[os.pardir, "station", "data", "images"])
 image_name_format = "%s.jpg"
 info_name_format = "%s.txt"
 
