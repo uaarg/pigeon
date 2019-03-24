@@ -15,6 +15,7 @@ def markMessageReceived(func=None):
 class IvyCommandsArea(QtWidgets.QWidget):
     """
     Sends various commands to the UAV via the ivybus.
+    Controls many aspects relating to camera behavior
     For commands, see transmissions.h in waldo
     """
     # This is how we send commands in the plane. Hooked up in ui.py
@@ -27,41 +28,42 @@ class IvyCommandsArea(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QGridLayout(self)
 
+        # Shutter Speed
+        # =============
+
+        # Label
         self.title = BoldQLabel()
         self.title.setText("Shutter Speed")
         self.layout.addWidget(self.title, 1, 1)
-        self.shutterSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.shutterSlider.setMinimum(0)
-        self.shutterSlider.setMaximum(1000)
-        self.shutterSlider.setValue(5)
-        self.shutterSlider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.shutterSlider.setTickInterval(50)
-        self.layout.addWidget(self.shutterSlider, 1, 2)
-        self.current = QtWidgets.QLabel()
-        self.current.setText("Current Shutter")
-        self.layout.addWidget(self.current, 1, 3)
+
+        # Buttons
+        self.upBtn = QtWidgets.QPushButton("Up")
+        self.upBtn.clicked.connect(self.generateChangeShutter(5))
+        self.layout.addWidget(self.upBtn, 1, 2)
+
+        self.downBtn = QtWidgets.QPushButton("Down")
+        self.downBtn.clicked.connect(self.generateChangeShutter(-5))
+        self.layout.addWidget(self.downBtn, 1, 3)
 
         # Hook up our slots
         self.receive_command_ack.connect(self.receiveCommandAck) # Emit in UI
 
 
-    def createSliderField(self):
-        """
-        Creates a slider and a label. 
-        """
-        pass
-
-    def generate_change_shutter(self, amount = 1):
+    def generateChangeShutter(self, amount = 1):
         """
         Generates a function that sends a command to change shutter speed.
         i.e. Increment/decrement
+        For use with b
+        Parameters:
+            int amount The amount to change the shutter speed by
+                       Can be negative.
         """
         
         change_shutter = lambda: self.send_command.emit("CHANGE_SHUTTER_SPEED", str(amount))
         return change_shutter
 
     
-    def generate_set_shutter(self, amount = 1):
+    def generateSetShutter(self, amount = 1):
         """
         Creates and returns a function that sends command
         to set the UAV's shutter speed to a discrete value
@@ -69,6 +71,7 @@ class IvyCommandsArea(QtWidgets.QWidget):
 
         set_shutter = lambda: self.send_command.emit("SHUTTER_SPEED", str(amount))
         return set_shutter
+
 
     @markMessageReceived
     def receiveCommandAck(self, command, value):
