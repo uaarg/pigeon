@@ -76,6 +76,10 @@ class FeatureArea(QtWidgets.QFrame):
         for subfeature in feature.subfeatures():
             self.addFeature(subfeature, item)
 
+    # def removeFeature(self, id):
+    #     self.feature.pop()
+
+
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
         self.feature_tree.setCurrentItem(self.features[feature.id])
