@@ -11,7 +11,8 @@ from . import SettingsArea
 from .ivycommandsarea import IvyCommandsArea
 
 class ImageInfoArea(NonEditableBaseListForm):
-    #Define title here again if need be
+    # Removed title so that the image info tab doesn't
+    # have a gigantic second title.
     pass
 
 class StateArea(NonEditableBaseListForm):

@@ -20,7 +20,7 @@ class EditableBaseListForm(QtWidgets.QWidget):
         if title:
             self.title = BoldQLabel(self)
             self.title.setText(translate(self.__class__.__name__, title))
-            self.layout.addWidget(self.title, 0, 0, 1, 1)
+            self.layout.addWidget(self.title, 0, 0, 1, 2)
         else:
             self.title = None
 
