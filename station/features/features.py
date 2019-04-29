@@ -26,6 +26,7 @@ class WhiteListUnpickler(pickle.Unpickler):
                        ("geo.geo", "GeoReference"),
                        ("geo.geo", "CameraSpecs"),
                        ("ui.pixmaploader", "PixmapLoader"),
+                       ("PyQt5.QtGui", "QPixmap"),
                        ("features.features", "BaseFeature"),
                        ("features.features", "PointOfInterest"),
                        ("features.features", "Marker"),
