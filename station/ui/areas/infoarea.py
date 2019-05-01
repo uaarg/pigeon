@@ -8,10 +8,12 @@ from ..common import format_duration_for_display
 
 from . import ControlsArea
 from . import SettingsArea
+from .ivycommandsarea import IvyCommandsArea
 
 class ImageInfoArea(NonEditableBaseListForm):
-    def _title(self):
-        return "Image:"
+    # Removed title so that the image info tab doesn't
+    # have a gigantic second title.
+    pass
 
 class StateArea(NonEditableBaseListForm):
     def _title(self):
@@ -34,15 +36,32 @@ class InfoArea(QtWidgets.QFrame):
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        self.controls_area = ControlsArea(self)
-        self.state_area = StateArea(self, editable=False)
-        self.image_info_area = ImageInfoArea(self, editable=False)
-        self.settings_area = SettingsArea(self, settings_data=settings_data, fields_to_display=["Follow Images", "Plane Plumbline"])
+        # Create tabs for controls
+        self.tabWidget = QtWidgets.QTabWidget()
 
+        self.ivyTab = self.createTab("Ivy Tab")
+        self.pigeonTab = self.createTab("Pigeon Tab")
+        self.imageInfoTab = self.createTab("Image Info")
+
+        # Create Controls and add to respective tabs
+        self.controls_area = ControlsArea(self)
+
+        self.image_info_area = ImageInfoArea(self.imageInfoTab, editable=False)
+        self.imageInfoTab.layout.addWidget(self.image_info_area)
+
+        self.state_area = StateArea(self.pigeonTab, editable=False)
+        self.settings_area = SettingsArea(self.pigeonTab, 
+            settings_data=settings_data, 
+            fields_to_display=["Follow Images", "Plane Plumbline"])
+        self.pigeonTab.layout.addWidget(self.state_area)
+        self.pigeonTab.layout.addWidget(self.settings_area)
+
+        self.ivyControls = IvyCommandsArea(self)
+        self.ivyTab.layout.addWidget(self.ivyControls)
+
+        # Add parent widgets to info area
         self.layout.addWidget(self.controls_area)
-        self.layout.addWidget(self.state_area)
-        self.layout.addWidget(self.image_info_area)
-        self.layout.addWidget(self.settings_area)
+        self.layout.addWidget(self.tabWidget)
 
         self.last_image_time = None
         self.image_count = 0
@@ -52,6 +71,16 @@ class InfoArea(QtWidgets.QFrame):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._updateInfo)
         self.timer.start(1000)
+    
+    def createTab(self, name):
+        """
+        Creates and returns a tab with a layout widget
+        Also assigns tab to its proper parent (Tab Widget)
+        """
+        tab = QtWidgets.QWidget()
+        tab.layout = QtWidgets.QVBoxLayout(tab)
+        self.tabWidget.addTab(tab, name)
+        return tab
 
     def setSettings(self, settings_data):
         return self.settings_area.setSettings(settings_data)

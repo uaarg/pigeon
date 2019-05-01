@@ -24,8 +24,10 @@ THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
 FEATURE_AREA_MIN_WIDTH = 300
 
+
 def noop():
     pass
+
 
 class UI(QtCore.QObject, QueueMixin):
     """
@@ -41,44 +43,47 @@ class UI(QtCore.QObject, QueueMixin):
 
     def __init__(self, save_settings, load_settings, export_manager, image_in_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
         super().__init__()
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+
+        # Init
+        # ====
+        self.logger = logging.getLogger(
+            __name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
-        self.features = ground_control_points # For all features, not just GCP's
+        self.features = ground_control_points  # For all features, not just GCP's
         self.feature_io_queue = feature_io_queue
         self.uav = uav
         self.save_settings = save_settings
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features, export_manager, about_text, self.app.exit)
+        self.main_window = MainWindow(
+            self.settings_data, self.features, export_manager, about_text, self.app.exit)
 
-        self.main_window.settings_save_requested.connect(self.settings_changed.emit)
+        self.main_window.settings_save_requested.connect(
+            self.settings_changed.emit)
 
-        self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(self.main_window.collectSubfeature)
+        self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(
+            self.main_window.collectSubfeature)
 
-        self.uav.addCommandAckedCb(self.main_window.info_area.controls_area.receive_command_ack.emit)
-        self.main_window.info_area.controls_area.send_command.connect(self.uav.sendCommand)
-
-        self.uav.addUAVConnectedChangedCb(self.main_window.info_area.controls_area.uav_connection_changed.emit)
-        self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.receive_status_message.emit)
-
-        self.connectQueue(self.feature_io_queue.in_queue, self.applyFeatureSync)
-
-        self.connectQueue(image_in_queue, self.addImage)
-        signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
+        self.connectSignals(image_in_queue)
 
         # Hooking up some inter-component behaviour
-        self.main_window.featureChangedLocally.connect(lambda feature: self.feature_io_queue.out_queue.put(feature))
-        self.main_window.featureAddedLocally.connect(lambda feature: self.feature_io_queue.out_queue.put(feature))
+        self.main_window.featureChangedLocally.connect(
+            lambda feature: self.feature_io_queue.out_queue.put(feature))
+        self.main_window.featureAddedLocally.connect(
+            lambda feature: self.feature_io_queue.out_queue.put(feature))
 
         self.settings_changed.connect(self.save_settings)
-        self.settings_changed.connect(lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
-        self.settings_changed.connect(lambda changed_data: self.main_window.info_area.settings_area.setSettings(self.settings_data))
+        self.settings_changed.connect(
+            lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
+        self.settings_changed.connect(
+            lambda changed_data: self.main_window.info_area.settings_area.setSettings(self.settings_data))
+
         def update_settings_window_settings():
             if self.main_window.settings_window:
-                self.main_window.settings_window.settings_area.setSettings(self.settings_data)
+                self.main_window.settings_window.settings_area.setSettings(
+                    self.settings_data)
         self.settings_changed.connect(update_settings_window_settings)
-
 
     def run(self):
         self.main_window.show()
@@ -89,6 +94,13 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.addImage(image)
 
     def applyFeatureSync(self, feature):
+        """
+        Updates features with a new feature. Checks if feature already exists,
+        if so then updates, otherwise adds feature.
+
+        Parameters:
+            feature (*see BaseFeature.deserialize): feature to check against features already contained in this instance
+        """
         for i, existing_feature in enumerate(self.features):
             if existing_feature.id == feature.id:
                 self.features[i] = feature
@@ -100,6 +112,44 @@ class UI(QtCore.QObject, QueueMixin):
                     break
         else:
             self.main_window.featureAdded.emit(feature)
+
+    def connectSignals(self, image_in_queue):
+        """
+        Hook up various PyQt Signals and emissions to UI elements
+
+        Parameters:
+            image_in_queue (Queue): queue that holds incoming images to be linked up
+        """
+
+        # Callbacks when UAV acknowledges commands
+        self.uav.addCommandAckedCb(
+            self.main_window.info_area.controls_area.receive_command_ack.emit)
+        self.uav.addCommandAckedCb(
+            self.main_window.info_area.ivyControls.receive_command_ack.emit)
+
+        # UAV commands sender
+        self.main_window.info_area.controls_area.send_command.connect(
+            self.uav.sendCommand)
+        self.main_window.info_area.ivyControls.send_command.connect(
+            self.uav.sendCommand)
+
+        # Various UAV connections
+        self.uav.addUAVConnectedChangedCb(
+            self.main_window.info_area.controls_area.uav_connection_changed.emit)
+        self.uav.addUAVStatusCb(
+            self.main_window.info_area.controls_area.receive_status_message.emit)
+
+        # Multi-pigeon signals
+        self.connectQueue(self.feature_io_queue.in_queue,
+                          self.applyFeatureSync)
+        self.connectQueue(image_in_queue, self.addImage)
+
+        # Kill signal
+        signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
+
+# ============================================
+#                   Windows
+# =============================================
 
 
 class AboutWindow(QtWidgets.QWidget):
@@ -119,6 +169,7 @@ class AboutWindow(QtWidgets.QWidget):
         about_label.setAlignment(Qt.Qt.AlignCenter)
         self.layout.addWidget(about_label)
 
+
 class SettingsWindow(QtWidgets.QWidget):
     settings_save_requested = QtCore.pyqtSignal(dict)
 
@@ -126,7 +177,8 @@ class SettingsWindow(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setObjectName("settings_window")
         self.setMinimumSize(QtCore.QSize(400, 300))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
@@ -138,17 +190,24 @@ class SettingsWindow(QtWidgets.QWidget):
         self.move(frame_rect.topLeft())
 
         self.layout = QtWidgets.QVBoxLayout(self)
-        self.settings_area = SettingsArea(self, settings_data=settings_data, fields_to_display=sorted(settings_data.keys()))
+        self.settings_area = SettingsArea(
+            self, settings_data=settings_data, fields_to_display=sorted(settings_data.keys()))
         self.layout.addWidget(self.settings_area)
         self.layout.setAlignment(self.settings_area, Qt.Qt.AlignCenter)
 
-        self.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
+        self.settings_area.settings_save_requested.connect(
+            self.settings_save_requested.emit)
+
 
 class MainWindow(QtWidgets.QMainWindow):
-    featureChanged = QtCore.pyqtSignal(BaseFeature) # For anytime a feature is changed (including by other Pigeon istances: they would trigger this signal).
-    featureChangedLocally = QtCore.pyqtSignal(BaseFeature) # For anytime this Pigeon instance triggers feature change: will result in syncing to other Pigeons.
-    featureAdded = QtCore.pyqtSignal(BaseFeature) # Same as featureChanged but for new features.
-    featureAddedLocally = QtCore.pyqtSignal(BaseFeature) # Same as featureChangedLocally but for new featuers.
+    # For anytime a feature is changed (including by other Pigeon istances: they would trigger this signal).
+    featureChanged = QtCore.pyqtSignal(BaseFeature)
+    # For anytime this Pigeon instance triggers feature change: will result in syncing to other Pigeons.
+    featureChangedLocally = QtCore.pyqtSignal(BaseFeature)
+    # Same as featureChanged but for new features.
+    featureAdded = QtCore.pyqtSignal(BaseFeature)
+    # Same as featureChangedLocally but for new featuers.
+    featureAddedLocally = QtCore.pyqtSignal(BaseFeature)
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
@@ -171,7 +230,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setObjectName("main_window")
         self.showMaximized()
         self.setMinimumSize(QtCore.QSize(500, 500))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
@@ -189,39 +249,55 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_vertical_split.setObjectName("main_vertical_split")
         self.grid_layout.addWidget(self.main_vertical_split, 0, 0, 1, 1)
 
-        self.main_horizontal_split = QtWidgets.QSplitter(self.main_vertical_split)
+        self.main_horizontal_split = QtWidgets.QSplitter(
+            self.main_vertical_split)
         self.main_horizontal_split.setOrientation(QtCore.Qt.Horizontal)
         self.main_horizontal_split.setObjectName("main_horizontal_split")
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(100)
         self.main_horizontal_split.setSizePolicy(size_policy)
-        self.main_horizontal_split.setMinimumSize(QtCore.QSize(200, THUMBNAIL_AREA_START_HEIGHT))
+        self.main_horizontal_split.setMinimumSize(
+            QtCore.QSize(200, THUMBNAIL_AREA_START_HEIGHT))
 
         # Populating the page layout with the major components.
-        self.info_area = InfoArea(self.main_horizontal_split, settings_data=settings_data, minimum_width=INFO_AREA_MIN_WIDTH)
-        self.main_image_area = MainImageArea(self.main_horizontal_split, settings_data=settings_data, features=features)
-        self.feature_area = FeatureArea(self.main_horizontal_split, settings_data=settings_data, minimum_width=FEATURE_AREA_MIN_WIDTH)
-        self.thumbnail_area = ThumbnailArea(self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+        self.info_area = InfoArea(
+            self.main_horizontal_split, settings_data=settings_data, minimum_width=INFO_AREA_MIN_WIDTH)
+        self.main_image_area = MainImageArea(
+            self.main_horizontal_split, settings_data=settings_data, features=features)
+        self.feature_area = FeatureArea(
+            self.main_horizontal_split, settings_data=settings_data, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.thumbnail_area = ThumbnailArea(
+            self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component behaviour.
-        self.thumbnail_area.contents.currentItemChanged.connect(lambda new_item, old_item: self.showImage(new_item.image)) # Show the image that's selected
+        self.thumbnail_area.contents.currentItemChanged.connect(
+            lambda new_item, old_item: self.showImage(new_item.image))  # Show the image that's selected
         self.main_image_area.image_clicked.connect(self.handleMainImageClick)
 
-        self.info_area.settings_area.settings_save_requested.connect(self.settings_save_requested.emit)
-        #self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
+        self.info_area.settings_area.settings_save_requested.connect(
+            self.settings_save_requested.emit)
+        # self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
 
         # Hooking up feature inter-component behaviour. Listing all things we could do to change a feature and hooking them up internally and externally
-        for slot in [self.feature_area.feature_detail_area.featureChanged, # Feature's details can be changed
-                     self.main_image_area.featureChanged,                  # Feature's position can be changed when it's dragged
+        for slot in [self.feature_area.feature_detail_area.featureChanged,  # Feature's details can be changed
+                     # Feature's position can be changed when it's dragged
+                     self.main_image_area.featureChanged,
                     ]:
-            slot.connect(self.featureChanged.emit)        # To let other components within this Pigeon know.
-            slot.connect(self.featureChangedLocally.emit) # To let other Pigeon's know.
+            # To let other components within this Pigeon know.
+            slot.connect(self.featureChanged.emit)
+            # To let other Pigeon's know.
+            slot.connect(self.featureChangedLocally.emit)
 
         # These are the components that need to know when a feature is changed:
-        self.featureChanged.connect(self.feature_area.updateFeature)                     # Update the feature in the list
-        self.featureChanged.connect(self.main_image_area.updateFeature)                  # Update the feature in the main image window
-        self.featureChanged.connect(self.feature_area.feature_detail_area.updateFeature) # Update the feature details
+        # Update the feature in the list
+        self.featureChanged.connect(self.feature_area.updateFeature)
+        # Update the feature in the main image window
+        self.featureChanged.connect(self.main_image_area.updateFeature)
+        # Update the feature details
+        self.featureChanged.connect(
+            self.feature_area.feature_detail_area.updateFeature)
 
         # And things that need to know when a new feature is added, whether initiated by this Pigeon or another instance:
         for signal in [self.featureAdded, self.featureAddedLocally]:
@@ -249,6 +325,7 @@ class MainWindow(QtWidgets.QMainWindow):
             menu = self.menubar.addMenu("&Export")
             for option_name, option_action, shortcut in self.export_manager.options:
                 action_widget = QtWidgets.QAction(option_name, self)
+
                 def closure(action):
                     return lambda enabled: action(self.features)
                 action_widget.triggered.connect(closure(option_action))
@@ -276,7 +353,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def showSettingsWindow(self):
         self.settings_window = SettingsWindow(settings_data=self.settings_data)
         self.settings_window.show()
-        self.settings_window.settings_save_requested.connect(self.settings_save_requested.emit)
+        self.settings_window.settings_save_requested.connect(
+            self.settings_save_requested.emit)
 
     def addImage(self, image):
         image.pixmap_loader = PixmapLoader(image)
@@ -313,11 +391,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def handleMainImageClick(self, image, point):
         if self.collect_subfeature_for:
-            self.collect_subfeature_for.updatePoint(image, (point.x(), point.y()))
+            self.collect_subfeature_for.updatePoint(
+                image, (point.x(), point.y()))
             self.featureChanged.emit(self.collect_subfeature_for)
             self.collect_subfeature_for = None
         else:
             self.createNewMarker(image, point)
 
     def closeEvent(self, event):
-        self.exit_cb() # Terminating the whole program if the main window is closed
+        self.exit_cb()  # Terminating the whole program if the main window is closed

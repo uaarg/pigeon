@@ -38,12 +38,15 @@ def image_to_info(image_path):
 
 class UavImaging():
     def __init__(self):
-        self.input_images = glob.glob(os.path.join(*[image_source_location, image_name_format % "*"]))
+        input_path = os.path.join(*[image_source_location, image_name_format % "*"])
+        self.input_images = glob.glob(input_path)
+        print("Found " + str(len(self.input_images)) + " images at " + input_path)
         # Sorts the image by its name. So that sim actually looks realistic
         self.input_images = sorted(self.input_images)
         self.output_images = []
         self.input_image_index = 0
         self.output_image_index = 1
+
     def run(self, transmission_rate=0.5, number_of_images=None, wait=False):
         try:
             while True:
