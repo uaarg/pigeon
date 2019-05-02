@@ -63,6 +63,24 @@ sudo pip3 install git+https://github.com/camlee/ivy-python
 sudo pip3 install requests
 ```
 
+See below for installing interop export functionality
+
+
+SubModules
+----------
+
+## Interop 
+Pigeon requires a submodule in order to communicate with the interop server at 
+AUSVI SUAS Competitions. Interop Export functionality is developed in a separate
+code repository called "auvsi-suas-interop-client" on github
+
+To install the submodule, run
+
+```
+git submodule init
+git submodule update
+````
+
 
 Running the Ground Station
 --------------------------
