@@ -12,7 +12,7 @@ from . import interop
 # baseurl = "http://10.10.130.43"
 # username = "U_Alberta"
 # password = "2689456278"
-baseurl = "http://localhost:80"
+baseurl = "http://10.10.0.100:8000"
 username = "testuser"
 password = "testpass"
 
