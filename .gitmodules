@@ -1,3 +1,4 @@
-[submodule "station/exporter/interop"]
-	path = station/exporter/interop
-	url = https://github.com/uaarg/auvsi-suas-interop-client.git
+
+[submodule "modules/interop"]
+	path = modules/interop
+	url = https://github.com/auvsi-suas/interop.git
