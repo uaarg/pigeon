@@ -19,8 +19,9 @@ import csv as CSV # For CSV Exporter
 from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
-from .interop_exporter import InteropClientV2 as InteropClient
-from .interop_exporter import AUVSIJSONExporter
+
+from auvsi_suas.client.client import Client as InteropClient
+from auvsi_suas.proto import interop_api_pb2
 
 
 class KMLExporter(Exporter):
@@ -371,7 +372,6 @@ class ExportManager:
                             ("CSV Normal", self._generateExporterFunc(CSVExporter), None),
                             ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter), None),
                             ("AUVSI Interop", self._generateExporterFunc(InteropClient), "Ctrl+E"),
-                            ("AUVSI JSON", self._generateExporterFunc(AUVSIJSONExporter), None),
                             ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI), None),
                        ]
 

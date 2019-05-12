@@ -9,8 +9,6 @@
 
 DIR=$(cd $(dirname $0) && pwd)
 
-printf "\n\n"
-
 # Setup out submodules
 echo "Setting up Submodules..."
 git submodule init && git submodule update
@@ -25,6 +23,7 @@ fi
 printf "\n\n"
 
 # Install Pigeon specific apt-gets
+echo "Installing Pigeon Packages..."
 apt-get install python3 python3-dev \
     qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
     python3-shapely python3-pip \

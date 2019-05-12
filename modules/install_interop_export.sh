@@ -104,10 +104,17 @@ bash -c "cd interop/client && \
     source ${DIR}/../env/venv2/bin/activate && \
     python setup.py install && \
     deactivate" && \
-bash -c "cd client && \
+bash -c "cd interop/client && \
     source ${DIR}/../env/venv3/bin/activate && \
     python3 setup.py install && \
     deactivate"
+
+if [[ $? -ne 0 ]]; then 
+    echo -e "\e[31mFailed\e[0m"
+    exit 1
+else
+    echo -e "\e[32mDone\e[0m"    
+fi
 
 echo -e "\e[32mInstallation Complete.\e[0m"
 
