@@ -1,13 +1,21 @@
 #!/bin/bash
 #
 # Installs the dependencies for Pigeon
+# 
 # Also installs interop client library
+# See Readme for specific dependencies
 #
 # Usage: `./install_dependencies.sh`
 #
-# Initially Creation by Ryan Sandoval
 
+# Variables
 DIR=$(cd $(dirname $0) && pwd)
+
+# Test Sudo
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
 
 # Setup out submodules
 echo "Setting up Submodules..."

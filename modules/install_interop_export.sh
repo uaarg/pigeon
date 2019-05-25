@@ -1,13 +1,11 @@
 #!/bin/bash
 #
-# Docker Client Library Installer
+# AUVSI Client Library Installer
 #
 # Installs the Interop Library provided from competition organizers
 # https://github.com/auvsi-suas
 #
 # Usage: `./install.sh`
-#
-# Initially Created by Ryan Sandoval
 #
 # Note that these commands are the same that would be run when Docker is
 # is setting up the client container. See the wiki of github repo.
@@ -39,14 +37,14 @@ else
 fi
 
 # Install dependencies
-# echo -n "Updating apt-get... "
-# apt-get -qq update
+echo -n "Updating apt-get... "
+apt-get -qq update
 
-# if [[ $? -ne 0 ]]; then 
-#     echo -e "\e[31mFailed\e[0m"
-# else
-#     echo -e "\e[32mDone\e[0m"    
-# fi
+if [[ $? -ne 0 ]]; then 
+    echo -e "\e[31mFailed\e[0m"
+else
+    echo -e "\e[32mDone\e[0m"    
+fi
 
 echo -n "Installing Dependencies..."
 apt-get -qq install -y \
@@ -116,6 +114,6 @@ else
     echo -e "\e[32mDone\e[0m"    
 fi
 
-echo -e "\e[32mInstallation Complete.\e[0m"
+echo -e "\e[32mClient API Installation Complete.\e[0m"
 
 exit 0  
