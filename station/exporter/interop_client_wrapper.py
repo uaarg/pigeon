@@ -25,6 +25,52 @@ USERNAME = "testuser"
 PASSWORD = "testpass"
 MISSION_ID = 1
 
+# Conversion LUTs
+# ===============
+
+# Data conversions mapping from strings to protobuff
+# Idea is to pass type value to get interop protobuff version
+# e.g. orientation_conversion[data['orientation']
+ORIENTATION_CONVERSION = {
+    'N' : interop_api_pb2.Odlc.N,
+    'NE' : interop_api_pb2.Odlc.NE,
+    'E' : interop_api_pb2.Odlc.E,
+    'SE' : interop_api_pb2.Odlc.SE,
+    'S' : interop_api_pb2.Odlc.S,
+    'SW' : interop_api_pb2.Odlc.SW,
+    'W' : interop_api_pb2.Odlc.W,
+    'NW' : interop_api_pb2.Odlc.NW,
+}
+
+SHAPE_CONVERSIONS = {
+    "circle" :  interop_api_pb2.Odlc.CIRCLE,
+    "semicircle" :  interop_api_pb2.Odlc.SEMICIRCLE,
+    "quarter_circle" :  interop_api_pb2.Odlc.QUARTER_CIRCLE,
+    "triangle" :  interop_api_pb2.Odlc.TRIANGLE,
+    "square" :  interop_api_pb2.Odlc.SQUARE,
+    "rectangle" :  interop_api_pb2.Odlc.RECTANGLE,
+    "trapezoid" :  interop_api_pb2.Odlc.TRAPEZOID,
+    "pentagon" :  interop_api_pb2.Odlc.PENTAGON,
+    "hexagon" :  interop_api_pb2.Odlc.HEXAGON,
+    "heptagon" :  interop_api_pb2.Odlc.HEPTAGON,
+    "octagon" :  interop_api_pb2.Odlc.OCTAGON,
+    "star" :  interop_api_pb2.Odlc.STAR,
+    "cross" :  interop_api_pb2.Odlc.CROSS,
+}
+
+COLOR_CONVERSIONS = {
+    "white" : interop_api_pb2.Odlc.WHITE,
+    "black" : interop_api_pb2.Odlc.BLACK,
+    "gray" : interop_api_pb2.Odlc.GRAY,
+    "red" : interop_api_pb2.Odlc.RED,
+    "blue" : interop_api_pb2.Odlc.BLUE,
+    "green" : interop_api_pb2.Odlc.GREEN,
+    "yellow" : interop_api_pb2.Odlc.YELLOW,
+    "purple" : interop_api_pb2.Odlc.PURPLE,
+    "brown" : interop_api_pb2.Odlc.BROWN,
+    "orange" : interop_api_pb2.Odlc.ORANGE,
+}
+
 # Logging
 # =======
 
@@ -57,9 +103,60 @@ class InteropClientWrapper(Exporter):
         for feature in self.features:
             if isinstance(feature, Marker):
                 # Map the feature's data to the ODLC class provided by interop
-                odlc = self.feature_to_odlc(feature)
-                self.send_target(feature)
+                try:
+                    odlc = self.feature_to_odlc(feature)
+                except Exception as e:
+                    # Specific Error messages printed in above function
+                    # ... So print this generic one instead
+                    msg = ("Error occured during feature conversion "
+                           "for feature `{}`. Skipping...").format(feature.data[0][1])
+                    logger.critical(msg)
+                else:
+                    # Send only if no errors during covnersion
+                    self.send_target(feature)
 
+        msg = "Finished Interop Export Task"
+        print(msg)
+
+    def odlc_conversion(self, field_type, value):
+        """
+        Converts an enum value stored in a feature to the enum value used
+        in a protobuff class
+        ASSUMES VALUE EXISTS IN CONVERSION LUTS!!
+
+        Parameters:
+            field_type (string) : The key/type of the field in a feature
+                            Valid Values are:
+                                - Orientation
+                                - Shape
+                                - Color
+            value (str)   : The value of the field in a feature
+                            e.g. NW, NE, RED BLUE
+        
+        Return:
+            (interop_api_pb2.Odlc.*) : The protobuff conversion
+        """
+        try:
+            if field_type == 'Orientation':
+                return ORIENTATION_CONVERSION[value]
+
+            elif field_type == 'Shape':
+                return SHAPE_CONVERSIONS[value]
+
+            elif field_type == 'Color':
+                return COLOR_CONVERSIONS[value]
+
+        except (TypeError, KeyError) as e:
+            msg = ("Invalid Field Value for {} in an export. "
+                "Make sure features have all fields filled out").format(field_type)
+            logger.critical(msg)
+            raise e
+
+        except Exception as e:
+            msg = "Unexpected exception while converting ennums: " + str(e)
+            logger.critical(msg)
+            raise e
+        
     def feature_to_odlc(self, feature):
         """ 
         Reads the data provided in feature and converts in into the 
@@ -77,49 +174,6 @@ class InteropClientWrapper(Exporter):
         Access it with feature.external_refs['interop_target']
         """
 
-        # Data conversions mapping from strings to protobuff
-        # Idea is to pass type value to get interop protobuff version
-        # e.g. orientation_conversion[data['orientation']
-        orientation_conversion = {
-            'N' : interop_api_pb2.Odlc.N,
-            'NE' : interop_api_pb2.Odlc.NE,
-            'E' : interop_api_pb2.Odlc.E,
-            'SE' : interop_api_pb2.Odlc.SE,
-            'S' : interop_api_pb2.Odlc.S,
-            'SW' : interop_api_pb2.Odlc.SW,
-            'W' : interop_api_pb2.Odlc.W,
-            'NW' : interop_api_pb2.Odlc.NW,
-        }
-
-        shape_conversions = {
-            "circle" :  interop_api_pb2.Odlc.CIRCLE,
-            "semicircle" :  interop_api_pb2.Odlc.SEMICIRCLE,
-            "quarter_circle" :  interop_api_pb2.Odlc.QUARTER_CIRCLE,
-            "triangle" :  interop_api_pb2.Odlc.TRIANGLE,
-            "square" :  interop_api_pb2.Odlc.SQUARE,
-            "rectangle" :  interop_api_pb2.Odlc.RECTANGLE,
-            "trapezoid" :  interop_api_pb2.Odlc.TRAPEZOID,
-            "pentagon" :  interop_api_pb2.Odlc.PENTAGON,
-            "hexagon" :  interop_api_pb2.Odlc.HEXAGON,
-            "heptagon" :  interop_api_pb2.Odlc.HEPTAGON,
-            "octagon" :  interop_api_pb2.Odlc.OCTAGON,
-            "star" :  interop_api_pb2.Odlc.STAR,
-            "cross" :  interop_api_pb2.Odlc.CROSS,
-        }
-
-        color_conversions = {
-            "white" : interop_api_pb2.Odlc.WHITE,
-            "black" : interop_api_pb2.Odlc.BLACK,
-            "gray" : interop_api_pb2.Odlc.GRAY,
-            "red" : interop_api_pb2.Odlc.RED,
-            "blue" : interop_api_pb2.Odlc.BLUE,
-            "green" : interop_api_pb2.Odlc.GREEN,
-            "yellow" : interop_api_pb2.Odlc.YELLOW,
-            "purple" : interop_api_pb2.Odlc.PURPLE,
-            "brown" : interop_api_pb2.Odlc.BROWN,
-            "orange" : interop_api_pb2.Odlc.ORANGE,
-        }
-
         odlc = interop_api_pb2.Odlc()
 
         lat = feature.position.lat
@@ -131,6 +185,8 @@ class InteropClientWrapper(Exporter):
 
         # Standard and off axis ODLCs take latitude, longitude, orientation,
         # shape and color, alphanumeric and color. 
+        # Emergent takes latitude, longitude, description, and if process
+        # autonomously.
         # Note, we don't include if processed auto as it defaults false
 
         # Cases for different target types
@@ -138,24 +194,53 @@ class InteropClientWrapper(Exporter):
             odlc.type = interop_api_pb2.Odlc.STANDARD
             odlc.latitude = lat
             odlc.longitude = lon
-            odlc.orientation = orientation_conversion[data['Orientation']]
-            odlc.shape = shape_conversions[data['Shape']]
-            odlc.shape_color = color_conversions[data['Bkgnd_Color']]
+
+            odlc.orientation = self.odlc_conversion('Orientation', data['Orientation'])
+
+            odlc.shape = self.odlc_conversion('Shape', data['Shape'])
+
+            odlc.shape_color = self.odlc_conversion('Color', data['Bkgnd_Color'])
+            
             odlc.alphanumeric = data['Alphanumeric']
-            odlc.alphanumeric_color = color_conversions[data['Alpha_Color']]
+
+            odlc.alphanumeric_color = self.odlc_conversion(
+                'Color', data['Alpha_Color'])
+
             odlc.mission = MISSION_ID;
 
-        elif target_type == 'emergent':
-            raise(NotImplementedError())
-
         elif target_type == 'off_axis':
-            raise(NotImplementedError())
+            odlc.type = interop_api_pb2.Odlc.off_axis
+            odlc.latitude = lat
+            odlc.longitude = lon
+
+            odlc.orientation = self.odlc_conversion('Orientation', data['Orientation'])
+
+            odlc.shape = self.odlc_conversion('Shape', data['Shape'])
+
+            odlc.shape_color = self.odlc_conversion('Color', data['Bkgnd_Color'])
+            
+            odlc.alphanumeric = data['Alphanumeric']
+
+            odlc.alphanumeric_color = self.odlc_conversion(
+                'Color', data['Alpha_Color'])
+
+            odlc.mission = MISSION_ID;
+        
+        elif target_type == 'emergent':
+            odlc.type = interop_api_pb2.Odlc.EMERGENT
+            odlc.latitude = lat
+            odlc.longitude = lon
+
+            odlc.description = data['Notes']
+
+            odlc.mission = MISSION_ID;
 
         else:
-            msg = "Target Type {} has no defined export".format(target_type)
+            msg = "Feature `{}` has Target Type `{}` which has no defined export".format(
+                    data['Name'], target_type)
             logger.critical(msg)
-            # No reference to odlc
-            odlc = None
+
+            raise(NotImplementedError())
 
         feature.external_refs['interop_target'] = odlc
         return odlc

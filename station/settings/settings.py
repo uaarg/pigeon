@@ -14,7 +14,7 @@ default_settings_data = {
     "UAV Network": "127:2011",
     "Pigeon Network": "127:2010",
     "Follow Images": True,
-    "Feature Export Path": "data/exports/",
+    "Feature Export Path": "data/exports",
     "Nominal Target Size": "2.5",
     "Instance Name": "",
 }
