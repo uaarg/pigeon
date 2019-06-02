@@ -20,8 +20,7 @@ from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
 
-from auvsi_suas.client.client import Client as InteropClient
-from auvsi_suas.proto import interop_api_pb2
+from .interop_client_wrapper import InteropClientWrapper as InteropClient
 
 
 class KMLExporter(Exporter):
@@ -349,7 +348,7 @@ class AUVSICSVExporter(Exporter):
             titleList = []
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
-
+        
 
 class AUVSI(Exporter):
     """
