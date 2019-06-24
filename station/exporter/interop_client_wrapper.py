@@ -111,6 +111,7 @@ class InteropClientWrapper(Exporter):
                     msg = ("Error occured during feature conversion "
                            "for feature `{}`. Skipping...").format(feature.data[0][1])
                     logger.critical(msg)
+                    logger.critical(e)
                 else:
                     # Send only if no errors during covnersion
                     self.send_target(feature)
