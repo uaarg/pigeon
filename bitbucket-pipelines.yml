@@ -1,5 +1,5 @@
 # See Bitbucket pipelines for more info
-# Used for AUtomatic testing
+# Used for Automatic testing
 image: python:3.7.3
 
 pipelines:
@@ -9,7 +9,7 @@ pipelines:
           - pip
         script: 
           - echo "Installing Dependencies"
-          - ./install_dependencies.sh
+          - /bin/bash install_dependencies.sh
           - echo "Running Test Scripts"
           - source env/venv3/bin/activate
           - cd station && python3 test.py
