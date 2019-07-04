@@ -1,0 +1,16 @@
+# See Bitbucket pipelines for more info
+# Used for AUtomatic testing
+image: python:3.7.3
+
+pipelines:
+  default:
+    - step:
+        caches:
+          - pip
+        script: 
+          - echo "Installing Dependencies"
+          - ./install_dependencies.sh
+          - echo "Running Test Scripts"
+          - source env/venv3/bin/activate
+          - cd station && python3 test.py
+
