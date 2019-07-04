@@ -50,6 +50,12 @@ Output
 
 Installation
 ------------
+
+To install quickly, simply run `sudo ./install_dependencies.sh`
+
+Manual Installation
+-------------------
+
 Pigeon is written in PyQt. It also has a few python module dependencies.
 To install on Ubuntu (tested on 14.04), do:
 
@@ -65,27 +71,49 @@ sudo pip3 install requests
 
 See below for installing interop export functionality
 
-
 SubModules
 ----------
 
 ## Interop 
 Pigeon requires a submodule in order to communicate with the interop server at 
-AUSVI SUAS Competitions. Interop Export functionality is developed in a separate
-code repository called "auvsi-suas-interop-client" on github
+AUSVI SUAS Competitions. This submodule is developed by the AUVSI competition 
+comitee and contains the modules we use to export data to the interop server
 
 To install the submodule, run
 
 ```
 git submodule init
 git submodule update
-````
+```
 
+Run `install_interop_export.sh` in the modules folder to install the client library.
+Or see the getting started page [here](https://github.com/auvsi-suas/interop#getting-started) 
+for installation instructions.
+
+Below lists the pip3 modules needed by the interop client library:
+```
+libxml2-dev 
+libxslt-dev 
+protobuf-compiler 
+python 
+python-dev 
+python-lxml 
+python-nose 
+python-pip 
+python-pyproj 
+python-virtualenv 
+python3 
+python3-dev 
+python3-nose 
+python3-pip 
+python3-pyproj 
+python3-lxml 
+sudo 
+```
 
 Running the Ground Station
 --------------------------
-From the station directory, do:
-python3 station.py
+Simply run `./run.sh`
 
 See the README in the station directory for usage notes.
 
@@ -99,8 +127,11 @@ To run a particular test, test case, or module, add it as an argument. Ex:
 python3 test.py testimage.WatcherTestCase.testImageAdded
 
 
-Installation
------------
+Installation 
+------------
+
+[NEEDS TESTING!] May be broken ever since interop client
+
 If you'd like to create a launcher for Pigeon that you can ex. put
 on the desktop or access through your application launcher, from
 the station directory, do:
@@ -191,6 +222,7 @@ A few notes about contributing:
   and get them to fix it).
 * Documentation is in the doc folder. .odg files can be opened in
   LibreOffice Draw.
+* Add to the wiki in the repository. We need more documentation!
 
 
 Code Conventions

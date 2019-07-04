@@ -5,6 +5,7 @@
 # Python
 *.py[cod]
 __pycache__/
+env/
 
 # SCons
 # Ignore database files

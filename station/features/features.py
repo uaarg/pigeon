@@ -154,6 +154,18 @@ class Feature(BaseFeature):
         # in that entry.
         self.external_refs = {}
 
+    def data_as_dict(self):
+        """
+        Retruns the data variable as a dictionary for easier usage
+        For example, key could be `Type` and a value could be `standard`
+
+        Return:
+            (dict)  Dictionary form of data
+        """
+
+        data_dict = {item[0]:item[1] for item in self.data}
+        return data_dict
+
 class Point(Feature):
     """
     Base class for features on the ground that are described by a
