@@ -5,6 +5,7 @@ image: python:3.7.3
 pipelines:
   default:
     - step:
+        name: Build and Test
         caches:
           - pip
         script: 
