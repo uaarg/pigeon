@@ -9,8 +9,7 @@ pipelines:
           - pip
         script: 
           - echo "Installing Dependencies"
+          - apt update
           - /bin/bash install_dependencies.sh
           - echo "Running Test Scripts"
-          - source env/venv3/bin/activate
-          - cd station && python3 test.py
-
+          - /bin/bash run_tests.sh
