@@ -22,7 +22,7 @@ fi
 
 # First make sure interop folder is here
 if [ ! -d "interop" ]; then
-    echo -e "\e[31mError: 'interop' folder could not be found. Aborting Installation.\e[0m"
+    echo -e "Error: 'interop' folder could not be found. Aborting Installation."
     exit 1
 fi
 
@@ -30,10 +30,10 @@ fi
 echo -n "Setting TimeZone to 'NewYork'..."
 ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 if [[ $? -ne 0 ]]; then 
-    echo -e "\e[31mFailed\e[0m"
+    echo -e "Failed"
     exit 1
 else
-    echo -e "\e[32mDone\e[0m"    
+    echo -e "Done"    
 fi
 
 # Install dependencies
@@ -41,9 +41,9 @@ echo -n "Updating apt-get... "
 apt-get -qq update
 
 if [[ $? -ne 0 ]]; then 
-    echo -e "\e[31mFailed\e[0m"
+    echo -e "Failed"
 else
-    echo -e "\e[32mDone\e[0m"    
+    echo -e "Done"    
 fi
 
 echo -n "Installing Dependencies..."
@@ -67,10 +67,10 @@ apt-get -qq install -y \
         sudo 
         
 if [[ $? -ne 0 ]]; then 
-    echo -e "\e[31mFailed\e[0m"
+    echo -e "Failed"
     exit 1
 else
-    echo -e "\e[32mDone\e[0m"    
+    echo -e "Done"    
 fi
 
 # Set up Python virtualenv
@@ -89,10 +89,10 @@ bash -c "cd interop/client && \
     deactivate"
 
 if [[ $? -ne 0 ]]; then 
-    echo -e "\e[31mFailed\e[0m"
+    echo -e "Failed"
     exit 1
 else
-    echo -e "\e[32mDone\e[0m"    
+    echo -e "Done"    
 fi
 
 # Set up Protos for API
@@ -108,12 +108,12 @@ bash -c "cd interop/client && \
     deactivate"
 
 if [[ $? -ne 0 ]]; then 
-    echo -e "\e[31mFailed\e[0m"
+    echo -e "Failed"
     exit 1
 else
-    echo -e "\e[32mDone\e[0m"    
+    echo -e "Done"    
 fi
 
-echo -e "\e[32mClient API Installation Complete.\e[0m"
+echo -e "Client API Installation Complete."
 
 exit 0  
