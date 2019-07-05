@@ -2,23 +2,24 @@
 # Used for Automatic testing of new commits to development and master branches
 image: python:3.7.3
 
+definitions:
+  steps:
+    - step: &build-test
+        name: Build and Test
+        caches:
+          - pip
+        script: 
+          - apt update
+          - /bin/bash install_dependencies.sh
+          - /bin/bash run_tests.sh
+
 pipelines:
+  pull-requests:
+    '**':
+      - step: *build-test
   branches:
     master:
-      - step:
-          name: Build and Test
-          caches:
-            - pip
-          script: 
-            - apt update
-            - /bin/bash install_dependencies.sh
-            - /bin/bash run_tests.sh
+      - step: *build-test
     development:
-      - step:
-          name: Build and Test
-          caches:
-            - pip
-          script: 
-            - apt update
-            - /bin/bash install_dependencies.sh
-            - /bin/bash run_tests.sh
+      - step: *build-test
+          
