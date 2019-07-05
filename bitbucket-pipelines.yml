@@ -9,8 +9,6 @@ pipelines:
         caches:
           - pip
         script: 
-          - echo "Installing Dependencies"
           - apt update
           - /bin/bash install_dependencies.sh
-          - echo "Running Test Scripts"
           - /bin/bash run_tests.sh

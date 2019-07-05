@@ -18,4 +18,4 @@ CLIENT=${DIR}/modules/interop/client
 export PYTHONPATH=${PYTHONPATH}:$CLIENT
 
 cd station && ${DIR}/env/venv3/bin/python3 test.py
-exit 0
+exit $?
