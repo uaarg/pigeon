@@ -57,12 +57,19 @@ def load():
     Returns a dictionary of the saved settings. This mutable object
     will be updated if the settings are changed. Keep a reference to
     this dict to get updates if desired.
+
+    Settings are loaded from a file located at the location variable.
+    In the event that the file DNE, then it is created with the 
+    default settings.
     """
     try:
         with open(location) as settings_file:
             _update_global_dict(json.load(settings_file))
     except FileNotFoundError:
-        logger.debug("No custom settings to load.")
+        logger.debug("Settings currently do not exist. Creating it..")
+        with open(location, 'w+') as settings_file:
+            settings_file.write(json.dumps(default_settings_data))
+
     except ValueError as e:
         logger.debug("Custom settings file corrupt: %s" % e)
     else:
