@@ -122,17 +122,18 @@ class Orientation:
                 plane measured clockwise in degrees
         """
         def normalize_angle(angle, mininum=-180, maximum=180):
+            original_angle = angle
             i = 0
             while angle >= maximum:
                 i += 1
                 angle -= 360
                 if i > 10:
-                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+                    raise(ValueError("Failed to normalize provided angle of {} : it's way out of range".format(original_angle)))
             while angle < mininum:
                 i += 1
                 angle += 360
                 if i > 10:
-                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+                    raise(ValueError("Failed to normalize provided angle of {} : it's way out of range".format(original_angle)))
             return angle
 
         self.pitch = normalize_angle(pitch)
@@ -584,17 +585,18 @@ def heading_between_positions(position_a, position_b):
                                     position_b.lon, position_b.lat)
 
     def normalize_angle(angle, mininum=0, maximum=360):
+            original_angle = angle
             i = 0
             while angle >= maximum:
                 i += 1
                 angle -= 360
                 if i > 10:
-                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+                    raise(ValueError("Failed to normalize provided angle of {} : it's way out of range".format(original_angle)))
             while angle < mininum:
                 i += 1
                 angle += 360
                 if i > 10:
-                    raise(ValueError("Failed to normalize provided angle: it's way out of range"))
+                    raise(ValueError("Failed to normalize provided angle of {} : it's way out of range".format(original_angle)))
             return angle
 
     return normalize_angle(az_ab)

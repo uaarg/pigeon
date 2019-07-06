@@ -209,9 +209,9 @@ class ImageTestCase(BaseTestCase):
         except Exception as e:
             self.fail(msg="Exception raised while reading info image: %s" % e)
 
-        self.assertEqual(self.image.info_data["phi"], "4.56")
-        self.assertEqual(self.image.info_data["alt"], "610.75")
-        self.assertEqual(self.image.info_data["utm_east"],  "345120")
+        self.assertEqual(self.image.info_data["phi"], "-0.076392")
+        self.assertEqual(self.image.info_data["z"], "90.977661")
+        self.assertEqual(self.image.info_data["utm_east"],  "34883257")
 
     def testImageProperties(self):
         """
@@ -223,8 +223,9 @@ class ImageTestCase(BaseTestCase):
         except Exception as e:
             self.fail(msg="Exception raised while preparing properties: %s" % e)
 
-        self.assertAlmostEqual(self.image.plane_position.alt, 610.75)
-        self.assertAlmostEqual(self.image.plane_orientation.pitch, -9.13) # negative of what is in the file due to top of camera being mounted towards rear of aircraft
+        self.assertAlmostEqual(self.image.plane_position.alt, 90.977661)
+        # negative of what is in the file due to top of camera being mounted towards rear of aircraft
+        self.assertAlmostEqual(self.image.plane_orientation.pitch, -1.4587505) 
 
     def testImageReuse(self):
         """
