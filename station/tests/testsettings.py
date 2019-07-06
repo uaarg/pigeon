@@ -1,6 +1,7 @@
 import unittest
 import os
 import shutil
+import json
 
 import settings
 
@@ -14,6 +15,22 @@ class SettingsTestCase(unittest.TestCase):
     settings_backup_path = os.path.join(*["data", "settings_backup_for_unittests.json"])
 
     def setUp(self):
+        # Make sure that file exists first
+        default_settings_data = {
+            "Plane Plumbline": True,
+            "Load Existing Images": True,
+            "Monitor Folder": "data/images",
+            "UAV Network": "127:2011",
+            "Pigeon Network": "127:2010",
+            "Follow Images": True,
+            "Feature Export Path": "data/exports",
+            "Nominal Target Size": "2.5",
+            "Instance Name": "",
+        }
+        with open(settings.location, 'w+') as settings_file:
+            settings_file.write(json.dumps(default_settings_data))
+
+        # Backup
         shutil.copy(settings.location, self.settings_backup_path)
 
     def tearDown(self):
@@ -33,12 +50,15 @@ class SettingsTestCase(unittest.TestCase):
 
     def testLoadNoFile(self):
         """
-        If the settings file doesn't exist, loading data should return the defaults.
+        If the settings file doesn't exist, loading data should return the defaults and create a new settings file.
         """
         delete_file(settings.location)
 
         data = settings.load()
+
+        # Assert default data and settings file exists
         self.assertNotEqual(data.get("Plane Plumbline"), None)
+        self.assertTrue(os.path.isfile(settings.location))
 
     def testSaveNoFile(self):
         """
