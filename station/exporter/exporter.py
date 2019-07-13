@@ -22,6 +22,8 @@ from .common import Exporter
 
 from .interop_client_wrapper import InteropClientWrapper as InteropClient
 
+# Interop Client
+from auvsi_suas.client.client import AsyncClient
 
 class KMLExporter(Exporter):
     """
@@ -374,9 +376,17 @@ class ExportManager:
                             ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI), None),
                        ]
 
-    def _generateExporterFunc(self, exporter):
+    def _generateExporterFunc(self, exporter, *args):
+        """
+        Generates the function that calls the export
+        method in the exporter on features to export.
+
+        Parameters:
+            exporter (Exporter) : Implements the Exporter class
+            *args : Arguments to pass to exporter
+        """
         def func(features):
-            exporter().export(self.featuresToExport(features), self.path)
+            exporter(*args).export(self.featuresToExport(features), self.path)
         return func
 
     def featuresToExport(self, features):
