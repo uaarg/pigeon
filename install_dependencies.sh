@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Installs the dependencies for Pigeon
-# 
+#
 # Also installs interop client library
 # See Readme for specific dependencies
 #
@@ -13,7 +13,7 @@ DIR=$(cd $(dirname $0) && pwd)
 
 # Test Sudo
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root" 
+   echo "This script must be run as root"
    exit 1
 fi
 

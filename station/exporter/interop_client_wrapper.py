@@ -84,15 +84,19 @@ class InteropClientWrapper(Exporter):
     Wrapper for the Interop Client library provided by AUVSI
     Allows the client library to interface properly to our export systems
     """
-    def __init__(self):
+    def __init__(self, init_client=True):
         """ 
         Class constructor
-        Params: None
+        Params:
+            init_client (Bool) : Whether to initialize interop client or not
+                                 Setting to false will not allow this to export
         """
         self.path = None
 
         # Construct the AsyncClient object provided by AUVSI
-        self.client = AsyncClient(BASEURL, USERNAME, PASSWORD)
+        if (init_client):
+            self.client = AsyncClient(BASEURL, USERNAME, PASSWORD)
+
     
     def export(self, features, path):
         """
