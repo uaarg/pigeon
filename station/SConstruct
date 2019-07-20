@@ -17,7 +17,7 @@ Path=%(path)s
 Type=Application
 Terminal=false
 Comment=UAARG Ground Imaging Software
-""" % {"exec":os.path.realpath("../run.sh"),
+""" % {"exec":"gnome-terminal -e " + os.path.realpath("../run.sh"),
        "icon":os.path.realpath("data/icons/Pigeon.png"),
        "path":os.path.realpath(".")}
 
