@@ -120,7 +120,7 @@ See the README in the station directory for usage notes.
 
 Running the Tests
 -------------
-Run `run_tests.sh` in the root of the projet
+Run `run_tests.sh` in the root of the project
 
 To run a particular test, test case, or module, add it as an argument. Ex:
 `run_tests.sh testimage.WatcherTestCase.testImageAdded`
