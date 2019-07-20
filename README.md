@@ -120,22 +120,20 @@ See the README in the station directory for usage notes.
 
 Running the Tests
 -------------
-From the station directory, do:
-python3 test.py
+Run `run_tests.sh` in the root of the projet
 
 To run a particular test, test case, or module, add it as an argument. Ex:
-python3 test.py testimage.WatcherTestCase.testImageAdded
+`run_tests.sh testimage.WatcherTestCase.testImageAdded`
 
 
 Installation 
 ------------
 
-[NEEDS TESTING!] May be broken ever since interop client
-
 If you'd like to create a launcher for Pigeon that you can ex. put
 on the desktop or access through your application launcher, from
 the station directory, do:
-scons install
+
+`scons install`
 
 You can then launch the program through the GUI. Note that this
 creates a launcher pointing to that station folder: it doesn't
@@ -144,7 +142,8 @@ git pulling you do will be reflected instantly, and moving your
 git repository will break things.
 
 To uninstall, do:
-scons install -c
+
+`scons install -c`
 
 
 Utilities
