@@ -2,6 +2,8 @@ import os
 
 env = Environment()
 
+print("Real Path is: " + os.path.realpath(""))
+
 desktop_file_contents = """#!/usr/bin/env xdg-open
 
 [Desktop Entry]
@@ -15,7 +17,7 @@ Path=%(path)s
 Type=Application
 Terminal=false
 Comment=UAARG Ground Imaging Software
-""" % {"exec":os.path.realpath("station.py"),
+""" % {"exec":os.path.realpath("../run.sh"),
        "icon":os.path.realpath("data/icons/Pigeon.png"),
        "path":os.path.realpath(".")}
 

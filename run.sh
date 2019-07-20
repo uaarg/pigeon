@@ -13,9 +13,12 @@ if ! [ -d ${DIR}/modules/interop/client ]; then
     exit 1
 fi
 
+# Attach interop client to PYTHONPATH
 CLIENT=${DIR}/modules/interop/client
-
 export PYTHONPATH=${PYTHONPATH}:$CLIENT
 
-cd station && ${DIR}/env/venv3/bin/python3 station.py
+# Find station and go to it!
+STATION_LOCATION=$(find -name station.py)
+STATION_DIR=$(dirname ${STATION_LOCATION})
+cd ${STATION_DIR} && ${DIR}/env/venv3/bin/python3 station.py
 exit 0
