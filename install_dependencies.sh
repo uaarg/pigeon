@@ -33,7 +33,8 @@ echo "Installing Pigeon Packages..."
 apt-get -y install \
     qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
     python3-shapely \
-    libxml2-dev libxslt1-dev
+    libxml2-dev libxslt1-dev\
+    libzbar0
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon Apt-get Dependencies"
@@ -61,6 +62,7 @@ bash -c "
     pip3 install pyinotify pyproj pykml==0.1.0 && \
     pip3 install git+https://github.com/camlee/ivy-python && \
     pip3 install requests && \
+    pip3 install Pillow pyzbar && \
     deactivate"
 
 if [ $? -ne 0 ]; then
