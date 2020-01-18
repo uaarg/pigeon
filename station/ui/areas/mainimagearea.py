@@ -65,6 +65,10 @@ class MainImageArea(QtWidgets.QWidget):
         self._drawPlanePlumb()
         self._drawFeatures()
 
+    def getImage(self):
+        """Gets the current image being displayed"""
+        return self.image
+
     def _drawPlanePlumb(self):
         """
         Draw a little plane icon on the image at the point directly

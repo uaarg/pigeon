@@ -80,7 +80,7 @@ class Ruler(QtCore.QObject):
                                   [self.line.x2(), self.line.y2()])
         self.angle = image.heading([self.line.x1(), self.line.y1()],
                               [self.line.x2(), self.line.y2()])
-        self.rulertext.setText("Dist:" + str("{0:.2f}".format(self.distance)) + " Angl:" + str("{0:.2f}".format(self.angle)))
+        self.rulertext.setText("Dist:" + str("{0:.2f}".format(self.distance)) + "m  Angl:" + str("{0:.2f}".format(self.angle)))
         self.rulertext.moveTo(point)
         self.rulertext.show()
         self.calculated = True

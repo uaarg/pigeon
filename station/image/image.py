@@ -144,8 +144,8 @@ class Image(object):
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
         pitch = degrees(float(self.info_data[field_map["pitch"]])) * -1 # top of camera pointing towards plane tail
-        roll = degrees(float(self.info_data[field_map["roll"]])) * -1
-        yaw = degrees(float(self.info_data[field_map["yaw"]])) + 180 # top of camera pointing towards plane tail
+        roll = degrees(float(self.info_data[field_map["roll"]])) * -1 # top of camera pointing towards plane tail
+        yaw = degrees(float(self.info_data[field_map["yaw"]])) # top of camera pointing towards plane tail
         # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
@@ -164,8 +164,10 @@ class Image(object):
             raise(Exception("Can't geo-reference image. Missing image height."))
 
         # HARDCODED VALUES!
-        field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
-        field_of_view_vert = 48.25 
+        #  field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
+        #  field_of_view_vert = 48.25 
+        field_of_view_horiz = 18.29
+        field_of_view_vert  = 13.53
 
         self.camera_specs = geo.CameraSpecs(self.width, self.height, field_of_view_horiz, field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)

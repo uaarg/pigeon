@@ -19,6 +19,8 @@ from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
 
+from misc import qr
+
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
 INFO_AREA_MIN_WIDTH = 250
@@ -311,6 +313,9 @@ class MainWindow(QtWidgets.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(self)
 
     def initMenuBar(self):
+        """
+        Creates the menu bar for the main window
+        """
         self.menubar = self.menuBar()
 
         menu = self.menubar.addMenu("&File")
@@ -343,8 +348,28 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action = QtWidgets.QAction("About Pigeon", self)
         about_action.setShortcut("Ctrl+A")
         about_action.triggered.connect(self.showAboutWindow)
-
         menu.addAction(about_action)
+
+
+        # Process Menu Bar
+        # ===============
+
+        # Extra Processing for images, like QR codes
+        menu = self.menubar.addMenu("&Process")
+
+        def decodeQR():
+            """
+            Decode the QR code on the current image and then
+            create a dialog box showing result
+            """
+            im = self.main_image_area.getImage()
+            path = im.path
+            data = qr.get_qr_data(path)
+            QtWidgets.QMessageBox.about(self, "QR Code", "Qr Code Data: {}".format(data))
+
+        process_action = QtWidgets.QAction("Process QR Code", self)
+        process_action.triggered.connect(decodeQR)
+        menu.addAction(process_action)
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
