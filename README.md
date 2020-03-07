@@ -22,6 +22,8 @@ Implemented Features:
 * Various Export options under the Export menu
 * Start of multi-operator functionality: features and images can be synced with
   other pigeon instances over an ivybus
+* Scans QR codes from selected image (under process menu), reading up to 60 cm
+  away at up to 45 degrees using a 7x7cm QR code
 
 Future Features:
 ----------------
