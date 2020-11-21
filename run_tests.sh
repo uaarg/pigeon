@@ -27,5 +27,5 @@ fi
 CLIENT=${DIR}/modules/interop/client
 export PYTHONPATH=${PYTHONPATH}:$CLIENT
 
-cd station && ${DIR}/env/venv3/bin/python3 test.py "${ARGS}"
+cd station && ${DIR}/venv3/bin/python3 test.py "${ARGS}"
 exit $?

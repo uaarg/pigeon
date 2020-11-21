@@ -8,7 +8,10 @@
 # Python
 *.py[cod]
 __pycache__/
+
+# Pyhton Virtual Envs
 env/
+venv3/
 
 # SCons
 # Ignore database files
@@ -23,6 +26,9 @@ env/
 
 # Modules
 modules/*
+
+# AUVSI Lib
+station/auvsi_suas
 
 # ctags
 tags
