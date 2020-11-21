@@ -5,11 +5,26 @@
 # Also installs interop client library
 # See Readme for specific dependencies
 #
-# Usage: `./install_dependencies.sh`
+# Usage: `./install_dependencies.sh [-p]`
+# Flags:
+#   [-p] Run in pipeline mode, disables user prompts.
 #
+
 
 # Variables
 DIR=$(cd $(dirname $0) && pwd)
+
+# Run in pipeline mode.
+PIPELINE_MODE=0
+
+# Parse flags
+while getopts "p" opt; do
+    case "$opt" in
+    p)  PIPELINE_MODE=1
+        ;;
+    esac
+done
+
 
 # Test Sudo
 if [[ $EUID -ne 0 ]]; then
@@ -62,7 +77,11 @@ fi
 # Install Interop Client Lib
 echo "Installing Interop Client Libraries..."
 
-cd modules && ./install_interop_export.sh
+if [[ $PIPELINE_MODE -ne 1 ]]; then
+    cd modules && ./install_interop_export.sh
+else
+    cd modules && ./install_interop_export.sh -p
+fi
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Interop Client Libraries"
