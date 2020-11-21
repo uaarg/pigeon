@@ -51,13 +51,6 @@ apt-get -qq install -y \
         libxml2-dev \
         libxslt-dev \
         protobuf-compiler \
-        python \
-        python-dev \
-        python-lxml \
-        python-nose \
-        python-pip \
-        python-pyproj \
-        python-virtualenv \
         python3 \
         python3-dev \
         python3-nose \
@@ -73,37 +66,11 @@ else
     echo -e "Done"    
 fi
 
-# Set up Python virtualenv
-# Used to allow different version installation of dependencies
-echo "Setting up packages..."
-
-bash -c "cd ${DIR}/interop/client && \
-    virtualenv --system-site-packages -p /usr/bin/python2 ${DIR}/../env/venv2 && \
-    source ${DIR}/../env/venv2/bin/activate && \
-    pip install -r requirements.txt && \
-    deactivate" && \
-bash -c "cd interop/client && \
-    virtualenv --system-site-packages -p /usr/bin/python3 ${DIR}/../env/venv3 && \
-    source ${DIR}/../env/venv3/bin/activate && \
-    pip3 install -r requirements.txt && \
-    deactivate"
-
-if [[ $? -ne 0 ]]; then 
-    echo -e "Failed"
-    exit 1
-else
-    echo -e "Done"    
-fi
-
 # Set up Protos for API
 echo -n "Running setup.py"
 
 bash -c "cd interop/client && \
-    source ${DIR}/../env/venv2/bin/activate && \
-    python setup.py install && \
-    deactivate" && \
-bash -c "cd interop/client && \
-    source ${DIR}/../env/venv3/bin/activate && \
+    source ${DIR}/../venv3/bin/activate && \
     python3 setup.py install && \
     deactivate"
 

@@ -33,7 +33,7 @@ echo "Installing Pigeon Packages..."
 apt-get -y install \
     qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
     python3-shapely \
-    libxml2-dev libxslt1-dev
+    libxml2-dev libxslt1-dev \
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon Apt-get Dependencies"
@@ -41,6 +41,23 @@ if [ $? -ne 0 ]; then
 fi
 
 printf "\n\n"
+
+# Set up Python virtualenv
+# Used to allow different version installation of dependencies
+echo "Setting up packages..."
+
+bash -c "python3 -m venv --system-site-packages venv3  && \
+    source ${DIR}/venv3/bin/activate && \
+    pip install wheel && \
+    pip3 install -r ${DIR}/modules/interop/client/requirements.txt && \
+    deactivate"
+
+if [[ $? -ne 0 ]]; then 
+    echo -e "Failed"
+    exit 1
+else
+    echo -e "Done"    
+fi
 
 # Install Interop Client Lib
 echo "Installing Interop Client Libraries..."
@@ -57,7 +74,7 @@ printf "\n\n"
 # Pigeon pip modules
 echo "Installing Pigeon specific Python Libraries"
 bash -c "
-    source ${DIR}/env/venv3/bin/activate && \
+    source ${DIR}/venv3/bin/activate && \
     pip3 install pyinotify pyproj pykml==0.1.0 && \
     pip3 install git+https://github.com/camlee/ivy-python && \
     pip3 install requests && \
