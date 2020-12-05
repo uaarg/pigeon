@@ -13,7 +13,7 @@ from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
 
-from image import image
+from image import Image
 
 from .areas import InfoArea
 from .areas import ThumbnailArea
