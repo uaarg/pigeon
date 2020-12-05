@@ -25,7 +25,7 @@ venv3/
 *.json
 
 # Modules
-modules/*
+modules/
 
 # AUVSI Lib
 station/auvsi_suas
