@@ -10,7 +10,7 @@ definitions:
           - pip
         script: 
           - apt update
-          - /bin/bash install_dependencies.sh
+          - /bin/bash install_dependencies.sh -p
           - /bin/bash run_tests.sh
 
 pipelines:

@@ -5,11 +5,26 @@
 # Also installs interop client library
 # See Readme for specific dependencies
 #
-# Usage: `./install_dependencies.sh`
+# Usage: `./install_dependencies.sh [-p]`
+# Flags:
+#   [-p] Run in pipeline mode, disables user prompts.
 #
+
 
 # Variables
 DIR=$(cd $(dirname $0) && pwd)
+
+# Run in pipeline mode.
+PIPELINE_MODE=0
+
+# Parse flags
+while getopts "p" opt; do
+    case "$opt" in
+    p)  PIPELINE_MODE=1
+        ;;
+    esac
+done
+
 
 # Test Sudo
 if [[ $EUID -ne 0 ]]; then
@@ -43,10 +58,31 @@ fi
 
 printf "\n\n"
 
+# Set up Python virtualenv
+# Used to allow different version installation of dependencies
+echo "Setting up packages..."
+
+bash -c "python3 -m venv --system-site-packages venv3  && \
+    source ${DIR}/venv3/bin/activate && \
+    pip install wheel && \
+    pip3 install -r ${DIR}/modules/interop/client/requirements.txt && \
+    deactivate"
+
+if [[ $? -ne 0 ]]; then 
+    echo -e "Failed"
+    exit 1
+else
+    echo -e "Done"    
+fi
+
 # Install Interop Client Lib
 echo "Installing Interop Client Libraries..."
 
-cd modules && ./install_interop_export.sh
+if [[ $PIPELINE_MODE -ne 1 ]]; then
+    cd modules && ./install_interop_export.sh
+else
+    cd modules && ./install_interop_export.sh -p
+fi
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Interop Client Libraries"
@@ -58,7 +94,7 @@ printf "\n\n"
 # Pigeon pip modules
 echo "Installing Pigeon specific Python Libraries"
 bash -c "
-    source ${DIR}/env/venv3/bin/activate && \
+    source ${DIR}/venv3/bin/activate && \
     pip3 install pyinotify pyproj pykml==0.1.0 && \
     pip3 install git+https://github.com/camlee/ivy-python && \
     pip3 install requests && \

@@ -1,17 +1,19 @@
-import sys
-import logging
-import signal # For exiting pigeon from terminal
+import sys      
+import logging  
+import signal   # For exiting pigeon from terminal 
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
-translate = QtCore.QCoreApplication.translate
+translate = QtCore.QCoreApplication.translate # Potential aliasing
 
-from features import BaseFeature, Feature, Marker
+from features import BaseFeature, Feature, Marker, Point
 
 from .common import QueueMixin
 from .commonwidgets import NonEditableBaseListForm
 from .pixmaploader import PixmapLoader
 from .style import stylesheet
 from ui import icons
+
+from image import Image
 
 from .areas import InfoArea
 from .areas import ThumbnailArea
@@ -51,7 +53,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.logger = logging.getLogger(
             __name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
-        self.features = ground_control_points  # For all features, not just GCP's
+        self.features = ground_control_points  # For all features, not just GCP's ???
         self.feature_io_queue = feature_io_queue
         self.uav = uav
         self.save_settings = save_settings
@@ -88,11 +90,24 @@ class UI(QtCore.QObject, QueueMixin):
         self.settings_changed.connect(update_settings_window_settings)
 
     def run(self):
+        """
+        Opens window and starts event loop.
+
+        Returns:
+            The exit value after loop ends (int).
+        """
         self.main_window.show()
         self.startQueueMonitoring()
         return self.app.exec_()
 
     def addImage(self, image):
+        """
+        Updates image shown through UI.
+        Callback for the image_in_queue signal.
+
+        Parameters:
+            image (Image): instance of the Image class
+        """
         self.main_window.addImage(image)
 
     def applyFeatureSync(self, feature):
@@ -149,12 +164,15 @@ class UI(QtCore.QObject, QueueMixin):
         # Kill signal
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
+
 # ============================================
 #                   Windows
 # =============================================
 
-
 class AboutWindow(QtWidgets.QWidget):
+    """
+    Window that brings up information regarding the Pigeon software
+    """
     def __init__(self, *args, about_text="", **kwargs):
         super().__init__(*args, **kwargs)
         self.setObjectName("about_window")
@@ -173,6 +191,9 @@ class AboutWindow(QtWidgets.QWidget):
 
 
 class SettingsWindow(QtWidgets.QWidget):
+    """
+    The dialog box that allows the user to change various parameters and settings
+    """
     settings_save_requested = QtCore.pyqtSignal(dict)
 
     def __init__(self, *args, settings_data={}, **kwargs):
@@ -314,7 +335,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def initMenuBar(self):
         """
-        Creates the menu bar for the main window
+        Initializes File, Export, Edit, Help navigation buttons
         """
         self.menubar = self.menuBar()
 
@@ -332,6 +353,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 action_widget = QtWidgets.QAction(option_name, self)
 
                 def closure(action):
+                    """
+                    Fix the first parameter of 'action' to self.features
+                    """
                     return lambda enabled: action(self.features)
                 action_widget.triggered.connect(closure(option_action))
                 if shortcut:
@@ -381,7 +405,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_window.settings_save_requested.connect(
             self.settings_save_requested.emit)
 
-    def addImage(self, image):
+    def addImage(self, image:Image):
+        """
+        Initializes image and adds images to the thumbnail and info areas on the UI.
+        If 'Follow Images' is not found within settings_data, or if no images is loaded, the
+        image is shown on the main window.
+        
+        Parameters:
+            image (Image): image to be added to UI
+        """
         image.pixmap_loader = PixmapLoader(image)
 
         # Recording the width and height of the image for other code to use:
@@ -397,7 +429,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def setSettings(self, settings_data):
         return self.info_area.setSettings(settings_data)
 
-    def showImage(self, image):
+    def showImage(self, image:Image):
+        """
+        Frees memory from old image and initialize selected image. Propagating image to main image area 
+        and info areas on the UI.
+
+        Parameters:
+            image (Image): selected image
+        """
         if self.current_image:
             self.current_image.pixmap_loader.freeOriginal()
             self.current_image.pixmap_loader.optimizeMemory()
@@ -406,15 +445,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
 
-    def createNewMarker(self, image, point):
+    def createNewMarker(self, image:Image, point:Point):
+        """
+        Initiallizes a marker and creates a cropped image of it. Emits a featureAddedLocally signal.
+
+        Parameters:
+            image (Image): image contantaining marker
+            point (Point): pixel location of marker on image
+        """
         marker = Marker(image, point=(point.x(), point.y()))
         marker.setPictureCrop(image, self.settings_data["Nominal Target Size"])
         self.featureAddedLocally.emit(marker)
 
     def collectSubfeature(self, feature):
+        # ??
         self.collect_subfeature_for = feature
 
-    def handleMainImageClick(self, image, point):
+    def handleMainImageClick(self, image:Image, point:Point):
+        """
+        Checks if clicked region on an image is a marker or subfeature.
+
+        Parameters:
+            image (Image): clicked image
+            point (Point): pixel location from which the image was clicked
+        """
         if self.collect_subfeature_for:
             self.collect_subfeature_for.updatePoint(
                 image, (point.x(), point.y()))
