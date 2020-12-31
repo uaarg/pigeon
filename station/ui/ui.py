@@ -386,10 +386,37 @@ class MainWindow(QtWidgets.QMainWindow):
             Decode the QR code on the current image and then
             create a dialog box showing result
             """
+        
+            import PIL.ImageQt
+
             im = self.main_image_area.getImage()
             path = im.path
-            data = qr.get_qr_data(path)
-            QtWidgets.QMessageBox.about(self, "QR Code", "Qr Code Data: {}".format(data))
+
+            processed_image, qr_data = qr.get_qr_data(path)
+
+            # Need to convert PIL image to pixmap
+            pixmap = QtGui.QPixmap.fromImage(PIL.ImageQt.ImageQt(processed_image))
+
+            dialog_layout = QtWidgets.QVBoxLayout()
+
+            # QR Code Data
+            qr_result_label = QtWidgets.QLineEdit()
+            qr_result_label.setText(qr_data)
+            qr_result_label.setReadOnly(True)
+            dialog_layout.addWidget(qr_result_label)
+
+            # QR Code Image
+            qr_image_label = QtWidgets.QLabel()
+            qr_image_label.setPixmap(pixmap)
+            dialog_layout.addWidget(qr_image_label)
+
+            result_dialogue = QtWidgets.QDialog(self)
+            result_dialogue.setLayout(dialog_layout)
+            result_dialogue.setWindowTitle("QR Code Data")
+
+            result_dialogue.show()
+            result_dialogue.raise_()
+            result_dialogue.activateWindow()
 
         process_action = QtWidgets.QAction("Process QR Code", self)
         process_action.triggered.connect(decodeQR)
