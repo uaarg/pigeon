@@ -3,6 +3,7 @@ import logging
 import signal   # For exiting pigeon from terminal 
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
 from features import BaseFeature, Feature, Marker, Point
@@ -20,8 +21,7 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
-
-from misc import qr
+from .dialogues import QrDiag
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
@@ -381,45 +381,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Extra Processing for images, like QR codes
         menu = self.menubar.addMenu("&Process")
 
-        def decodeQR():
-            """
-            Decode the QR code on the current image and then
-            create a dialog box showing result
-            """
-        
-            import PIL.ImageQt
-
-            im = self.main_image_area.getImage()
-            path = im.path
-
-            processed_image, qr_data = qr.get_qr_data(path)
-
-            # Need to convert PIL image to pixmap
-            pixmap = QtGui.QPixmap.fromImage(PIL.ImageQt.ImageQt(processed_image))
-
-            dialog_layout = QtWidgets.QVBoxLayout()
-
-            # QR Code Data
-            qr_result_label = QtWidgets.QLineEdit()
-            qr_result_label.setText(qr_data)
-            qr_result_label.setReadOnly(True)
-            dialog_layout.addWidget(qr_result_label)
-
-            # QR Code Image
-            qr_image_label = QtWidgets.QLabel()
-            qr_image_label.setPixmap(pixmap)
-            dialog_layout.addWidget(qr_image_label)
-
-            result_dialogue = QtWidgets.QDialog(self)
-            result_dialogue.setLayout(dialog_layout)
-            result_dialogue.setWindowTitle("QR Code Data")
-
-            result_dialogue.show()
-            result_dialogue.raise_()
-            result_dialogue.activateWindow()
-
         process_action = QtWidgets.QAction("Process QR Code", self)
-        process_action.triggered.connect(decodeQR)
+        process_action.triggered.connect(self.decodeQR)
         menu.addAction(process_action)
 
     def showAboutWindow(self):
@@ -431,6 +394,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_window.show()
         self.settings_window.settings_save_requested.connect(
             self.settings_save_requested.emit)
+
+    def decodeQR(self):
+        """
+        Decode the QR code on the current image and then
+        create a dialog box showing result
+        """
+    
+        im_path = self.main_image_area.getImage().path
+        QrDiag(self, im_path)
 
     def addImage(self, image:Image):
         """
