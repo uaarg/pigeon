@@ -163,11 +163,16 @@ class Image(object):
         if not self.height:
             raise(Exception("Can't geo-reference image. Missing image height."))
 
+<<<<<<< HEAD
         # HARDCODED VALUES!
         #  field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
         #  field_of_view_vert = 48.25 
         field_of_view_horiz = 18.29
         field_of_view_vert  = 13.53
+=======
+        field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
+        field_of_view_vert = 48.25 
+>>>>>>> parent of 32c944e... Fixed Large inaccuracy due to not rotating yaw by 180 (Only for UA-15)
 
         self.camera_specs = geo.CameraSpecs(self.width, self.height, field_of_view_horiz, field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)
