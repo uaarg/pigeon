@@ -10,7 +10,7 @@ class QrDiag(QDialog):
         """Init layout of this diag, then display."""
         super().__init__(parent)
 
-        processed_image, qr_data = qr.get_qr_data(image_path)
+        qr_datas, processed_image = qr.get_qr_data(image_path)
 
         # Need to convert PIL image to pixmap
         pixmap = QtGui.QPixmap.fromImage(processed_image)
@@ -18,10 +18,12 @@ class QrDiag(QDialog):
         dialog_layout = QtWidgets.QVBoxLayout()
 
         # QR Code Data
-        qr_result_label = QtWidgets.QLineEdit()
-        qr_result_label.setText(qr_data)
-        qr_result_label.setReadOnly(True)
-        dialog_layout.addWidget(qr_result_label)
+        # Add a new line for each QR code
+        for qr_data in qr_datas:
+            qr_result_label = QtWidgets.QLineEdit()
+            qr_result_label.setText(qr_data)
+            qr_result_label.setReadOnly(True)
+            dialog_layout.addWidget(qr_result_label)
 
         # QR Code Image
         qr_image_label = QtWidgets.QLabel()

@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from pyzbar.pyzbar import decode, ZBarSymbol
-from PIL import Image, ImageDraw, ImageQt
+from PIL import Image, ImageDraw, ImageQt, ImageFont
 
 def get_qr_box_bounds(qr_data) -> Tuple[tuple, tuple]:
     """Gets the bounds of the box surrounding a QR Code.
@@ -19,19 +19,32 @@ def get_qr_box_bounds(qr_data) -> Tuple[tuple, tuple]:
         (r.left + r.width, r.top + r.height)
     )
 
+def get_qr_text_location(qr_data):
+    """Get location to place enumeration text for QR code."""
+    r = qr_data.rect
+    return (r.left + r.width/2, r.top + r.height/2)
+
+def get_font_for_qr():
+    """The ImageFont Class for use in drawing the text."""
+
+    # First try a standard font.
+    try:
+        return ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf", size=20)
+
+    except OSError:
+        # If failed, just use default
+        return ImageFont.load_default()
+
 def get_qr_data(filename):
     """
     Gets the QR code data of the QR code in an image
-
-    Note:
-        Assumes only 1 QR code per image
 
     Arguments:
         filename: The filename of the image to process
 
     Returns:
-        Tuple containing: (QImage of processed data, QR Code data string)
-
+        Tuple containing: (QR Code Strings, Anotated Image as QImage)
+            The QR Code Strings are enumerated. e.g. "1. <QR-DATA>"
     """
     qr_data = ""
 
@@ -41,20 +54,32 @@ def get_qr_data(filename):
     # Threshold the image such that pixels are either black or white
     image = image.point(lambda x: 0 if x < 128 else 255)
 
-    data = decode(image, symbols=[ZBarSymbol.QRCODE])
-
     # Decode returns an array of named tuples
     # Note that the data field in the named tuple is binary
-    if (len(data) == 0):
-        qr_data = "No QR Code found."
-    else:
-        # Index 0 since we assume 1 QR code
-        qr_data = data[0].data.decode('ascii')
+    qr_codes_found = decode(image, symbols=[ZBarSymbol.QRCODE])
+
+
+    if (len(qr_codes_found) == 0):
+        return (["No QR Code found."], image)
+
+    qr_code_strings = []
+    image = image.convert("RGB") # Return to RGB mode
+
+    for i, qr_code in enumerate(qr_codes_found):
+        qr_data = "{}. {}".format(i, qr_code.data.decode('ascii'))
 
         # Draw bounding box on the QR code
-        image = image.convert("RGB") # Return to RGB mode
-        ImageDraw.Draw(image).rectangle(
-            get_qr_box_bounds(data[0]), outline="red", width=3)
+        drawer = ImageDraw.Draw(image)
+        drawer.rectangle(
+            get_qr_box_bounds(qr_code), outline="red", width=3)
 
-    return (ImageQt.ImageQt(image), qr_data)
+        # Draw a number representing the QR code
+        drawer.text(
+            get_qr_text_location(qr_code), str(i), fill="red", 
+            stroke_width=3, stroke_fill="white", font=get_font_for_qr())
+
+        qr_code_strings.append((qr_data))
+
+    return (qr_code_strings, ImageQt.ImageQt(image))
+
 
