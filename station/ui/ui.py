@@ -383,6 +383,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         process_action = QtWidgets.QAction("Process QR Code", self)
         process_action.triggered.connect(self.decodeQR)
+        
+        # Activate only on first image load
+        process_action.setEnabled(False)
+        self.main_image_area.imageChanged.connect(
+            lambda: process_action.setEnabled(True))
+
         menu.addAction(process_action)
 
     def showAboutWindow(self):

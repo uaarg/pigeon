@@ -13,6 +13,7 @@ class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     featureChanged = QtCore.pyqtSignal(Feature)
+    imageChanged = QtCore.pyqtSignal()
 
     def __init__(self, *args, settings_data={}, features=[], **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,6 +65,7 @@ class MainImageArea(QtWidgets.QWidget):
 
         self._drawPlanePlumb()
         self._drawFeatures()
+        self.imageChanged.emit()
 
     def getImage(self):
         """Gets the current image being displayed"""

@@ -27,7 +27,8 @@ class QrDiag(QDialog):
 
         # QR Code Image
         qr_image_label = QtWidgets.QLabel()
-        qr_image_label.setPixmap(pixmap)
+        # Scale the image to 512px in height to fit on screen
+        qr_image_label.setPixmap(pixmap.scaledToHeight(512))
         dialog_layout.addWidget(qr_image_label)
 
         self.setLayout(dialog_layout)
