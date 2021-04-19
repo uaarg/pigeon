@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from pyzbar.pyzbar import decode, ZBarSymbol
-from PIL import Image, ImageDraw, ImageQt, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageQt, ImageFont
 
 def get_qr_box_bounds(qr_data) -> Tuple[tuple, tuple]:
     """Gets the bounds of the box surrounding a QR Code.
@@ -50,7 +50,6 @@ def get_qr_data(filename):
 
     # First get Black and White Image
     image = Image.open(filename).convert("L")
-    image = ImageOps.equalize(image) # Histogram equalization
 
     # Threshold the image such that pixels are either black or white
     image = image.point(lambda x: 0 if x < 128 else 255)
@@ -61,7 +60,7 @@ def get_qr_data(filename):
 
 
     if (len(qr_codes_found) == 0):
-        return (["No QR Code found."], ImageQt.ImageQt(image))
+        return (["No QR Code found."], image)
 
     qr_code_strings = []
     image = image.convert("RGB") # Return to RGB mode
