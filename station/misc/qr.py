@@ -1,6 +1,6 @@
-from typing import Tuple
+from typing import List, Tuple
 
-from pyzbar.pyzbar import decode, ZBarSymbol
+from pyzbar.pyzbar import Decoded, decode, ZBarSymbol
 from PIL import Image, ImageDraw, ImageQt, ImageFont
 
 def get_qr_box_bounds(qr_data) -> Tuple[tuple, tuple]:
@@ -49,14 +49,15 @@ def get_qr_data(filename):
     qr_data = ""
 
     # First get Black and White Image
-    image = Image.open(filename).convert("L")
+    image = Image.open(filename)
+    image = image.convert("L")
 
     # Threshold the image such that pixels are either black or white
     image = image.point(lambda x: 0 if x < 128 else 255)
 
     # Decode returns an array of named tuples
     # Note that the data field in the named tuple is binary
-    qr_codes_found = decode(image, symbols=[ZBarSymbol.QRCODE])
+    qr_codes_found : List[Decoded] = decode(image, symbols=[ZBarSymbol.QRCODE])
 
 
     if (len(qr_codes_found) == 0):
