@@ -2,3 +2,4 @@
 [submodule "modules/interop"]
 	path = modules/interop
 	url = https://github.com/auvsi-suas/interop.git
+    ignore = dirty

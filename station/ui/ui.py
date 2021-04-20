@@ -3,6 +3,7 @@ import logging
 import signal   # For exiting pigeon from terminal 
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
 from features import BaseFeature, Feature, Marker, Point
@@ -20,6 +21,7 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
+from .dialogues import QrDiag
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
@@ -370,8 +372,24 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action = QtWidgets.QAction("About Pigeon", self)
         about_action.setShortcut("Ctrl+A")
         about_action.triggered.connect(self.showAboutWindow)
-
         menu.addAction(about_action)
+
+
+        # Process Menu Bar
+        # ===============
+
+        # Extra Processing for images, like QR codes
+        menu = self.menubar.addMenu("&Process")
+
+        process_action = QtWidgets.QAction("Process QR Code", self)
+        process_action.triggered.connect(self.decodeQR)
+        
+        # Activate only on first image load
+        process_action.setEnabled(False)
+        self.main_image_area.imageChanged.connect(
+            lambda: process_action.setEnabled(True))
+
+        menu.addAction(process_action)
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
@@ -382,6 +400,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_window.show()
         self.settings_window.settings_save_requested.connect(
             self.settings_save_requested.emit)
+
+    def decodeQR(self):
+        """
+        Decode the QR code on the current image and then
+        create a dialog box showing result
+        """
+    
+        im_path = self.main_image_area.getImage().path
+        QrDiag(self, im_path)
 
     def addImage(self, image:Image):
         """

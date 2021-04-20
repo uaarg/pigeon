@@ -68,3 +68,9 @@ Multi-Operator
 * To use, configure the "Pigeon Network" setting so that the two Pigeons can talk (the default should work if they are on the same computer). Then, just start making and changing features or adding images to the monitored folder of one Pigeon.
 * Not yet supported:
     * Catching up instances that were started late: they'll miss out on image and features that have already been synced. Make another change to a feature to sync it.
+
+QR Code Decoder
+---------------
+* Decode a QR code in the currently selected image by clicking on the "process" button in the top toolbar and selecting process QR code.
+* A new windows will pop up containing the processed image and the data in the QR code, if found.
+    * If a QR code cannot be found, then it will still display the processed image, but no data will be available.
