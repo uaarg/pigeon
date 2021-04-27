@@ -6,16 +6,27 @@
 # See Readme for specific dependencies
 #
 # Usage: `./install_dependencies.sh [-p]`
+#
 # Flags:
-#   [-p] Run in pipeline mode, disables user prompts.
+#   [-p] Run in pipeline mode (e.g. Bitbucket pipelines), disables user prompts.
 #
 
 
 # Variables
 DIR=$(cd $(dirname $0) && pwd)
+PIPELINE_MODE=0 # Run in pipeline (e.g. Bitbucket pipeline) mode.
+CURRENT_USER=${SUDO_USER}
 
-# Run in pipeline mode.
-PIPELINE_MODE=0
+# Test Sudo
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
+
+if [[ ${CURRENT_USER} == "" ]]; then
+    echo "Error: Could not get user calling the script."
+    exit 1
+fi
 
 # Parse flags
 while getopts "p" opt; do
@@ -25,26 +36,21 @@ while getopts "p" opt; do
     esac
 done
 
+# Need to set the timezone to New York when we go to the competition.
+if [[ ${PIPELINE_MODE} -ne 1 ]]; then
 
-# Test Sudo
-if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root"
-   exit 1
+    echo "Change Time Zone to competition location? (Y/N)"
+    read ans
+
+    if [[ "_${ans}" == "_Y" ]]; then
+        ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+        echo "Time zone has been changed"
+    fi
 fi
-
-# Setup out submodules
-echo "Setting up Submodules..."
-git submodule init && git submodule update
-
-if [ $? -ne 0 ]; then
-    echo "Submodule failed to clone. Aborting."
-    exit 1
-fi
-
-printf "\n\n"
+# If in pipeline mode, running on bitbucket. No need to change the timezone.
 
 # Install Pigeon specific apt-gets
-echo "Installing Pigeon Packages..."
+echo "Installing Apt Packages..."
 apt-get -y install \
     qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
     python3-shapely \
@@ -56,50 +62,33 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-printf "\n\n"
-
 # Set up Python virtualenv
-# Used to allow different version installation of dependencies
-echo "Setting up packages..."
+# Decouples our dependencies from system packages.
+echo "Setting up virtual environment..."
+sudo -u "${CURRENT_USER}" python3 -m venv --system-site-packages venv3
 
-bash -c "python3 -m venv --system-site-packages venv3  && \
-    source ${DIR}/venv3/bin/activate && \
-    pip install wheel && \
-    pip3 install -r ${DIR}/modules/interop/client/requirements.txt && \
-    deactivate"
-
-if [[ $? -ne 0 ]]; then 
-    echo -e "Failed"
-    exit 1
-else
-    echo -e "Done"    
-fi
-
-# Install Interop Client Lib
-echo "Installing Interop Client Libraries..."
-
-if [[ $PIPELINE_MODE -ne 1 ]]; then
-    cd modules && ./install_interop_export.sh
-else
-    cd modules && ./install_interop_export.sh -p
-fi
-
-if [ $? -ne 0 ]; then
-    echo "Failed to Install Interop Client Libraries"
+if [[ $? -ne 0 ]]; then
+    echo "Error: Could not create virtual environment."
     exit 1
 fi
 
-printf "\n\n"
+echo "Installing Interop Client Library... This may take a while!"
+
+# Install Interop Client Lib from the AUVSI git repository
+# Note: The client library is in a subdirectory, so we use #subdirectory=...
+source ${DIR}/venv3/bin/activate && \
+    pip3 install "git+https://github.com/auvsi-suas/interop.git#subdirectory=client"
+
+if [[  $? -ne 0 ]]; then
+    echo "Failed to Install Interop Client Library"
+    exit 1
+fi
 
 # Pigeon pip modules
-echo "Installing Pigeon specific Python Libraries"
-bash -c "
-    source ${DIR}/venv3/bin/activate && \
-    pip3 install pyinotify pyproj pykml==0.1.0 && \
-    pip3 install git+https://github.com/camlee/ivy-python && \
-    pip3 install requests && \
-    pip3 install Pillow pyzbar && \
-    deactivate"
+echo "Installing Pigeon specific Python Libraries..."
+source ${DIR}/venv3/bin/activate && \
+    pip3 install -r requirements.txt && \
+    deactivate
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon pip Modules"

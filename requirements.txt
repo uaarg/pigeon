@@ -1,0 +1,9 @@
+pyinotify
+pyproj
+pykml==0.1.0
+requests
+Pillow
+pyzbar
+
+# This is installed from the git repository rather than PYPY
+git+https://github.com/camlee/ivy-python
