@@ -95,6 +95,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo "Installing pyproj transformation grids..."
+# Get pyproj transformation grids.
+# https://pyproj4.github.io/pyproj/stable/transformation_grids.html#transformation-grids
+source ${DIR}/venv3/bin/activate && \
+    export PROJ_DOWNLOAD_DIR=$(python3 -c "import pyproj; print(pyproj.datadir.get_data_dir())") && \
+    wget --mirror https://cdn.proj.org/ -P ${PROJ_DOWNLOAD_DIR}
+
+err_code=$?
+# For some reason... error code 8 is normal 
+if [[ err_code -ne 0 && err_code -ne 8 ]]; then 
+    echo "Failed to install pyproj transformation grids... Error code:${err_code}"
+    exit 1
+fi
+
 echo "Installation Complete."
 
 exit 0
