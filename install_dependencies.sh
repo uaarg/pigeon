@@ -56,7 +56,8 @@ apt-get -y install \
     qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
     python3-shapely \
     libxml2-dev libxslt1-dev\
-    libzbar0
+    libzbar0 \
+    protobuf-compiler
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon Apt-get Dependencies"
