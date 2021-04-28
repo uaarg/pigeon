@@ -74,9 +74,13 @@ fi
 
 # Pigeon pip modules
 echo "Installing Pigeon specific Python Libraries..."
-source ${DIR}/venv3/bin/activate && \
+
+# We have to use bash since sudo -u USER source venv/... doesn't work.
+sudo -u "${CURRENT_USER}" bash << EOF
+    source ${DIR}/venv3/bin/activate && \
     pip3 install -r requirements.txt && \
     deactivate
+EOF
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon pip Modules"
@@ -96,6 +100,9 @@ if [[ err_code -ne 0 && err_code -ne 8 ]]; then
     echo "Failed to install pyproj transformation grids... Error code:${err_code}"
     exit 1
 fi
+
+echo "Changing venv to be owned by current user..."
+chown -R "${CURRENT_USER}" venv3
 
 echo "Installation Complete."
 
