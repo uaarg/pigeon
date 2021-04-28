@@ -66,7 +66,11 @@ fi
 # Set up Python virtualenv
 # Decouples our dependencies from system packages.
 echo "Setting up virtual environment..."
-sudo -u "${CURRENT_USER}" python3 -m venv --system-site-packages venv3
+if [[ PIPELINE_MODE -eq 0 ]]; then 
+    sudo -u "${CURRENT_USER}" python3 -m venv --system-site-packages venv3
+else
+    python3 -m venv --system-site-packages venv3
+fi
 
 if [[ $? -ne 0 ]]; then
     echo "Error: Could not create virtual environment."
@@ -77,11 +81,17 @@ fi
 echo "Installing Pigeon specific Python Libraries..."
 
 # We have to use bash since sudo -u USER source venv/... doesn't work.
-sudo -u "${CURRENT_USER}" bash << EOF
+if [[ PIPELINE_MODE -eq 0 ]]; then
+    sudo -u "${CURRENT_USER}" bash << EOF
+        source ${DIR}/venv3/bin/activate && \
+        pip3 install -r requirements.txt && \
+        deactivate
+EOF
+else 
     source ${DIR}/venv3/bin/activate && \
     pip3 install -r requirements.txt && \
     deactivate
-EOF
+fi
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon pip Modules"
@@ -102,8 +112,10 @@ if [[ err_code -ne 0 && err_code -ne 8 ]]; then
     exit 1
 fi
 
-echo "Changing venv to be owned by current user..."
-chown -R "${CURRENT_USER}" venv3
+if [[ PIPELINE_MODE -ne 1 ]]; then
+    echo "Changing venv to be owned by current user..."
+    chown -R "${CURRENT_USER}" venv3
+fi
 
 echo "Installation Complete."
 
