@@ -72,18 +72,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-echo "Installing Interop Client Library... This may take a while!"
-
-# Install Interop Client Lib from the AUVSI git repository
-# Note: The client library is in a subdirectory, so we use #subdirectory=...
-source ${DIR}/venv3/bin/activate && \
-    pip3 install "git+https://github.com/auvsi-suas/interop.git#subdirectory=client"
-
-if [[  $? -ne 0 ]]; then
-    echo "Failed to Install Interop Client Library"
-    exit 1
-fi
-
 # Pigeon pip modules
 echo "Installing Pigeon specific Python Libraries..."
 source ${DIR}/venv3/bin/activate && \
