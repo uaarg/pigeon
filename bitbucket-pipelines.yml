@@ -8,6 +8,7 @@ definitions:
         name: Build and Test
         caches:
           - pip
+          - venv3
         script: 
           - apt update
           - /bin/bash install_dependencies.sh -p
@@ -23,3 +24,7 @@ pipelines:
     development:
       - step: *build-test
           
+definitions:
+  caches:
+    # Virtual environment for python
+    venv: venv3

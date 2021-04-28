@@ -4,6 +4,7 @@ pyproj
 pykml==0.1.0
 requests
 Shapely
+PyQt5
 Pillow
 pyzbar
 
