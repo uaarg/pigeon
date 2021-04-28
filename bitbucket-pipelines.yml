@@ -8,7 +8,7 @@ definitions:
         name: Build and Test
         caches:
           - pip
-          - venv3
+          - venv
         script: 
           - apt update
           - /bin/bash install_dependencies.sh -p
