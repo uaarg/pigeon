@@ -23,11 +23,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-if [[ ${CURRENT_USER} == "" ]]; then
-    echo "Error: Could not get user calling the script."
-    exit 1
-fi
-
 # Parse flags
 while getopts "p" opt; do
     case "$opt" in
@@ -35,6 +30,12 @@ while getopts "p" opt; do
         ;;
     esac
 done
+
+# Check that we can access original user name if not in bitbucket pipeline
+if [[ PIPELINE_MODE -ne 1 && ${CURRENT_USER} == "" ]]; then
+    echo "Error: Could not get user calling the script."
+    exit 1
+fi
 
 # Need to set the timezone to New York when we go to the competition.
 if [[ ${PIPELINE_MODE} -ne 1 ]]; then
