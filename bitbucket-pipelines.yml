@@ -11,6 +11,7 @@ definitions:
           - venv
         script: 
           - apt update
+          - apt install -y libgl1-mesa-dev # Fix libGl error in docker. https://codeslake.github.io/ubuntu/docker/docker-libGL-error/
           - /bin/bash install_dependencies.sh -p
           - /bin/bash run_tests.sh
 
