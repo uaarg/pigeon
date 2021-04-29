@@ -1,4 +1,6 @@
 # PypI Depdendencies
+wheel 
+
 pyinotify
 pyproj
 pykml==0.1.0
@@ -11,9 +13,6 @@ pyzbar
 # Pigeon Web Client
 git+ssh://git@bitbucket.org/UAARG/pigeon_web_client.git
 
-# AUVSI SUAS Client Library
-# Note: The client library is in a subdirectory, so we use #subdirectory=...
-git+https://github.com/auvsi-suas/interop.git#subdirectory=client
 
 # This is installed from the git repository rather than PYPY
 git+https://github.com/camlee/ivy-python

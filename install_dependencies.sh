@@ -66,9 +66,9 @@ fi
 # Decouples our dependencies from system packages.
 echo "Setting up virtual environment..."
 if [[ PIPELINE_MODE -eq 0 ]]; then 
-    sudo -u "${CURRENT_USER}" python3 -m venv --system-site-packages venv3
+    sudo -u "${CURRENT_USER}" python3 -m venv venv3
 else
-    python3 -m venv --system-site-packages venv3
+    python3 -m venv venv3
 fi
 
 if [[ $? -ne 0 ]]; then
@@ -96,6 +96,26 @@ if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon pip Modules"
     exit 1
 fi
+
+# Install AUVSI Library
+# This one is special, it's not possible to install via pip due to bad setup.py
+# We need to clone then build then install locally.
+
+TMP_AUVSI="/tmp/auvsi_tmp_pigeon"
+git clone https://github.com/auvsi-suas/interop.git ${TMP_AUVSI}
+
+# Go to the client folder and build protobuf, then install.
+source ${DIR}/venv3/bin/activate && \
+    cd "${TMP_AUVSI}"/client && python3 setup.py build && pip install . && \
+    cd "${DIR}" && \
+    deactivate
+
+if [ $? -ne 0 ]; then
+    echo "Failed to Install Pigeon pip Modules"
+    exit 1
+fi
+
+rm -r ${TMP_AUVSI}
 
 echo "Installing pyproj transformation grids..."
 # Get pyproj transformation grids.
