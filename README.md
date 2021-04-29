@@ -27,7 +27,8 @@ Implemented Features:
 
 Future Features:
 ----------------
-* See the bitbucket issue tracker for desired features.
+* See the bitbucket issue tracker for desired features. [Deprecated]
+* See the imaging kanban on Trello.
 
 
 Input
@@ -53,71 +54,53 @@ Output
 Installation
 ------------
 
+First, make sure that you have SSH access to bitbucket. Otherwise, the dependency script will fail.
+https://support.atlassian.com/bitbucket-cloud/docs/set-up-an-ssh-key/
+
 To install quickly, simply run `sudo ./install_dependencies.sh`
 
 Manual Installation
 -------------------
 
-Pigeon is written in PyQt. It also has a few python module dependencies.
-To install on Ubuntu (tested on 14.04), do:
+Pigeon is written in PyQt. It also has a few python module dependencies. To install on Ubuntu:
 
+1. First, set the timezone to New York (Competition timezone). This is required by the interop client library.
+
+2. Then, install the following apt dependencies:
 ```
 sudo apt-get install python3 python3-dev
 sudo apt-get install qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
 sudo apt-get install python3-shapely python3-pip
 sudo apt-get install libxml2-dev libxslt1-dev
 sudo apt-get install libzbar0
-sudo pip3 install pyinotify pyproj pykml==0.1.0
-sudo pip3 install git+https://github.com/camlee/ivy-python
-sudo pip3 install requests 
-sudo pip3 install Pillow pyzbar
+sudo apt-get install protobuf-compiler
 ```
 
-See below for installing interop export functionality
-
-SubModules
-----------
-
-## Interop 
-Pigeon requires a submodule in order to communicate with the interop server at 
-AUSVI SUAS Competitions. This submodule is developed by the AUVSI competition 
-comitee and contains the modules we use to export data to the interop server
-
-To install the submodule, run
-
-```
-git submodule init
-git submodule update
+3. Then install python dependencies located in `requirements.txt`:
+```bash
+python3 -m pip install -r requirements.txt.
 ```
 
-Run `install_interop_export.sh` in the modules folder to install the client library.
-Or see the getting started page [here](https://github.com/auvsi-suas/interop#getting-started) 
-for installation instructions.
+4. Install the pyproj transformation grids.
 
-Below lists the pip3 modules needed by the interop client library:
-```
-libxml2-dev 
-libxslt-dev 
-protobuf-compiler 
-python 
-python-dev 
-python-lxml 
-python-nose 
-python-pip 
-python-pyproj 
-python-virtualenv 
-python3 
-python3-dev 
-python3-nose 
-python3-pip 
-python3-pyproj 
-python3-lxml 
-sudo 
-```
+Notable Dependencies
+--------------------
+
+### AUVSI Interop Client
+Pigeon requires a library to communicate with the interop server at 
+the AUSVI SUAS competition. It's used to export data for judging.
+
+See the getting started page [here](https://github.com/auvsi-suas/interop#getting-started) for more information.
+
+It is installed via `pip`.
+
+### Imaging Web Client Library
+The pigeon web client library is used to communicate with the imaging server.
+This repository is located in bitbucket and is installed by `pip`.
 
 Running the Ground Station
 --------------------------
-Simply run `./run.sh`
+Simply run `./run.sh` in a terminal.
 
 See the README in the station directory for usage notes.
 
@@ -225,7 +208,6 @@ A few notes about contributing:
   and get them to fix it).
 * Documentation is in the doc folder. .odg files can be opened in
   LibreOffice Draw.
-* Add to the wiki in the repository. We need more documentation!
 
 
 Code Conventions

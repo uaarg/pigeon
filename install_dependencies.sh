@@ -6,16 +6,22 @@
 # See Readme for specific dependencies
 #
 # Usage: `./install_dependencies.sh [-p]`
+#
 # Flags:
-#   [-p] Run in pipeline mode, disables user prompts.
+#   [-p] Run in pipeline mode (e.g. Bitbucket pipelines), disables user prompts.
 #
 
 
 # Variables
 DIR=$(cd $(dirname $0) && pwd)
+PIPELINE_MODE=0 # Run in pipeline (e.g. Bitbucket pipeline) mode.
+CURRENT_USER=${SUDO_USER}
 
-# Run in pipeline mode.
-PIPELINE_MODE=0
+# Test Sudo
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
 
 # Parse flags
 while getopts "p" opt; do
@@ -25,85 +31,109 @@ while getopts "p" opt; do
     esac
 done
 
-
-# Test Sudo
-if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root"
-   exit 1
-fi
-
-# Setup out submodules
-echo "Setting up Submodules..."
-git submodule init && git submodule update
-
-if [ $? -ne 0 ]; then
-    echo "Submodule failed to clone. Aborting."
+# Check that we can access original user name if not in bitbucket pipeline
+if [[ PIPELINE_MODE -ne 1 && ${CURRENT_USER} == "" ]]; then
+    echo "Error: Could not get user calling the script."
     exit 1
 fi
 
-printf "\n\n"
+# Need to set the timezone to New York when we go to the competition.
+if [[ ${PIPELINE_MODE} -ne 1 ]]; then
+
+    echo "Change Time Zone to competition location? (Y/N)"
+    read ans
+
+    if [[ "_${ans}" == "_Y" ]]; then
+        ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+        echo "Time zone has been changed"
+    fi
+fi
+# If in pipeline mode, running on bitbucket. No need to change the timezone.
 
 # Install Pigeon specific apt-gets
-echo "Installing Pigeon Packages..."
+echo "Installing Apt Packages..."
 apt-get -y install \
-    qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5 \
-    python3-shapely \
     libxml2-dev libxslt1-dev\
-    libzbar0
+    libzbar0 \
+    protobuf-compiler
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon Apt-get Dependencies"
     exit 1
 fi
 
-printf "\n\n"
-
 # Set up Python virtualenv
-# Used to allow different version installation of dependencies
-echo "Setting up packages..."
-
-bash -c "python3 -m venv --system-site-packages venv3  && \
-    source ${DIR}/venv3/bin/activate && \
-    pip install wheel && \
-    pip3 install -r ${DIR}/modules/interop/client/requirements.txt && \
-    deactivate"
-
-if [[ $? -ne 0 ]]; then 
-    echo -e "Failed"
-    exit 1
+# Decouples our dependencies from system packages.
+echo "Setting up virtual environment..."
+if [[ PIPELINE_MODE -eq 0 ]]; then 
+    sudo -u "${CURRENT_USER}" python3 -m venv venv3
 else
-    echo -e "Done"    
+    python3 -m venv venv3
 fi
 
-# Install Interop Client Lib
-echo "Installing Interop Client Libraries..."
-
-if [[ $PIPELINE_MODE -ne 1 ]]; then
-    cd modules && ./install_interop_export.sh
-else
-    cd modules && ./install_interop_export.sh -p
-fi
-
-if [ $? -ne 0 ]; then
-    echo "Failed to Install Interop Client Libraries"
+if [[ $? -ne 0 ]]; then
+    echo "Error: Could not create virtual environment."
     exit 1
 fi
-
-printf "\n\n"
 
 # Pigeon pip modules
-echo "Installing Pigeon specific Python Libraries"
-bash -c "
+echo "Installing Pigeon specific Python Libraries..."
+
+# We have to use bash since sudo -u USER source venv/... doesn't work.
+if [[ PIPELINE_MODE -eq 0 ]]; then
+    sudo -u "${CURRENT_USER}" bash << EOF
+        source ${DIR}/venv3/bin/activate && \
+        pip3 install -r requirements.txt && \
+        deactivate
+EOF
+else 
     source ${DIR}/venv3/bin/activate && \
-    pip3 install pyinotify pyproj pykml==0.1.0 && \
-    pip3 install git+https://github.com/camlee/ivy-python && \
-    pip3 install requests && \
-    pip3 install Pillow pyzbar && \
-    deactivate"
+    pip3 install -r requirements.txt && \
+    deactivate
+fi
 
 if [ $? -ne 0 ]; then
     echo "Failed to Install Pigeon pip Modules"
     exit 1
+fi
+
+# Install AUVSI Library
+# This one is special, it's not possible to install via pip due to bad setup.py
+# We need to clone then build then install locally.
+
+TMP_AUVSI="/tmp/auvsi_tmp_pigeon"
+git clone https://github.com/auvsi-suas/interop.git ${TMP_AUVSI}
+
+# Go to the client folder and build protobuf, then install.
+source ${DIR}/venv3/bin/activate && \
+    cd "${TMP_AUVSI}"/client && python3 setup.py build && pip install . && \
+    cd "${DIR}" && \
+    deactivate
+
+if [ $? -ne 0 ]; then
+    echo "Failed to Install Pigeon pip Modules"
+    exit 1
+fi
+
+rm -r ${TMP_AUVSI}
+
+echo "Installing pyproj transformation grids..."
+# Get pyproj transformation grids.
+# https://pyproj4.github.io/pyproj/stable/transformation_grids.html#transformation-grids
+source ${DIR}/venv3/bin/activate && \
+    export PROJ_DOWNLOAD_DIR=$(python3 -c "import pyproj; print(pyproj.datadir.get_data_dir())") && \
+    wget --mirror https://cdn.proj.org/ -P ${PROJ_DOWNLOAD_DIR}
+
+err_code=$?
+# For some reason... error code 8 is normal 
+if [[ err_code -ne 0 && err_code -ne 8 ]]; then 
+    echo "Failed to install pyproj transformation grids... Error code:${err_code}"
+    exit 1
+fi
+
+if [[ PIPELINE_MODE -ne 1 ]]; then
+    echo "Changing venv to be owned by current user..."
+    chown -R "${CURRENT_USER}" venv3
 fi
 
 echo "Installation Complete."

@@ -1,0 +1,18 @@
+# PypI Depdendencies
+wheel 
+
+pyinotify
+pyproj
+pykml==0.1.0
+requests
+Shapely
+PyQt5
+Pillow
+pyzbar
+
+# Pigeon Web Client
+git+ssh://git@bitbucket.org/UAARG/pigeon_web_client.git
+
+
+# This is installed from the git repository rather than PYPY
+git+https://github.com/camlee/ivy-python
