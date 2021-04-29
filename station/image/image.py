@@ -273,6 +273,8 @@ class Watcher:
                         self._createImage(image_pathname, event.pathname)
                     else:
                         self.pending_infos[filename] = event.pathname
+                else: 
+                    logger.error("Watcher - Unsupported Filetype `{}` detected.".format(extension.lower()))
 
                 if len(self.pending_images) > 1 or len(self.pending_infos) > 1:
                     logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
