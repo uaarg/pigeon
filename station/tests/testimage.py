@@ -26,7 +26,7 @@ class BaseTestCase(unittest.TestCase):
     source_info = os.path.join(*[source_path, source_name + os.extsep + info_extension])
 
 class BaseWatcherTestCase(BaseTestCase):
-    grace_period = 0.01 # Time in seconds before the image watcher should have detected a new image
+    grace_period = 0.05 # Time in seconds before the image watcher should have detected a new image
 
     def createFile(self, path, binary=True):
         """
@@ -139,7 +139,7 @@ class WatcherTestCase(BaseWatcherTestCase):
         Tests that things still work even if lots of images are
         added in a short amount of time.
         """
-        number_of_images = 500
+        number_of_images = 200
 
         image_paths = []
 
