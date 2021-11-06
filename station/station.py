@@ -11,8 +11,6 @@ from image import Watcher
 import settings
 import features
 from comms.uav import UAV
-#from comms.stations import Stations
-from comms.imagereplicate import ImageReplicator
 from exporter import ExportManager
 
 __version__ = "0.5.1"
@@ -68,10 +66,7 @@ Copyright (c) 2016 UAARG
         self.image_watcher.setDirectory(self.settings_data["Monitor Folder"])
 
         if self.settings_data.get("UAV Network"):
-            self.uav.setBus(self.settings_data["UAV Network"])
-
-        if self.settings_data.get("Pigeon Network"):
-            self.stations.setBus(self.settings_data["Pigeon Network"])            
+            self.uav.setBus(self.settings_data["UAV Network"])      
 
     def run(self):
         self._propagateSettings()
@@ -79,15 +74,11 @@ Copyright (c) 2016 UAARG
         if self.settings_data["Load Existing Images"] == True:
             self.image_watcher.loadExistingImages(self.settings_data["Monitor Folder"])
         self.uav.start()
-        self.stations.start()
-        self.image_replicator.start()
         self.image_watcher.start()
 
         self.ui.run() # This runs until the user exits the GUI
 
         self.image_watcher.stop()
-        self.image_replicator.stop()
-        self.stations.stop()
         self.uav.stop()
 
 def get_args():
