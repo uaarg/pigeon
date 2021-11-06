@@ -45,7 +45,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, save_settings, load_settings, export_manager, image_in_queue, feature_io_queue, uav, ground_control_points=[], about_text=""):
+    def __init__(self, save_settings, load_settings, export_manager, image_queue, feature_queue, uav, ground_control_points=[], about_text=""):
         super().__init__()
 
         # Init
@@ -54,7 +54,7 @@ class UI(QtCore.QObject, QueueMixin):
             __name__ + "." + self.__class__.__name__)
         self.settings_data = load_settings()
         self.features = ground_control_points  # For all features, not just GCP's ???
-        self.feature_io_queue = feature_io_queue
+        self.feature_io_queue = feature_queue
         self.uav = uav
         self.save_settings = save_settings
 
@@ -69,14 +69,9 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(
             self.main_window.collectSubfeature)
 
-        self.connectSignals(image_in_queue)
+        self.connectSignals(image_queue)
 
         # Hooking up some inter-component behaviour
-        self.main_window.featureChangedLocally.connect(
-            lambda feature: self.feature_io_queue.out_queue.put(feature))
-        self.main_window.featureAddedLocally.connect(
-            lambda feature: self.feature_io_queue.out_queue.put(feature))
-
         self.settings_changed.connect(self.save_settings)
         self.settings_changed.connect(
             lambda changed_data: self.main_window.main_image_area._drawPlanePlumb())
@@ -157,9 +152,11 @@ class UI(QtCore.QObject, QueueMixin):
             self.main_window.info_area.controls_area.receive_status_message.emit)
 
         # Multi-pigeon signals
-        self.connectQueue(self.feature_io_queue.in_queue,
+        self.connectQueue(self.feature_io_queue,
                           self.applyFeatureSync)
+            # Potential Marker queue
         self.connectQueue(image_in_queue, self.addImage)
+            # Potential Image queue
 
         # Kill signal
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())

@@ -3,6 +3,7 @@
 import os
 import logging
 import argparse
+import queue
 
 import log
 from ui import UI
@@ -10,7 +11,7 @@ from image import Watcher
 import settings
 import features
 from comms.uav import UAV
-from comms.stations import Stations
+#from comms.stations import Stations
 from comms.imagereplicate import ImageReplicator
 from exporter import ExportManager
 
@@ -20,13 +21,9 @@ class GroundStation:
     def __init__(self, uav_ivybus=None, stations_ivybus=None):
         super().__init__()
         self.loadSettings()
-        self.image_watcher = Watcher()
-        self.stations = Stations(bus=stations_ivybus,
-                                 instance_name=self.settings_data.get("Instance Name"),
-                                 settings_data=self.settings_data)
-        self.image_replicator = ImageReplicator(image_in_queue=self.image_watcher.queue,
-                                                replicate_io_queue=self.stations.image_io_queue,
-                                                settings_data=self.settings_data)
+        self.image_queue = queue.Queue() # Global image queue consumed by UI
+        self.feature_queue = queue.Queue() # Global feature queue consumed by UI
+        self.image_watcher = Watcher(self.image_queue) 
         self.uav = UAV(bus=uav_ivybus,
                        instance_name=self.settings_data.get("Instance Name"))
 
@@ -49,8 +46,8 @@ Copyright (c) 2016 UAARG
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
                      export_manager=export_manager,
-                     image_in_queue=self.image_replicator.image_out_queue,
-                     feature_io_queue=self.stations.feature_io_queue,
+                     image_queue=self.image_queue,
+                     feature_queue=self.feature_queue,
                      uav=self.uav,
                      ground_control_points=ground_control_points,
                      about_text=about_text)
