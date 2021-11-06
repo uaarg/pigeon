@@ -236,8 +236,8 @@ class Watcher:
     If the "Load Existing Images" setting is on,
     existing images in the directory will also be added to the queue.
     """
-    def __init__(self):
-        self.queue = queue.Queue()
+    def __init__(self, queue):
+        self.queue = queue
         self.pending_images = {} # For saving which image files don't have a corresponding info file yet
         self.pending_infos = {} # For saving which info files don't have a corresponding image file yet
 
