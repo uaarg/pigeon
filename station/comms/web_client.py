@@ -15,11 +15,12 @@ class WebClient:
 
     def add_queue(self):
         webImg = self.imgClient.pop_queue()
-        
         if webImg:
             webImgPath = webImg.file_path
-            #webDataPath = webImg.data_file_path
-            webDataPath = "/../tests/data/images/1.txt"
+            webDataPath = webImg.data_file_path
+            #webImgPath = "tests/data/images/1.jpg"
+            #webDataPath = "tests/data/images/1.txt"
             cliImg = Image(webImgPath, webDataPath) 
+            self.mainQueue.put(cliImg)
         else:
             raise(Exception("Queue empty"))

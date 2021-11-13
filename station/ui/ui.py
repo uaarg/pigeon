@@ -4,7 +4,7 @@ import signal   # For exiting pigeon from terminal
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
-from station.comms.web_client import WebClient
+from comms.web_client import WebClient
 
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
@@ -63,7 +63,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
         self.main_window = MainWindow(
-            self.settings_data, self.features, export_manager, about_text, self.app.exit)
+            self.settings_data, self.features, export_manager, about_text, self.app.exit, image_queue)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -233,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop, image_queue):
+    def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop, image_queue=None):
         super().__init__()
         self.settings_data = settings_data
         self.features = features
@@ -393,9 +393,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Button for popping images from server.
         menu = self.menubar.addMenu("&Add")
-        clientAdapter = WebClient(self.image_queue)
+        
         add_action = QtWidgets.QAction("Add Image", self)
-        add_action.triggered.connect(clientAdapter.add_queue())
+        add_action.triggered.connect(self.popImage)
         menu.addAction(add_action)
 
     def showAboutWindow(self):
@@ -456,6 +456,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
+
+
+    def popImage(self):
+        """
+        Pops image from server queue and adds it to groudstation queue.
+        """
+        clientAdapter = WebClient(self.image_queue)
+        clientAdapter.add_queue()
+        
 
     def createNewMarker(self, image:Image, point:Point):
         """
