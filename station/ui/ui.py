@@ -4,6 +4,8 @@ import signal   # For exiting pigeon from terminal
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
+from station.comms.web_client import WebClient
+
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
 from features import BaseFeature, Feature, Marker, Point
@@ -231,13 +233,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop):
+    def __init__(self, settings_data={}, features=[], export_manager=None, about_text="", exit_cb=noop, image_queue):
         super().__init__()
         self.settings_data = settings_data
         self.features = features
         self.export_manager = export_manager
         self.about_text = about_text
         self.exit_cb = exit_cb
+        self.image_queue = image_queue
 
         self.about_window = None
         self.settings_window = None
@@ -387,6 +390,13 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda: process_action.setEnabled(True))
 
         menu.addAction(process_action)
+
+        # Button for popping images from server.
+        menu = self.menubar.addMenu("&Add")
+        clientAdapter = WebClient(self.image_queue)
+        add_action = QtWidgets.QAction("Add Image", self)
+        add_action.triggered.connect(clientAdapter.add_queue())
+        menu.addAction(add_action)
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
