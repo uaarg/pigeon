@@ -15,9 +15,12 @@ class WebClient:
 
     def add_queue(self):
         webImg = self.imgClient.pop_queue()
+        print(f"{webImg.image_id}, {webImg.file_path}")
         if webImg:
             webImgPath = webImg.file_path
-            webDataPath = webImg.data_file_path
+            print(webImgPath)
+            webDataPath = webImg.info_file_path
+            print(webImgPath)
             #webImgPath = "tests/data/images/1.jpg"
             #webDataPath = "tests/data/images/1.txt"
             cliImg = Image(webImgPath, webDataPath) 
