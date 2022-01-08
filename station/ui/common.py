@@ -284,13 +284,14 @@ class PixmapLabelMarker(QtWidgets.QLabel):
 
         drag = QtGui.QDrag(self)
         mime_data = QtCore.QMimeData()
-        mime_data.setData(internal_pimap_label_marker_mimetype, str(self.id_))
+        csvData = QtCore.QByteArray()
+        csvData.append(str(self.id_))
+        mime_data.setData(internal_pimap_label_marker_mimetype, csvData)
         drag.setMimeData(mime_data)
         drag.setHotSpot(QtCore.QPoint(int(self.size[0]/2), self.size[1]/2))
         drag.setPixmap(self.pixmap().scaled(self.size[0], self.size[1]))
 
         self.hide()
-
         drop_action = drag.exec_()
         if drop_action:
             pass
