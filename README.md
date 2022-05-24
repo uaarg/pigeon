@@ -95,8 +95,17 @@ See the getting started page [here](https://github.com/auvsi-suas/interop#gettin
 It is installed via `pip`.
 
 ### Imaging Web Client Library
+
 The pigeon web client library is used to communicate with the imaging server.
 This repository is located in bitbucket and is installed by `pip`.
+
+With the change in bitbucket that forbids access to reppsitories with http protocol, 
+installation via ssh may be required. Assuming you have your ssh key setup for bitbucket,
+substitude USERNAME with your username and use the following command:
+
+```
+pip install git+ssh://USERNAME@bitbucket.org/UAARG/pigeon_web_client/src/master/
+```
 
 Running the Ground Station
 --------------------------
