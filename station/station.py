@@ -11,6 +11,7 @@ from image import Watcher
 import settings
 import features
 from comms.uav import UAV
+from comms.web_client import WebClient
 from exporter import ExportManager
 
 __version__ = "0.5.1"
@@ -24,6 +25,7 @@ class GroundStation:
         self.image_watcher = Watcher(self.image_queue) 
         self.uav = UAV(bus=uav_ivybus,
                        instance_name=self.settings_data.get("Instance Name"))
+        self.web_client = WebClient(self.image_queue)
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
@@ -47,6 +49,7 @@ Copyright (c) 2016 UAARG
                      image_queue=self.image_queue,
                      feature_queue=self.feature_queue,
                      uav=self.uav,
+                     web_client=self.web_client,
                      ground_control_points=ground_control_points,
                      about_text=about_text)
 
@@ -78,6 +81,7 @@ Copyright (c) 2016 UAARG
 
         self.ui.run() # This runs until the user exits the GUI
 
+        self.web_client.close()
         self.image_watcher.stop()
         self.uav.stop()
 

@@ -8,15 +8,20 @@ from image import Image
 
 
 class WebClient:
-
-    def __init__(self, mainQueue:Queue):
-        self.imgClient = ImageClient()
+    def __init__(self, mainQueue: Queue):
+        self.imgClient = ImageClient(server_url="http://127.0.0.1:5000")
         self.mainQueue = mainQueue
+
+        self.downloaded_images = []
+
+    def close(self):
+        self.imgClient.close()
 
     def add_queue(self):
         webImg = self.imgClient.pop_queue()
         print(f"{webImg.image_id}, {webImg.file_path}")
         if webImg:
+            self.downloaded_images.append(webImg)
             webImgPath = webImg.file_path
             print(webImgPath)
             webDataPath = webImg.info_file_path

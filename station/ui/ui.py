@@ -47,7 +47,18 @@ class UI(QtCore.QObject, QueueMixin):
     """
     settings_changed = QtCore.pyqtSignal(dict)
 
-    def __init__(self, save_settings, load_settings, export_manager, image_queue, feature_queue, uav, ground_control_points=[], about_text=""):
+    def __init__(
+        self, 
+        save_settings, 
+        load_settings, 
+        export_manager, 
+        image_queue, 
+        feature_queue, 
+        uav, 
+        web_client,
+        ground_control_points=[], 
+        about_text=""
+    ):
         super().__init__()
 
         # Init
@@ -59,6 +70,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.feature_io_queue = feature_queue
         self.uav = uav
         self.save_settings = save_settings
+        self.web_client = web_client
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
@@ -160,6 +172,9 @@ class UI(QtCore.QObject, QueueMixin):
         self.connectQueue(image_in_queue, self.addImage)
             # Potential Image queue
 
+        # Server Queue pop
+        self.main_window.requestImageFromQueue.connect(self.web_client.add_queue)
+
         # Kill signal
         signal.signal(signal.SIGINT, lambda signum, fram: self.app.exit())
 
@@ -230,6 +245,8 @@ class MainWindow(QtWidgets.QMainWindow):
     featureAdded = QtCore.pyqtSignal(BaseFeature)
     # Same as featureChangedLocally but for new featuers.
     featureAddedLocally = QtCore.pyqtSignal(BaseFeature)
+    # Request new image from server
+    requestImageFromQueue = QtCore.pyqtSignal()
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
@@ -395,7 +412,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu = self.menubar.addMenu("&Add")
         
         add_action = QtWidgets.QAction("Add Image", self)
-        add_action.triggered.connect(self.popImage)
+        add_action.triggered.connect(self.requestImageFromQueue)
         menu.addAction(add_action)
 
     def showAboutWindow(self):
@@ -456,15 +473,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
-
-
-    def popImage(self):
-        """
-        Pops image from server queue and adds it to groudstation queue.
-        """
-        clientAdapter = WebClient(self.image_queue)
-        clientAdapter.add_queue()
-        
 
     def createNewMarker(self, image:Image, point:Point):
         """
