@@ -4,11 +4,11 @@ import signal   # For exiting pigeon from terminal
 
 from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
-from comms.web_client import WebClient
 
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
 from features import BaseFeature, Feature, Marker, Point
+from comms.web_client import WebImage
 
 from .common import QueueMixin
 from .commonwidgets import NonEditableBaseListForm
@@ -23,6 +23,7 @@ from .areas import ThumbnailArea
 from .areas import FeatureArea
 from .areas import MainImageArea
 from .areas import SettingsArea
+from .areas import ProcessedStatusArea
 from .dialogues import QrDiag
 
 THUMBNAIL_AREA_START_HEIGHT = 100
@@ -301,6 +302,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_horizontal_split.setMinimumSize(
             QtCore.QSize(200, THUMBNAIL_AREA_START_HEIGHT))
 
+        self.row_two_horizontal_split = QtWidgets.QSplitter(self.main_vertical_split)
+        self.row_two_horizontal_split.setObjectName("row_two_horizontal_split")
+        row_two_size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.row_two_horizontal_split.setSizePolicy(row_two_size_policy)
+
         # Populating the page layout with the major components.
         self.info_area = InfoArea(
             self.main_horizontal_split, settings_data=settings_data, minimum_width=INFO_AREA_MIN_WIDTH)
@@ -308,8 +314,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.main_horizontal_split, settings_data=settings_data, features=features)
         self.feature_area = FeatureArea(
             self.main_horizontal_split, settings_data=settings_data, minimum_width=FEATURE_AREA_MIN_WIDTH)
+
         self.thumbnail_area = ThumbnailArea(
-            self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+            self.row_two_horizontal_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+        self.processed_status_area = ProcessedStatusArea(self.row_two_horizontal_split)
 
         # Hooking up some inter-component behaviour.
         self.thumbnail_area.contents.currentItemChanged.connect(
@@ -346,6 +354,8 @@ class MainWindow(QtWidgets.QMainWindow):
             signal.connect(self.feature_area.addFeature)
 
         self.featureAddedLocally.connect(self.feature_area.showFeature)
+
+        self.processed_status_area.mark_processed_clicked.connect(self.setImageProcessed)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -415,6 +425,10 @@ class MainWindow(QtWidgets.QMainWindow):
         add_action.triggered.connect(self.requestImageFromQueue)
         menu.addAction(add_action)
 
+    def setImageProcessed(self):
+        if isinstance(self.current_image, WebImage):
+            self.current_image.web_image.mark_processed()
+
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
         self.about_window.show()
@@ -473,6 +487,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
+        
+        if isinstance(image, WebImage):
+            self.processed_status_area.show()
+            self.processed_status_area.set_is_processed(image.web_image.processed)
+        else:
+            self.processed_status_area.hide()
 
     def createNewMarker(self, image:Image, point:Point):
         """
