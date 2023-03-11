@@ -1,7 +1,4 @@
 import logging
-from ivy.ivy import IvyServer, ivylogger, IvyApplicationDisconnected
-
-from .common import CommonIvyComms
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +20,7 @@ class Command:
     def __eq__(self, other):
         return self.name == other.name and self.value == other.value
 
-class UAV(CommonIvyComms):
+class UAV:
     """
     Handles interfacing with the UAV by creating an ivybus connection
     and communicating over it.
@@ -41,8 +38,7 @@ class UAV(CommonIvyComms):
     uav_name = "uavImaging"
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+        
         self.uav_connected = False
         self.on_uav_connected_changed_cbs = []
         self.command_ack_cbs = []
@@ -90,8 +86,9 @@ class UAV(CommonIvyComms):
         self.uav_status_cbs.append(cb)
 
     def _bindMsg(self, cb, regex):
-        logger.debug("Listening on ivybus for regex: %s" % regex)
-        self.ivy_server.bind_msg(cb, regex)
+        pass
+        # logger.debug("Listening on ivybus for regex: %s" % regex)
+        # self.ivy_server.bind_msg(cb, regex) Removing ivy
 
     def _callUAVConnectedChangedCbs(self):
         for cb in self.on_uav_connected_changed_cbs:
@@ -99,10 +96,6 @@ class UAV(CommonIvyComms):
 
     def _onConnectionChange(self, agent, event):
         if agent.agent_name == self.uav_name:
-            if event == IvyApplicationDisconnected:
-                self.uav_connected = False
-            else:
-                self.uav_connected = True
 
             self._callUAVConnectedChangedCbs()
 
@@ -160,4 +153,20 @@ class UAV(CommonIvyComms):
         return out
 
     def _sendCommand(self, command):
-        return self.ivy_server.send_msg(self.command_format.format(command_type="DO", command_name=command.name, command_value=command.value)) and self.uav_connected
+        # TODO: Implement sending commands via mavproxy
+        pass
+        # return self.ivy_server.send_msg(self.command_format.format(command_type="DO", command_name=command.name, command_value=command.value)) and self.uav_connected
+    
+    def setBus(self, var):
+        """
+        Sets the connection string to the UAV
+        """
+        print("UAV setBus is not implemented")
+        # TODO: implement setting a different connection to uav
+    
+    def start(self):
+        """
+        Begins communication between UAV and software
+        """
+        # TODO: ^^^
+    

@@ -20,11 +20,6 @@ from PyQt5 import QtGui, QtCore
 
 from .common import Exporter
 
-from .interop_client_wrapper import InteropClientWrapper as InteropClient
-
-# Interop Client
-from auvsi_suas.client.client import AsyncClient
-
 class KMLExporter(Exporter):
     """
     Provides methods for creating a KML document populated
@@ -128,7 +123,7 @@ class KMLExporter(Exporter):
         """
         if validate:
             schema = Schema("ogckml22.xsd")
-            schema.assertValid(doc)
+            schema.assertValid(self.doc)
 
         with open(os.path.join(output_path, "features.kml") , "wb") as output_file:
             output_file.write(etree.tostring(self.doc, pretty_print=True))
@@ -350,30 +345,13 @@ class AUVSICSVExporter(Exporter):
             titleList = []
         # Closes CSV so file is updated upon station exit
         self.CSVFileObject.close()
-        
-
-class AUVSI(Exporter):
-    """
-    Runs both the AUVSI CSV exporter and the Interop Exporter.
-    """
-    def __init__(self):
-        self.csv_exporter = AUVSICSVExporter()
-        self.interop_exporter = InteropClient()
-
-    def export(self, features, output_path):
-        self.csv_exporter.export(features, output_path)
-        self.interop_exporter.export(features, output_path)
-
     
 class ExportManager:
     def __init__(self, path):
         self.path = path
         self.options = [
                             ("KML", self._generateExporterFunc(KMLExporter), None),
-                            ("CSV Normal", self._generateExporterFunc(CSVExporter), None),
-                            ("AUVSI CSV", self._generateExporterFunc(AUVSICSVExporter), None),
-                            ("AUVSI Interop", self._generateExporterFunc(InteropClient), "Ctrl+E"),
-                            ("AUVSI CSV + Interop", self._generateExporterFunc(AUVSI), None),
+                            ("CSV Normal", self._generateExporterFunc(CSVExporter), None)
                        ]
 
     def _generateExporterFunc(self, exporter, *args):

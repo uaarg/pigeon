@@ -97,25 +97,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Install AUVSI Library
-# This one is special, it's not possible to install via pip due to bad setup.py
-# We need to clone then build then install locally.
-
-TMP_AUVSI="/tmp/auvsi_tmp_pigeon"
-git clone https://github.com/auvsi-suas/interop.git ${TMP_AUVSI}
-
-# Go to the client folder and build protobuf, then install.
-source ${DIR}/venv3/bin/activate && \
-    cd "${TMP_AUVSI}"/client && python3 setup.py build && pip install . && \
-    cd "${DIR}" && \
-    deactivate
-
-if [ $? -ne 0 ]; then
-    echo "Failed to Install Pigeon pip Modules"
-    exit 1
-fi
-
-rm -r ${TMP_AUVSI}
+# AUVSI interop server is no longer used as of 2023
 
 echo "Installing pyproj transformation grids..."
 # Get pyproj transformation grids.
