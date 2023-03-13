@@ -8,7 +8,7 @@ from ..common import format_duration_for_display
 
 from . import ControlsArea
 from . import SettingsArea
-from .ivycommandsarea import IvyCommandsArea
+from .commandsarea import CommandsArea
 
 class ImageInfoArea(NonEditableBaseListForm):
     # Removed title so that the image info tab doesn't
@@ -39,7 +39,7 @@ class InfoArea(QtWidgets.QFrame):
         # Create tabs for controls
         self.tabWidget = QtWidgets.QTabWidget()
 
-        self.ivyTab = self.createTab("Ivy Tab")
+        self.controlTab = self.createTab("Control Tab")
         self.pigeonTab = self.createTab("Pigeon Tab")
         self.imageInfoTab = self.createTab("Image Info")
 
@@ -56,8 +56,8 @@ class InfoArea(QtWidgets.QFrame):
         self.pigeonTab.layout.addWidget(self.state_area)
         self.pigeonTab.layout.addWidget(self.settings_area)
 
-        self.ivyControls = IvyCommandsArea(self)
-        self.ivyTab.layout.addWidget(self.ivyControls)
+        self.controls = CommandsArea(self)
+        self.controlTab.layout.addWidget(self.controls)
 
         # Add parent widgets to info area
         self.layout.addWidget(self.controls_area)

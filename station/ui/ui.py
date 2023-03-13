@@ -142,12 +142,12 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addCommandAckedCb(
             self.main_window.info_area.controls_area.receive_command_ack.emit)
         self.uav.addCommandAckedCb(
-            self.main_window.info_area.ivyControls.receive_command_ack.emit)
+            self.main_window.info_area.controls.receive_command_ack.emit)
 
         # UAV commands sender
         self.main_window.info_area.controls_area.send_command.connect(
             self.uav.sendCommand)
-        self.main_window.info_area.ivyControls.send_command.connect(
+        self.main_window.info_area.controls.send_command.connect(
             self.uav.sendCommand)
 
         # Various UAV connections
