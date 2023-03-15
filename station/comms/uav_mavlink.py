@@ -37,6 +37,9 @@ class UAVMavLink(UAV):
 
         try:
             conn: mavutil.mavfile = mavutil.mavlink_connection(self.device)
+
+            # The protocol mandates that the client send the first heartbeat
+            # and then listens for a heartbeat response from the drone.
             conn.mav.heartbeat_send(
                 type=mavutil.mavlink.MAV_TYPE_GENERIC,
                 autopilot=mavutil.mavlink.MAV_AUTOPILOT_INVALID,

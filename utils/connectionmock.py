@@ -1,35 +1,40 @@
 """
-A simple echo server over TCP sockets (borrowed from [1]) for testing the
-UAVSocket class.
+A simple dev server over mavlink for testing the UAVMavLink class.
 
-[1]: https://docs.python.org/3/library/asyncio-protocol.html#tcp-echo-server
-
-Can be run normally with `python ./utils/connectionmock.py`.
-Then the echo server will be started on localhost:1234 and all output will be
-printed to stdout.
+Can be run normally with `python ./utils/connectionmock.py`. Then the dev
+server will be started on tcp:localhost:1234 and all output will be printed to
+stdout.
 
 This can be run in conjunction with the pigeon GUI to view all data being sent
-as part of the socket protocol.
+as part of the mavlink protocol.
 """
 
-import asyncio
+from pymavlink import mavutil
+import time
 
-class EchoServerProtocol(asyncio.Protocol):
-    def connection_made(self, transport: asyncio.Transport):
-        peername = transport.get_extra_info('peername')
-        print(f'Connection from {peername}')
-        self.transport = transport
+# must follow: tcp:<host>:<port>
+DEVICE = 'tcpin:localhost:1234'
+conn: mavutil.mavfile = mavutil.mavlink_connection(DEVICE)
 
-    def data_received(self, data):
-        print(f'Data received: {data!r}')
+while True:
+    msg = conn.recv_match()
+    if not msg:
+        time.sleep(0.01)
+        continue
 
-        print(f'Send: {data!r}')
-        self.transport.write(data)
+    print(msg)
 
-async def main():
-    loop = asyncio.get_running_loop()
-    server = await loop.create_server(lambda: EchoServerProtocol(), '127.0.0.1', 1234)
-    async with server:
-        await server.serve_forever()
+    if msg.get_type() == 'HEARTBEAT':
+        print("\n\n*****Got message: %s*****" % msg.get_type())
+        print("Message: %s" % msg)
+        print("\nAs dictionary: %s" % msg.to_dict())
+        # Armed = MAV_STATE_STANDBY (4), Disarmed = MAV_STATE_ACTIVE (3)
+        print("\nSystem status: %s" % msg.system_status)
 
-asyncio.run(main())
+        conn.mav.heartbeat_send(
+            type=mavutil.mavlink.MAV_TYPE_GENERIC,
+            autopilot=mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+            base_mode=0,
+            custom_mode=0,
+            system_status=0)
+
