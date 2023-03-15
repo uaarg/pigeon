@@ -1,5 +1,4 @@
 # PypI Depdendencies
-pyinotify
 pyproj
 requests
 Shapely

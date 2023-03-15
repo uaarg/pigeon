@@ -2,7 +2,6 @@
 Provides tools for importing images.
 """
 
-import pyinotify
 import queue
 import os
 import logging
@@ -229,142 +228,6 @@ class Image(object):
             positions.append(self.geoReferencePoint(x, y))
         return geo.PositionCollection(positions)
 
-class Watcher:
-    """
-    Watches a directory for new images (and associated info files).
-    Adds them to it's queue.
-    If the "Load Existing Images" setting is on,
-    existing images in the directory will also be added to the queue.
-    """
-    def __init__(self):
-        self.queue = queue.Queue()
-        self.pending_images = {} # For saving which image files don't have a corresponding info file yet
-        self.pending_infos = {} # For saving which info files don't have a corresponding image file yet
-
-        self.watch_manager = pyinotify.WatchManager()
-
-        self.mask = pyinotify.IN_CLOSE_WRITE # Picking which types of events are watched.
-                                             # Here we want to know AFTER a file has been written (new or existing)
-
-        class EventHandler(pyinotify.ProcessEvent):
-            def __init__(self, queue, pending_images, pending_infos, createImage):
-                self.queue = queue
-                self.pending_images = pending_images
-                self.pending_infos = pending_infos
-                self._createImage = createImage
-
-            def process_IN_CLOSE_WRITE(self, event):
-                filename, extension = os.path.splitext(event.name)
-                extension = extension[1:]
-
-                logger.debug("New file: %s" % event.name)
-
-                # Matching image files with info files. Adding to the queue
-                # when a match is made.
-                if extension.lower() in supported_image_formats:
-                    info_pathname = self.pending_infos.pop(filename, False)
-                    if info_pathname:
-                        self._createImage(event.pathname, info_pathname)
-                    else:
-                        self.pending_images[filename] = event.pathname
-                elif extension.lower() in supported_info_formats:
-                    image_pathname = self.pending_images.pop(filename, False)
-                    if image_pathname:
-                        self._createImage(image_pathname, event.pathname)
-                    else:
-                        self.pending_infos[filename] = event.pathname
-                else: 
-                    logger.error("Watcher - Unsupported Filetype `{}` detected.".format(extension.lower()))
-
-                if len(self.pending_images) > 1 or len(self.pending_infos) > 1:
-                    logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
-                    logger.debug("Pending image files: %s" % ", ".join(self.pending_images))
-
-        handler = EventHandler(self.queue, self.pending_images, self.pending_infos, self.createImage)
-        self.notifier = pyinotify.ThreadedNotifier(self.watch_manager, handler)
-
-        self.watches = None
-
-    def createImage(self, image_pathname, info_pathname):
-        try:
-            new_image = Image(image_pathname, info_pathname)
-        except (KeyError, ValueError) as e:
-            logger.error("Unable to import image %s: %s" % (image_pathname, e))
-        else:
-            logger.info("Imported image %s" % image_pathname)
-            self.queue.put(new_image)
-
-    def loadExistingImages(self, path):
-        """
-        Loads existing images and associated info files from a directory.
-        Adds them to the Watcher queue.
-        """
-        files = os.listdir(path)
-
-        def natural_sort(list):
-            """
-            Sorts a list of filenames alphanumerically / "naturally".
-            eg. ['100.txt', '2.txt', '10.txt']
-            sorts to ['2.txt', '10.txt', '100.txt']
-            See http://stackoverflow.com/questions/2545532/python-analog-of-natsort-function-sort-a-list-using-a-natural-order-algorithm
-            """
-            import re
-            def natural_key(str): # function to generate the key by which sorted() sorts on
-                return [int(s) if s.isdigit() else s for s in re.split('(\d+)', str)]
-            return sorted(list, key=natural_key)
-
-        files = natural_sort(files)
-        for f in files:
-            fullpath = os.path.join(path, f)
-            filename, extension = os.path.splitext(f)
-            extension = extension[1:]
-            logger.debug("Loaded existing file: %s" % fullpath)
-
-            # Matching image files with info files. Adding to the queue
-            # when a match is made.
-            if extension.lower() in supported_image_formats:
-                info_pathname = self.pending_infos.pop(filename, False)
-                if info_pathname:
-                    self.createImage(fullpath, info_pathname)
-                else:
-                    self.pending_images[filename] = fullpath
-            elif extension.lower() in supported_info_formats:
-                image_pathname = self.pending_images.pop(filename, False)
-                if image_pathname:
-                    self.createImage(image_pathname, fullpath)
-                else:
-                    self.pending_infos[filename] = fullpath
-
-        if len(self.pending_images) > 1 or len(self.pending_infos) > 1:
-            logger.debug("Pending info files: %s" % ", ".join(self.pending_infos))
-            logger.debug("Pending image files: %s" % ", ".join(self.pending_images))
-
-    def setDirectory(self, path):
-        """
-        Sets the directory to be watched for new files. Can be called even after the
-        watcher has been started to change the directory being watched.
-        """
-        if self.watches is not None:
-            for wd in self.watches.values():
-                self.watches = self.watch_manager.rm_watch(wd)
-
-        self.watches = self.watch_manager.add_watch(path, self.mask, rec=False)
-
-    def start(self):
-        """
-        Starts watching the directory. Creates a second thread to
-        start the loop in.
-        """
-        self.notifier.start()
-
-    def stop(self):
-        """
-        Stops watching the directory. Joins with the created thread and
-        destroys it.
-        """
-        self.notifier.stop()
-
-
 class ImageCrop:
     """
     Represents a cropped area of a particular image.
@@ -397,3 +260,20 @@ class ImageCrop:
     @property
     def bottom_right(self):
         return (self.max_x, self.max_y)
+
+class Watcher:
+    # Empty watcher class
+    # This will have to be replaced by something else as we no longer use pyinotify
+
+    def __init__(self):
+        # this is still defined as some components rely on these variables
+        self.queue = queue.Queue()
+        self.pending_images = {}
+        self.pending_infos = {}
+
+    # no-op old Watcher class methods
+    def createImage(self, image_pathname, info_pathname): pass
+    def loadExistingImages(self, path): pass
+    def setDirectory(self, path): pass
+    def start(self): pass
+    def stop(self): pass
