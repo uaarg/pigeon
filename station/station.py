@@ -10,6 +10,7 @@ from image import Watcher
 import settings
 import features
 from comms.uav import UAV
+from comms.uav_socket import UAVSocket
 from exporter import ExportManager
 import queue
 
@@ -26,7 +27,8 @@ class GroundStation:
         super().__init__()
         self.loadSettings()
         self.image_watcher = Watcher()
-        self.uav = UAV(instance_name=self.settings_data.get("Instance Name"))
+        #self.uav = UAV(instance_name=self.settings_data.get("Instance Name"))
+        self.uav = UAVSocket("localhost", 1234)
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
@@ -81,13 +83,13 @@ Copyright (c) 2016 UAARG
 
         if self.settings_data["Load Existing Images"] == True:
             self.image_watcher.loadExistingImages(self.settings_data["Monitor Folder"])
-        self.uav.start()
+        self.uav.connect()
         self.image_watcher.start()
 
         self.ui.run() # This runs until the user exits the GUI
 
         self.image_watcher.stop()
-        self.uav.stop()
+        self.uav.disconnect()
 
 def get_args():
     parser = argparse.ArgumentParser(description="pigeon ground imaging software. For analyzing and geo-referencing aerial imagery")

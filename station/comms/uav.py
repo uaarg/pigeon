@@ -1,11 +1,25 @@
+from abc import ABC, abstractmethod
+from dataclasses import field, dataclass
 import logging
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 def noop():
     pass
 
+@dataclass
 class Command:
+    name: str
+    value: int
+
+    def __post_init__(self):
+        if " " in self.name: raise ValueError(f"Command name '{self.name}' contains spaces")
+
+    def encode(self) -> bytes:
+        return f"{self.name} {self.value}".encode()
+
+class Command_:
     def __init__(self, name, value):
         int(float(value)) # To ensure it's a number
         value = str(value)
@@ -20,45 +34,52 @@ class Command:
     def __eq__(self, other):
         return self.name == other.name and self.value == other.value
 
-class UAV:
+class UAV(ABC):
     """
-    Handles interfacing with the UAV by creating an ivybus connection
-    and communicating over it.
+    UAV abstract class (interface) which represents a communication stream with
+    a UAV.
+
+    You probably don't want to construct this class directly, but instead
+    should construct the UAVMav class which actually implements the required
+    methods. Calling the methods of this.
+
+    If you do not care about the protocol being used, prefer to interact with
+    a UAV object which conforms to this abstract class. (You may preform duck
+    typing by checking the UAV.is_uav() method).
     """
-    command_name_regex = "[^ ]+"
-    command_value_regex = "[^ ]+"
-    status_name_regex = "[^ ]+"
-    status_value_regex = "[^ ]+"
-    command_format = "UAV-{command_type} {command_name} {command_value}" # for use with Python's str.format()
 
-    command_response_regex = "^UAV-(ACK|UNKN) (%s) (%s)$" % (command_name_regex, command_value_regex)
-    command_summary_regex = "^UAV-CMD ((?:%s %s ?)+)$" % (command_name_regex, command_value_regex)
-    uav_status_regex = "^UAV-STATUS ((?:%s %s ?)+)$" % (status_name_regex, status_value_regex)
+    @abstractmethod
+    def connect(self):
+        """
+        Attempt to start a connection with the drone.
 
-    uav_name = "uavImaging"
+        This will either complete sucessfully or raise a `ConnectionError`.
+        This error may occur if:
+         - The connection has already been made
+         - The drone could not be contacted
+        """
+        pass
 
-    def __init__(self, *args, **kwargs):
-        
-        self.uav_connected = False
-        self.on_uav_connected_changed_cbs = []
-        self.command_ack_cbs = []
-        self.uav_status_cbs = []
+    @abstractmethod
+    def disconnect(self):
+        """
+        If there is an active connection with the drone, close it.
+        Otherwise this function is a no-op.
 
-        self._bindMsg(self._handleCommandResponse, self.command_response_regex)
-        self._bindMsg(self._handleCommandSummary, self.command_summary_regex)
-        self._bindMsg(self._handleUAVStatus, self.uav_status_regex)
+        This should be non-destructive
+        """
+        pass
 
+    @abstractmethod
     def sendCommand(self, *args, **kwargs):
         """
         Send a command to the UAV. Arguments are passed directly to
         the constructor of the Command class. Command won't be sent
         to the UAV if the same command hasn't been acknowledged yet.
         """
-        command = Command(*args, **kwargs)
+        pass
 
-        if not self._sendCommand(command):
-            logger.warning("Failed to send command: UAV not connected.")
-
+    @abstractmethod
     def addUAVConnectedChangedCb(self, cb):
         """
         Add a function to be called when the UAV is connected or
@@ -68,105 +89,20 @@ class UAV:
         Will also be called immediately with the current connection
         status.
         """
-        self.on_uav_connected_changed_cbs.append(cb)
-        cb(self.uav_connected)
+        pass
 
+    @abstractmethod
     def addCommandAckedCb(self, cb):
         """
         Add a function to be called when the UAV acknowledges a command.
         Will be called with the command name and command value.
         """
-        self.command_ack_cbs.append(cb)
+        pass
 
+    @abstractmethod
     def addUAVStatusCb(self, cb):
         """
         Add a function to be called when the UAV sends a status message.
         Will be called with a dictionary of the fields and values.
         """
-        self.uav_status_cbs.append(cb)
-
-    def _bindMsg(self, cb, regex):
         pass
-        # logger.debug("Listening on ivybus for regex: %s" % regex)
-        # self.ivy_server.bind_msg(cb, regex) Removing ivy
-
-    def _callUAVConnectedChangedCbs(self):
-        for cb in self.on_uav_connected_changed_cbs:
-            cb(self.uav_connected)
-
-    def _onConnectionChange(self, agent, event):
-        if agent.agent_name == self.uav_name:
-
-            self._callUAVConnectedChangedCbs()
-
-    def _callCommandAckCbs(self, command_name, command_value):
-        for cb in self.command_ack_cbs:
-            cb(command_name, command_value)
-
-    def _callUAVStatusCbs(self, status):
-        for cb in self.uav_status_cbs:
-            cb(status)
-
-    def _handleCommandResponse(self, agent, response_type, name, value):
-        logger.info("Received from UAV: %s" % self.command_format.format(command_type=response_type, command_name=name, command_value=value))
-        try:
-            command = Command(name, value)
-        except ValueError:
-            logger.error("Invalid command response from UAV: %s" % self.command_format.format(command_type=response_type, command_name=name, command_value=value))
-            return
-
-        logger.info("Received response for %s command" % name)
-        if response_type == "ACK":
-            self._callCommandAckCbs(name, value)
-        elif response_type == "UNKN":
-            logger.warning("UAV doesn't recognize %s command." % name)
-        else:
-            raise(Exception("Unexpected UAV response type: %s" % response_type))
-
-    def _handleCommandSummary(self, agent, data):
-        commands = self._dataFieldsToDict(data)
-        for command_name, command_value in commands.items():
-            self._callCommandAckCbs(command_name, command_value)
-
-    def _handleUAVStatus(self, agent, data):
-        status = self._dataFieldsToDict(data)
-        self._callUAVStatusCbs(status)
-
-    def _dataFieldsToDict(self, data):
-        """
-        Parses the data portion of the UAV-CMD and UAV-STATUS messages
-        and returns a dictionary of name:value pairs.
-
-        Example:
-            In: "RUN 2 SHUTTER_SPEED 45"
-            Out: {"RUN": 2, "SHUTTER_SPEED": 45}
-
-        Raises ValueError on invalid input data.
-        """
-        out = {}
-        parts = data.split(" ")
-        for i in range(0, len(parts), 2):
-            try:
-                out[parts[i]] = parts[i+1]
-            except IndexError:
-                raise ValueError("Unable to convert '%s' data to dict." % (data))
-        return out
-
-    def _sendCommand(self, command):
-        # TODO: Implement sending commands via mavproxy
-        pass
-        # return self.ivy_server.send_msg(self.command_format.format(command_type="DO", command_name=command.name, command_value=command.value)) and self.uav_connected
-    
-    def setBus(self, var):
-        """
-        Sets the connection string to the UAV
-        """
-        print("UAV setBus is not implemented")
-        # TODO: implement setting a different connection to uav
-    
-    def start(self):
-        """
-        Begins communication between UAV and software
-        """
-        # TODO: ^^^
-    
