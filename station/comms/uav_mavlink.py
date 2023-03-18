@@ -1,10 +1,9 @@
 from dataclasses import field, dataclass
+from time import sleep
 from typing import Callable
 
-from concurrent.futures import Future
-from concurrent.futures.thread import ThreadPoolExecutor
 from pymavlink import mavutil
-from threading import Lock
+from threading import Lock, Thread
 import logging
 import queue
 
@@ -23,9 +22,11 @@ class ConnectionError(Exception):
 @dataclass
 class UAVMavLink(UAV):
     device: str
-    executor = ThreadPoolExecutor(max_workers=1)
+    event_loop: Thread | None = None
     conn_lock: 'Lock | None' = None
     conn: 'mavutil.mavfile | None' = None
+
+    commands: queue.Queue = queue.Queue()
 
     conn_changed_cbs: list[Callable] = field(default_factory=list)
     command_acks_cbs: list[Callable] = field(default_factory=list)
@@ -58,6 +59,9 @@ class UAVMavLink(UAV):
             self.conn = conn
             self._connectionChanged()
 
+            self.thread = Thread(target=lambda: self._runEventLoop(), args=[])
+            self.thread.start()
+
     def disconnect(self):
         if self.conn is None: return
         assert self.conn_lock is not None
@@ -85,8 +89,7 @@ class UAVMavLink(UAV):
         assert self.conn is not None
 
         command = Command(*args, *kwargs)
-        task = self.executor.submit(lambda: self._doSendCommand(command))
-        task.add_done_callback(self._commandAcked)
+        self.commands.put(command)
 
     @property
     def connected(self) -> bool:
@@ -104,7 +107,7 @@ class UAVMavLink(UAV):
         for cb in self.conn_changed_cbs:
             cb(connected)
 
-    def _commandAcked(self, _future: Future[None]):
+    def _commandAcked(self):
         """
         Notify all listeners via the command ACKed callback about a command
         ACKed event.
@@ -112,25 +115,27 @@ class UAVMavLink(UAV):
         for cb in self.command_acks_cbs:
             cb()
 
-    def _doSendCommand(self, command: Command):
-        """
-        Preform the actual send the command over the mavlink connection. (This will run
-        in another thread.)
-        """
+    def _runEventLoop(self):
         assert self.conn is not None
-        assert self.conn_lock is not None
 
-        with self.conn_lock:
-            self.conn.write(command.encode())
-            data = self.conn.recv(255)
+        while True:
+            msg = self.conn.recv_match(blocking=False)
+            if msg:
+                if msg.get_type() == 'BAD_TYPE':
+                    print("WARN: Recv bad message: ", msg)
+                    continue
 
-            # Transmit outgoing messages
-            self.conn.send_message(command.encode())
+                print("GOT MESSAGE: of type", msg.get_type())
+                print("DATA:", msg.to_dict())
 
-            # Block waiting for incoming message
-            msg = conn.recv_match(type='CUSTOM')
-            if msg and msg.get_type() != 'BAD_TYPE':
-                print(msg)
+            try:
+                command = self.commands.get(block=False)
+                self.conn.write(command.encode()) # TODO: actually send the command properly
+                print(command)
+            except queue.Empty:
+                pass
+
+            sleep(0.01) # s = 10ms
 
     # stubbed out for compat. with the UAVMavProxy class
     def setBus(self, _): pass
