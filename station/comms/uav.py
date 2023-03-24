@@ -216,21 +216,22 @@ class UAV:
                         image_packets.append(msg)
                         continue
                     case 'DATA_TRANSMISSION_HANDSHAKE':
-                        print('here')
                         if msg.packets != len(image_packets):
                             print("WARN: Failed to receive image. "
                                 f"Expected {msg.packets} packets but "
                                 f"received {len(image_packets)} packets")
-                        else:
-                            # image transmission is complete, collect chunks into an image
-                            image_packets.sort(key=lambda x: x.seqnr)
-                            image = bytes()
-                            for chunk in image_packets:
-                                image += bytes(chunk.data)
 
-                            with open("image.jpeg", "bw") as image_file:
-                                image_file.write(image)
-                            print("Image saved to image.jpeg")
+                        # image transmission is complete, collect chunks into an image
+                        image_packets.sort(key=lambda x: x.seqnr)
+                        image = bytes()
+                        for chunk in image_packets:
+                            image += bytes(chunk.data)
+
+                        with open("image.jpeg", "bw") as image_file:
+                            image_file.write(image)
+                        print("Image saved to image.jpeg")
+
+                        image_packets.clear()
                         continue
 
             try:
