@@ -119,7 +119,6 @@ class UAVMavLink(UAV):
         for cb in self.command_acks_cbs:
             cb()
 
-
     def _recvStatus(self, status):
         """
         Notify all listeners via the command ACKed callback about a command
@@ -131,7 +130,7 @@ class UAVMavLink(UAV):
     def _runEventLoop(self):
         assert self.conn is not None
 
-        image_chunks = []
+        image_packets = []
 
         while True:
             msg = self.conn.recv_match(blocking=False)
@@ -166,17 +165,22 @@ class UAVMavLink(UAV):
                     # [0]: https://mavlink.io/en/services/image_transmission.html
                     case 'ENCAPSULATED_DATA':
                         print(msg.get_type())
-                        image_chunks.append(msg)
+                        image_packets.append(msg)
                         continue
                     case 'DATA_TRANSMISSION_HANDSHAKE':
                         print(msg.get_type())
-                        print(image_chunks)
-                        if len(image_chunks) > 0:
-                            # image transmission is complete
-                            image_chunks.sort(key=lambda x: x.seqnr)
-                            image = bytes()
-                            for chunk in image_chunks:
-                                image += bytes(chunk.data)
+                        print(image_packets)
+
+                        if msg.packets != len(image_packets):
+                            print("WARN: Failed to receive image."
+                                f"Expected {msg.packets} packets but"
+                                f"received {len(image_packets)} packets")
+
+                        # image transmission is complete
+                        image_packets.sort(key=lambda x: x.seqnr)
+                        image = bytes()
+                        for chunk in image_packets:
+                            image += bytes(chunk.data)
 
                             with open("image.jpeg", "bw") as image_file:
                                 image_file.write(image)

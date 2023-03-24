@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 import datetime
+import json
 
 from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
 
@@ -21,7 +22,7 @@ def markMessageReceived(func=None):
 class ControlsArea(QtWidgets.QWidget):
     send_command = QtCore.pyqtSignal(str, str)
     receive_command_ack = QtCore.pyqtSignal(str, str)
-    receive_status_message = QtCore.pyqtSignal(dict)
+    receive_status_message = QtCore.pyqtSignal(str)
 
     uav_connection_changed = QtCore.pyqtSignal(bool)
 
@@ -132,7 +133,11 @@ class ControlsArea(QtWidgets.QWidget):
         self._updateDisplayedInfo()
 
     @markMessageReceived
-    def receiveStatusMessage(self, status_dict):
+    def receiveStatusMessage(self, status):
         self._updateDisplayedInfo()
-        self.uav_pictures_taken = status_dict.get("TAKEN", "")
-        self.uav_pictures_transmitted = status_dict.get("TRANS", "")
+        try:
+            status_dict = json.loads(status)
+            self.uav_pictures_taken = str(status_dict.get("TAKEN", ""))
+            self.uav_pictures_transmitted = str(status_dict.get("TRANS", ""))
+        except Exception:
+            pass
