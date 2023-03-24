@@ -28,9 +28,8 @@ class GroundStation:
         super().__init__()
         self.loadSettings()
         self.image_watcher = Watcher()
-        #self.uav = UAV(instance_name=self.settings_data.get("Instance Name"))
-        # self.uav = UAVSocket("localhost", 1234)
-        self.uav = UAVMavLink(device="tcp:localhost:1234")
+        device = self.settings_data.get("MavLink Device")
+        self.uav = UAVMavLink(device)
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))

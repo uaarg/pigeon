@@ -17,6 +17,7 @@ default_settings_data = {
     "Feature Export Path": "data/exports",
     "Nominal Target Size": "2.5",
     "Instance Name": "",
+    "MavLink Device": "/dev/cu.usbserial-DN007320",
 }
 
 settings_data = default_settings_data.copy() # Global settings data.
