@@ -120,6 +120,3 @@ class UAVSocket(UAV):
         with self.socket_lock:
             self.socket.sendall(command.encode())
             data = self.socket.recv(255)
-
-    # stubbed out for compat. with the UAVMavProxy class
-    def setBus(self, _): pass

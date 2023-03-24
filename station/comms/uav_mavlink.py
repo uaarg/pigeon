@@ -195,6 +195,3 @@ class UAVMavLink(UAV):
                 pass
 
             sleep(0.01) # s = 10ms
-
-    # stubbed out for compat. with the UAVMavProxy class
-    def setBus(self, _): pass

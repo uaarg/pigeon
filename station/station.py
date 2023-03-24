@@ -76,9 +76,6 @@ Copyright (c) 2016 UAARG
         """
         self.image_watcher.setDirectory(self.settings_data["Monitor Folder"])
 
-        if self.settings_data.get("UAV Network"):
-            self.uav.setBus(self.settings_data["UAV Network"])         
-
     def run(self):
         self._propagateSettings()
 
