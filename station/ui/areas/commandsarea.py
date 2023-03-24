@@ -75,6 +75,23 @@ class CommandsArea(QtWidgets.QWidget):
         self.disallowBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_AUTONAV", '0'))
         self.layout.addWidget(self.disallowBtn, 3, 3)
 
+        # Camera Capture ON?OFF
+        # =============
+
+        # Label
+        self.camCaptureLabel = BoldQLabel()
+        self.camCaptureLabel.setText("Camera Capture")
+        self.layout.addWidget(self.camCaptureLabel, 4, 1)
+
+        # Buttons
+        self.enableCamCaptureBtn = QtWidgets.QPushButton("ON")
+        self.enableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit("CAMERA_CAPTURE", '1'))
+        self.layout.addWidget(self.enableCamCaptureBtn, 4, 2)
+
+        self.disableCamCaptureBtn = QtWidgets.QPushButton("OFF")
+        self.disableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit("CAMERA_CAPTURE", '0'))
+        self.layout.addWidget(self.disableCamCaptureBtn, 4, 3)
+
         # Hook up our slots
         self.receive_command_ack.connect(self.receiveCommandAck) # Emit in UI
 
