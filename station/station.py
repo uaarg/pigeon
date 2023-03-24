@@ -10,8 +10,6 @@ from image import Watcher
 import settings
 import features
 from comms.uav import UAV
-from comms.uav_socket import UAVSocket
-from comms.uav_mavlink import UAVMavLink
 from exporter import ExportManager
 import queue
 
@@ -29,7 +27,7 @@ class GroundStation:
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("MavLink Device")
-        self.uav = UAVMavLink(device)
+        self.uav = UAV(device)
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
