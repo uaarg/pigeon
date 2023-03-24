@@ -37,7 +37,12 @@ class UAVMavLink(UAV):
             raise ConnectionError("Connection already exists")
 
         try:
-            conn: mavutil.mavfile = mavutil.mavlink_connection(self.device)
+            serial_device = "usb" in self.device.lower()
+            if serial_device:
+                # set the baud rate for serial connections
+                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, 57600)
+            else:
+                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device)
 
             # The protocol mandates that the client send the first heartbeat
             # and then listens for a heartbeat response from the drone.
@@ -47,7 +52,7 @@ class UAVMavLink(UAV):
                 base_mode=0,
                 custom_mode=0,
                 system_status=0)
-            conn.wait_heartbeat()
+            #conn.wait_heartbeat()
         except ConnectionRefusedError as err:
             raise ConnectionError(f"Connection refused: {err}")
         except ConnectionResetError as err:
@@ -84,7 +89,6 @@ class UAVMavLink(UAV):
     def addCommandAckedCb(self, cb):
         self.command_acks_cbs.append(cb)
 
-
     def sendCommand(self, *args, **kwargs):
         assert self.conn is not None
 
@@ -115,18 +119,69 @@ class UAVMavLink(UAV):
         for cb in self.command_acks_cbs:
             cb()
 
+
+    def _recvStatus(self, status):
+        """
+        Notify all listeners via the command ACKed callback about a command
+        ACKed event.
+        """
+        for cb in self.status_cbs:
+            cb(status)
+
     def _runEventLoop(self):
         assert self.conn is not None
+
+        image_chunks = []
 
         while True:
             msg = self.conn.recv_match(blocking=False)
             if msg:
-                if msg.get_type() == 'BAD_TYPE':
-                    print("WARN: Recv bad message: ", msg)
-                    continue
+                match msg.get_type():
+                    # TODO: log bad data to a debug console
+                    case 'BAD_DATA': continue
 
-                print("GOT MESSAGE: of type", msg.get_type())
-                print("DATA:", msg.to_dict())
+                    # Re-emit status text messages to status listeners
+                    case 'STATUSTEXT':
+                        self._recvStatus(msg.text)
+                        continue
+
+                    # Image Transfer Protocol
+                    # =======================
+                    #
+                    # We are using a bare-bones variation of the Image
+                    # Transmission Protocol [0].
+                    #
+                    # The setup right now is as follows:
+                    #
+                    # 1) The drone will send ENCAPSULATED_DATA messages
+                    #    containing portions of a JPEG formatted image.
+                    # 2) The ground control station (GCS -- that's us!) will
+                    #    concatenate these partial images into a list of chunks
+                    # 3) The drone will send a DATA_TRANSMISSION_HANDSHAKE
+                    #    message to note that the image has been fully sent.
+                    # 4) On the DATA_TRANSMISSION_HANDSHAKE, the GCS will build
+                    #    an image from the buffer and then clear the buffer for
+                    #    the next image.
+                    #
+                    # [0]: https://mavlink.io/en/services/image_transmission.html
+                    case 'ENCAPSULATED_DATA':
+                        print(msg.get_type())
+                        image_chunks.append(msg)
+                        continue
+                    case 'DATA_TRANSMISSION_HANDSHAKE':
+                        print(msg.get_type())
+                        print(image_chunks)
+                        if len(image_chunks) > 0:
+                            # image transmission is complete
+                            image_chunks.sort(key=lambda x: x.seqnr)
+                            image = bytes()
+                            for chunk in image_chunks:
+                                image += bytes(chunk.data)
+
+                            with open("image.jpeg", "bw") as image_file:
+                                image_file.write(image)
+                            print("Image saved to image.jpeg")
+                        continue
 
             try:
                 command = self.commands.get(block=False)
