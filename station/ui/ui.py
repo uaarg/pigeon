@@ -338,13 +338,13 @@ class MainWindow(QtWidgets.QMainWindow):
         Initializes File, Export, Edit, Help navigation buttons
         """
         self.menubar = self.menuBar()
+        self.menubar.setNativeMenuBar(False)
 
         menu = self.menubar.addMenu("&File")
 
         exit_action = QtWidgets.QAction("Exit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.exit_cb)
-
         menu.addAction(exit_action)
 
         if self.export_manager:
@@ -396,6 +396,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.about_window.show()
 
     def showSettingsWindow(self):
+        self.settings_window = SettingsWindow(settings_data=self.settings_data)
+        self.settings_window.show()
+        self.settings_window.settings_save_requested.connect(
+            self.settings_save_requested.emit)
+
+    def reloadImages(self):
+        self.addImage(Image("./data/images/1523.jpg", "./data/images/1523.txt"))
         self.settings_window = SettingsWindow(settings_data=self.settings_data)
         self.settings_window.show()
         self.settings_window.settings_save_requested.connect(
