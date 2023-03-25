@@ -86,7 +86,7 @@ class MainImageArea(QtWidgets.QWidget):
                 self.image_area.addPixmapLabelFeature(self.plumbline)
 
             pixel_x, pixel_y = self.image.getPlanePlumbPixel()
-            if pixel_x and pixel_y:
+            if False and pixel_x and pixel_y:
                 point = QtCore.QPoint(pixel_x, pixel_y)
                 self.plumbline.moveTo(point)
                 self.plumbline.show()
@@ -113,7 +113,7 @@ class MainImageArea(QtWidgets.QWidget):
                     old_pixmap_label_marker.hide()
 
                 pixel_x, pixel_y = feature_point.point_on_image
-                if pixel_x and pixel_y:
+                if False and pixel_x and pixel_y:
                     point = QtCore.QPoint(pixel_x, pixel_y)
                     pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature_point.icon_name], feature_point.icon_size, moveable=True, id_=feature_point.id)
                     self.image_area.addPixmapLabelFeature(pixmap_label_marker)

@@ -426,17 +426,20 @@ class MainWindow(QtWidgets.QMainWindow):
         Parameters:
             image (Image): image to be added to UI
         """
-        image.pixmap_loader = PixmapLoader(image)
+        try:
+            image.pixmap_loader = PixmapLoader(image)
 
-        # Recording the width and height of the image for other code to use:
-        image.width = image.pixmap_loader.width()
-        image.height = image.pixmap_loader.height()
+            # Recording the width and height of the image for other code to use:
+            image.width = image.pixmap_loader.width()
+            image.height = image.pixmap_loader.height()
 
-        if self.settings_data.get("Follow Images", False) or not self.current_image:
-            self.showImage(image)
-        self.thumbnail_area.addImage(image)
-        self.info_area.addImage(image)
-        image.pixmap_loader.optimizeMemory()
+            if self.settings_data.get("Follow Images", False) or not self.current_image:
+                self.showImage(image)
+            self.thumbnail_area.addImage(image)
+            self.info_area.addImage(image)
+            image.pixmap_loader.optimizeMemory()
+        except Exception as err:
+            print(f"WARN: Error parsing image\n{err}")
 
     def setSettings(self, settings_data):
         return self.info_area.setSettings(settings_data)

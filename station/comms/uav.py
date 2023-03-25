@@ -1,5 +1,5 @@
 from dataclasses import field, dataclass
-from typing import Callable
+from typing import Any, Callable
 
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
@@ -7,6 +7,8 @@ from threading import Lock, Thread
 import time
 import logging
 import queue
+
+from image import Image
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,9 @@ class ConnectionError(Exception):
 @dataclass
 class UAV:
     device: str
+    im_queue: queue.Queue
+    feature_queue: Any
+
     event_loop: Thread | None = None
     conn_lock: 'Lock | None' = None
     conn: 'mavutil.mavfile | None' = None
@@ -186,9 +191,10 @@ class UAV:
     def _runEventLoop(self):
         assert self.conn is not None
 
-        image_packets = []
+        image_packets = dict()
         last_heartbeat = time.time()
-        heartbeat_interval = 1 # 1 / (1 s) = 1 Hz
+        heartbeat_interval = 5 # 1 / (5 s) = 0.2 Hz
+        i = 0
 
         while self.connected:
             msg = self.conn.recv_match(blocking=False)
@@ -222,24 +228,40 @@ class UAV:
                     #
                     # [0]: https://mavlink.io/en/services/image_transmission.html
                     case 'ENCAPSULATED_DATA':
-                        image_packets.append(msg)
+                        print('ENCAPSULATED_DATA')
+                        image_packets[msg.seqnr] = msg
                         continue
                     case 'DATA_TRANSMISSION_HANDSHAKE':
-                        if msg.packets != len(image_packets):
+                        print('DATA_TRANSMISSION_HANDSHAKE')
+                        packet_nos = image_packets.keys()
+                        packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
+
+                        if packet_count == 0:
+                            continue
+
+                        if msg.packets != packet_count:
                             print("WARN: Failed to receive image. "
                                 f"Expected {msg.packets} packets but "
-                                f"received {len(image_packets)} packets")
+                                f"received {packet_count} packets")
 
                         # image transmission is complete, collect chunks into an image
-                        image_packets.sort(key=lambda x: x.seqnr)
                         image = bytes()
-                        for chunk in image_packets:
-                            image += bytes(chunk.data)
+                        for i in range(packet_count):
+                            packet = image_packets.get(i)
+                            if packet is None: continue
+                            image += bytes(packet.data)
 
-                        with open("image.jpeg", "bw") as image_file:
+                        file = f"data/images/image{i}.jpg"
+                        with open(file, "bw") as image_file:
                             image_file.write(image)
-                        print("Image saved to image.jpeg")
+                        print(f"Image saved to {file}")
+                        time.sleep(0.01)
+                        try:
+                            self.im_queue.put(Image(file, "image.txt"))
+                        except Exception as err:
+                            print(f"ERROR: Failed to parse image\n{err}")
 
+                        i += 1
                         image_packets.clear()
                         continue
 
@@ -255,7 +277,7 @@ class UAV:
                 heartbeat = Command.heartbeat()
                 self.conn.write(heartbeat.encode(self.conn))
             last_recv_heartbeat = self.conn.time_since('HEARTBEAT')
-            if last_recv_heartbeat > 5 * heartbeat_interval:
+            if last_recv_heartbeat > 15 * heartbeat_interval:
                 print(f"WARN: Lost connection to drone, last received a heartbeat {last_recv_heartbeat}s ago")
                 self.disconnect()
 
@@ -266,4 +288,4 @@ class UAV:
             except queue.Empty:
                 pass
 
-            time.sleep(0.01) # s = 10ms
+            time.sleep(0.0001) # s = 100us

@@ -24,10 +24,13 @@ class IOQueue():
 class GroundStation:
     def __init__(self):
         super().__init__()
+        self.im_queue = queue.Queue()
+        self.feature_queue = IOQueue()
+
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("MavLink Device")
-        self.uav = UAV(device)
+        self.uav = UAV(device, self.im_queue, self.feature_queue)
 
         ground_control_points = features.load_ground_control_points()
         export_manager = ExportManager(self.settings_data.get("Feature Export Path", "./"))
@@ -44,11 +47,6 @@ Version: %(version)s
 
 Copyright (c) 2016 UAARG
 """ % {"version": __version__, "run_directory": os.getcwd()}
-
-        # Temporary queues that will connect to UAV connections
-        # TODO: Implement Mavlink communication for these queues
-        self.im_queue = queue.Queue()
-        self.feature_queue = IOQueue()
 
         self.ui = UI(save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
