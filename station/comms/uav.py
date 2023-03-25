@@ -2,38 +2,45 @@ from dataclasses import field, dataclass
 from typing import Callable
 
 from pymavlink import mavutil
+from pymavlink.dialects.v20 import common as mavlink2
 from threading import Lock, Thread
-from time import sleep
+import time
 import logging
 import queue
 
 logger = logging.getLogger(__name__)
 
-@dataclass
 class Command:
-    name: str
-    value: int
+    """
+    Preferred application command interface. Use this to construct commands
+    which are to be send over MavLink.
 
-    def __post_init__(self):
-        if " " in self.name: raise ValueError(f"Command name '{self.name}' contains spaces")
+    This interface exists due to the redundant and difficult nature of the
+    mavlink api bindings. They are difficult to use as they are often generated
+    at runtime. This means that most development tools are unable to
+    autocomplete these commands. Furthermore, many commands are missing
+    defaults which make their construction painful. Finally, we often abuse
+    some commands by adding semantics onto them beyond their original use.
 
-    def encode(self) -> bytes:
-        return f"{self.name} {self.value}".encode()
+    This command class solves all those issues by offering an improved
+    interface for constructing MavLink commands.
+    """
+    def __init__(self, message: mavlink2.MAVLink_message):
+        self.message = message
 
-class Command_:
-    def __init__(self, name, value):
-        int(float(value)) # To ensure it's a number
-        value = str(value)
-        if " " in name:
-            raise(ValueError("Command name '%s' contains spaces" % name))
-        if " " in value:
-            raise(ValueError("Command value '%s' contains spaces" % value))
+    @staticmethod
+    def heartbeat() -> 'Command':
+        msg = mavlink2.MAVLink_heartbeat_message(
+                type=mavlink2.MAV_TYPE_GCS,
+                autopilot=mavlink2.MAV_AUTOPILOT_INVALID,
+                base_mode=0,
+                custom_mode=0,
+                system_status=0,
+                mavlink_version=2)
+        return Command(msg)
 
-        self.name = name
-        self.value = str(value)
-
-    def __eq__(self, other):
-        return self.name == other.name and self.value == other.value
+    def encode(self, conn: mavutil.mavfile) -> bytes:
+        return self.message.pack(conn.mav)
 
 class ConnectionError(Exception):
     """
@@ -180,8 +187,10 @@ class UAV:
         assert self.conn is not None
 
         image_packets = []
+        last_heartbeat = time.time()
+        heartbeat_interval = 1 # 1 / (1 s) = 1 Hz
 
-        while True:
+        while self.connected:
             msg = self.conn.recv_match(blocking=False)
             if msg:
                 match msg.get_type():
@@ -234,11 +243,27 @@ class UAV:
                         image_packets.clear()
                         continue
 
+            # Heartbeat Service
+            #
+            # We send a heartbeat at the interval given by
+            # `heartbeat_interval`. We also make sure that we have received a
+            # heartbeat within at least 5*`heartbeat_interval`. If it takes
+            # longer, then we consider the drone to have disconnected.
+            now = time.time()
+            if now - last_heartbeat < heartbeat_interval:
+                last_heartbeat = now
+                heartbeat = Command.heartbeat()
+                self.conn.write(heartbeat.encode(self.conn))
+            last_recv_heartbeat = self.conn.time_since('HEARTBEAT')
+            if last_recv_heartbeat > 5 * heartbeat_interval:
+                print(f"WARN: Lost connection to drone, last received a heartbeat {last_recv_heartbeat}s ago")
+                self.disconnect()
+
             try:
                 command = self.commands.get(block=False)
-                self.conn.write(command.encode()) # TODO: actually send the command properly
+                self.conn.write(command.encode(self.conn))
                 print(command)
             except queue.Empty:
                 pass
 
-            sleep(0.01) # s = 10ms
+            time.sleep(0.01) # s = 10ms
