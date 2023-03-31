@@ -191,101 +191,175 @@ class UAV:
     def _runEventLoop(self):
         assert self.conn is not None
 
-        image_packets = dict()
-        last_heartbeat = time.time()
-        heartbeat_interval = 5 # 1 / (5 s) = 0.2 Hz
-        i = 0
+        # The UAV protocols are quite complex. We have many independent tasks
+        # which must share and operate according to changes in the mavlink
+        # connection. We split each of these tasks into services which can plug
+        # into the event loop via their `recv_message` and `tick` methods.
+
+        # The UI may also send commands from various locations. We make sure to
+        # forward those commands as they come in through the `command` queue.
+
+        services = [
+            HearbeatService(self.commands, self.disconnect),
+            ImageService(self.commands),
+            StatusEchoService(self._recvStatus),
+        ]
 
         while self.connected:
+            for service in services:
+                service.tick()
+
             msg = self.conn.recv_match(blocking=False)
             if msg:
-                match msg.get_type():
-                    # TODO: log bad data to a debug console
-                    case 'BAD_DATA': continue
-
-                    # Re-emit status text messages to status listeners
-                    case 'STATUSTEXT':
-                        self._recvStatus(msg.text)
-                        continue
-
-                    # Image Transfer Protocol
-                    # =======================
-                    #
-                    # We are using a bare-bones variation of the Image
-                    # Transmission Protocol [0].
-                    #
-                    # The setup right now is as follows:
-                    #
-                    # 1) The drone will send ENCAPSULATED_DATA messages
-                    #    containing portions of a JPEG formatted image.
-                    # 2) The ground control station (GCS -- that's us!) will
-                    #    concatenate these partial images into a list of chunks
-                    # 3) The drone will send a DATA_TRANSMISSION_HANDSHAKE
-                    #    message to note that the image has been fully sent.
-                    # 4) On the DATA_TRANSMISSION_HANDSHAKE, the GCS will build
-                    #    an image from the buffer and then clear the buffer for
-                    #    the next image.
-                    #
-                    # [0]: https://mavlink.io/en/services/image_transmission.html
-                    case 'ENCAPSULATED_DATA':
-                        print('ENCAPSULATED_DATA')
-                        image_packets[msg.seqnr] = msg
-                        continue
-                    case 'DATA_TRANSMISSION_HANDSHAKE':
-                        print('DATA_TRANSMISSION_HANDSHAKE')
-                        packet_nos = image_packets.keys()
-                        packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
-
-                        if packet_count == 0:
-                            continue
-
-                        if msg.packets != packet_count:
-                            print("WARN: Failed to receive image. "
-                                f"Expected {msg.packets} packets but "
-                                f"received {packet_count} packets")
-
-                        # image transmission is complete, collect chunks into an image
-                        image = bytes()
-                        for i in range(packet_count):
-                            packet = image_packets.get(i)
-                            if packet is None: continue
-                            image += bytes(packet.data)
-
-                        file = f"data/images/image{i}.jpg"
-                        with open(file, "bw") as image_file:
-                            image_file.write(image)
-                        print(f"Image saved to {file}")
-                        time.sleep(0.01)
-                        try:
-                            self.im_queue.put(Image(file, "image.txt"))
-                        except Exception as err:
-                            print(f"ERROR: Failed to parse image\n{err}")
-
-                        i += 1
-                        image_packets.clear()
-                        continue
-
-            # Heartbeat Service
-            #
-            # We send a heartbeat at the interval given by
-            # `heartbeat_interval`. We also make sure that we have received a
-            # heartbeat within at least 5*`heartbeat_interval`. If it takes
-            # longer, then we consider the drone to have disconnected.
-            now = time.time()
-            if now - last_heartbeat < heartbeat_interval:
-                last_heartbeat = now
-                heartbeat = Command.heartbeat()
-                self.conn.write(heartbeat.encode(self.conn))
-            last_recv_heartbeat = self.conn.time_since('HEARTBEAT')
-            if last_recv_heartbeat > 15 * heartbeat_interval:
-                print(f"WARN: Lost connection to drone, last received a heartbeat {last_recv_heartbeat}s ago")
-                self.disconnect()
+                for service in services:
+                    service.recv_message(msg)
 
             try:
                 command = self.commands.get(block=False)
                 self.conn.write(command.encode(self.conn))
-                print(command)
             except queue.Empty:
                 pass
 
             time.sleep(0.0001) # s = 100us
+
+class MavlinkService:
+    def recv_message(self, message: mavlink2.MAVLink_message):
+        """
+        This runs whenever a message is received and the service can then be
+        allowed to (conditionally) handle that message.
+        """
+        pass
+
+    def tick(self):
+        """
+        This item runs at least once every 10ms. This can be used by services
+        which may want to implement timeouts or regular message sending.
+        """
+        pass
+
+class HearbeatService(MavlinkService):
+    """
+    Heartbeat Service
+    =================
+
+    We send a heartbeat at the interval given by `1/heartbeat_freq`. We also
+    make sure that we have received a heartbeat within at least
+    10/`heartbeat_freq`. If it takes longer, then we consider the drone to have
+    disconnected.
+    """
+    last_sent_heartbeat: float
+    last_recv_heartbeat: float
+    heartbeat_interval: float
+    disconnect: Callable
+    commands: queue.Queue
+
+    def __init__(self, commands: queue.Queue, disconnect: Callable, heartbeat_freq: float = 1):
+        self.commands = commands
+        self.disconnect = disconnect
+        self.heartbeat_interval = 1 / heartbeat_freq
+        self.last_sent_heartbeat = time.time()
+        self.last_recv_heartbeat = time.time()
+
+    def recv_message(self, message: mavlink2.MAVLink_message):
+        if message.get_type() == "HEARBEAT":
+            self.last_recv_heartbeat = time.time()
+
+    def tick(self):
+        now = time.time()
+
+        if now - last_heartbeat < heartbeat_interval:
+            last_heartbeat = now
+            heartbeat = Command.heartbeat()
+            self.commands.put(heartbeat)
+            self.conn.write(heartbeat.encode(self.conn))
+
+        if self.last_recv_heartbeat > 10 * self.heartbeat_interval:
+            print(f"WARN: Lost connection to drone, last received a heartbeat {self.last_recv_heartbeat}s ago")
+            self.disconnect()
+
+class ImageService(MavlinkService):
+    """
+    Image Transfer Protocol
+    =======================
+
+    We are using a bare-bones variation of the Image
+    Transmission Protocol [0].
+
+    The setup right now is as follows:
+
+    1) The drone will send ENCAPSULATED_DATA messages
+       containing portions of a JPEG formatted image.
+    2) The ground control station (GCS -- that's us!) will
+       concatenate these partial images into a list of chunks
+    3) The drone will send a DATA_TRANSMISSION_HANDSHAKE
+       message to note that the image has been fully sent.
+    4) On the DATA_TRANSMISSION_HANDSHAKE, the GCS will build
+       an image from the buffer and then clear the buffer for
+       the next image.
+
+    [0]: https://mavlink.io/en/services/image_transmission.html
+    """
+    image_packets: dict
+    i: int
+    commands: queue.Queue
+
+    def __init__(self, commands: queue.Queue):
+        self.i = 0
+        self.image_packets = dict()
+        self.commands = commands
+
+    def recv_message(self, message: mavlink2.MAVLink_message):
+        match message.get_type():
+            case 'ENCAPSULATED_DATA':
+                print('ENCAPSULATED_DATA')
+                image_packets[msg.seqnr] = msg
+
+            case 'DATA_TRANSMISSION_HANDSHAKE':
+                print('DATA_TRANSMISSION_HANDSHAKE')
+                packet_nos = image_packets.keys()
+                packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
+
+                if packet_count == 0:
+                    return
+
+                if msg.packets != packet_count:
+                    print("WARN: Failed to receive image. "
+                        f"Expected {msg.packets} packets but "
+                        f"received {packet_count} packets")
+
+                # image transmission is complete, collect chunks into an image
+                image = bytes()
+                for i in range(packet_count):
+                    packet = image_packets.get(i)
+                    if packet is None: return
+                    image += bytes(packet.data)
+
+                file = f"data/images/image{i}.jpg"
+                with open(file, "bw") as image_file:
+                    image_file.write(image)
+                print(f"Image saved to {file}")
+                time.sleep(0.01)
+                try:
+                    self.im_queue.put(Image(file, "image.txt"))
+                except Exception as err:
+                    print(f"ERROR: Failed to parse image\n{err}")
+
+                i += 1
+                image_packets.clear()
+
+class StatusEchoService(MavlinkService):
+    """
+    Status Echo Service
+    ===================
+
+    This forwards all STATUS_TEXT messages to the UAV status messages queue for
+    use in the UI.
+    """
+    recv_status: Callable
+
+    def __init__(self, recv_status: Callable):
+        self.recv_status = recv_status
+
+    def recv_message(self, message: mavlink2.MAVLink_message):
+        if message.get_type() == "STATUSTEXT":
+            self.recv_status(message.text)
