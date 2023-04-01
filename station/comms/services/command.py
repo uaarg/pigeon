@@ -30,5 +30,13 @@ class Command:
                 mavlink_version=2)
         return Command(msg)
 
+    @staticmethod
+    def ack(message: mavlink2.MAVLink_message, result = mavlink2.MAV_RESULT_ACCEPTED) -> 'Command':
+        print("ack")
+        msg = mavlink2.MAVLink_command_ack_message(
+                command=message.get_msgId(),
+                result=result)
+        return Command(msg)
+
     def encode(self, conn: mavutil.mavfile) -> bytes:
         return self.message.pack(conn.mav)

@@ -170,9 +170,9 @@ class UAV:
         # forward those commands as they come in through the `command` queue.
 
         services = [
-            HearbeatService(self.commands, self.disconnect),
+            #HearbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
-            StatusEchoService(self._recvStatus),
+            #StatusEchoService(self._recvStatus),
         ]
 
         while self.connected:
@@ -186,6 +186,7 @@ class UAV:
 
             try:
                 command = self.commands.get(block=False)
+                print(command)
                 self.conn.write(command.encode(self.conn))
             except queue.Empty:
                 pass

@@ -29,7 +29,7 @@ class HearbeatService(MavlinkService):
 
     We send a heartbeat at the interval given by `1/heartbeat_freq`. We also
     make sure that we have received a heartbeat within at least
-    10/`heartbeat_freq`. If it takes longer, then we consider the drone to have
+    15/`heartbeat_freq`. If it takes longer, then we consider the drone to have
     disconnected.
     """
     last_sent_heartbeat: float
@@ -57,8 +57,8 @@ class HearbeatService(MavlinkService):
             heartbeat = Command.heartbeat()
             self.commands.put(heartbeat)
 
-        if self.last_recv_heartbeat > 10 * self.heartbeat_interval:
-            print(f"WARN: Lost connection to drone, last received a heartbeat {self.last_recv_heartbeat}s ago")
+        if now - self.last_recv_heartbeat > 15 * self.heartbeat_interval:
+            print(f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago")
             self.disconnect()
 
 class StatusEchoService(MavlinkService):
