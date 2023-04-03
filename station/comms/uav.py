@@ -54,9 +54,9 @@ class UAV:
             serial_device = "usb" in self.device.lower()
             if serial_device:
                 # set the baud rate for serial connections
-                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, 57600)
+                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, 57600, source_system=255, source_component=2)
             else:
-                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device)
+                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, source_system=255, source_component=2)
         except ConnectionRefusedError as err:
             raise ConnectionError(f"Connection refused: {err}")
         except ConnectionResetError as err:
@@ -64,6 +64,7 @@ class UAV:
         except ConnectionAbortedError as err:
             raise ConnectionError(f"Connection aborted: {err}")
         else:
+            conn.wait_heartbeat()
             self.conn_lock = Lock()
             self.conn = conn
             self._connectionChanged()
@@ -123,8 +124,7 @@ class UAV:
         """
         assert self.conn is not None
 
-        command = Command(*args, *kwargs)
-        self.commands.put(command)
+        self.commands.put(*args, **kwargs)
 
     @property
     def connected(self) -> bool:
@@ -186,7 +186,7 @@ class UAV:
 
             try:
                 command = self.commands.get(block=False)
-                print(command)
+                print(f"Sending: {command.message}")
                 self.conn.write(command.encode(self.conn))
             except queue.Empty:
                 pass

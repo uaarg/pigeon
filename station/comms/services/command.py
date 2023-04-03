@@ -32,11 +32,32 @@ class Command:
 
     @staticmethod
     def ack(message: mavlink2.MAVLink_message, result = mavlink2.MAV_RESULT_ACCEPTED) -> 'Command':
-        print("ack")
         msg = mavlink2.MAVLink_command_ack_message(
                 command=message.get_msgId(),
-                result=result)
+                result=result,
+                target_system=1,
+                target_component=2)
         return Command(msg)
 
+    @staticmethod
+    def enableCamera() -> 'Command':
+        msg = mavlink2.MAVLink_command_long_message(
+            1, # Target System
+            2, # Target Component
+            mavutil.mavlink.MAV_CMD_IMAGE_START_CAPTURE,
+            0, 0, 0, 0, 0, 0, 0, 0
+            )
+        return Command(msg)
+    
+    @staticmethod
+    def disableCamera() -> 'Command':
+        msg = mavlink2.MAVLink_command_long_message(
+            1, # Target System
+            2, # Target Component
+            mavutil.mavlink.MAV_CMD_IMAGE_STOP_CAPTURE,
+            0, 0, 0, 0, 0, 0, 0, 0
+            )
+        return Command(msg)
+    
     def encode(self, conn: mavutil.mavfile) -> bytes:
         return self.message.pack(conn.mav)

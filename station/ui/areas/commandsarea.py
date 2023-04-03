@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from comms.services.command import Command
 from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
 
 def markMessageReceived(func=None):
@@ -19,7 +20,7 @@ class CommandsArea(QtWidgets.QWidget):
     For commands, see transmissions.h in waldo
     """
     # This is how we send commands in the plane. Hooked up in ui.py
-    send_command = QtCore.pyqtSignal(str, str)
+    send_command = QtCore.pyqtSignal(Command)
     receive_command_ack = QtCore.pyqtSignal(str, str)
     
 
@@ -85,11 +86,15 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Buttons
         self.enableCamCaptureBtn = QtWidgets.QPushButton("ON")
-        self.enableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit("CAMERA_CAPTURE", '1'))
+        self.enableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.enableCamera()
+        ))
         self.layout.addWidget(self.enableCamCaptureBtn, 4, 2)
 
         self.disableCamCaptureBtn = QtWidgets.QPushButton("OFF")
-        self.disableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit("CAMERA_CAPTURE", '0'))
+        self.disableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.disableCamera()
+        ))
         self.layout.addWidget(self.disableCamCaptureBtn, 4, 3)
 
         # Hook up our slots
