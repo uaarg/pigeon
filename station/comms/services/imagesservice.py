@@ -96,7 +96,7 @@ class ImageService(MavlinkService):
         packet_nos = self.image_packets.keys()
         packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
         for i in range(packet_count):
-            packet = self.image_packets.get(i)
+            packet = self.image_packets.get(i+1)
             if packet is None: return
             image += bytes(packet.data)
 
