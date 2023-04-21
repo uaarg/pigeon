@@ -51,7 +51,7 @@ class UAV:
             raise ConnectionError("Connection already exists")
 
         try:
-            serial_device = "usb" in self.device.lower()
+            serial_device = "usb" in self.device.lower() or "com" in self.device.lower()
             if serial_device:
                 # set the baud rate for serial connections
                 conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, 57600, source_system=255, source_component=2)

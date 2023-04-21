@@ -5,6 +5,7 @@ Shapely
 PyQt5
 Pillow
 pyzbar
+pykml
 
 # Mavproxy Communication
 mavproxy

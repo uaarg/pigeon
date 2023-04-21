@@ -50,6 +50,7 @@ class ImageService(MavlinkService):
 
         self.recving_img = False
         self.expected_packets = False
+        self.image_bytes = 0
 
     def begin_recv_image(self):
         self.image_packets.clear()
@@ -57,6 +58,7 @@ class ImageService(MavlinkService):
         print("Receiving new image")
 
     def configure_image_params(self, message: mavlink2.MAVLink_data_transmission_handshake_message):
+        self.image_bytes = message.size
         self.expected_packets = message.packets
         print(f"Expecting {message.packets} packets")
 
@@ -65,7 +67,6 @@ class ImageService(MavlinkService):
         self.image_packets[message.seqnr] = message
 
     def done_recv_image(self, message):
-        time.sleep(2.0)
         self.commands.put(Command.ack(message))
 
         packet_nos = self.image_packets.keys()
@@ -99,6 +100,7 @@ class ImageService(MavlinkService):
             if packet is None: return
             image += bytes(packet.data)
 
+        image = image[:self.image_bytes]
         file = f"data/images/image{self.i}.jpg"
         with open(file, "bw") as image_file:
             image_file.write(image)
@@ -106,7 +108,8 @@ class ImageService(MavlinkService):
         print(f"Image saved to {file}")
 
         try:
-            self.im_queue.put(Image(file, "image.txt"))
+            self.im_queue.put(Image(file, 'image.txt'))
+            self.i += 1
         except Exception as err:
             print(f"ERROR: Failed to parse image\n{err}")
 
@@ -123,13 +126,11 @@ class ImageService(MavlinkService):
                 self.image_packets.clear()
                 self.begin_recv_image()
                 self.expected_packets = None
-                time.sleep(2.0)
                 self.commands.put(Command.ack(message))
 
             case "DATA_TRANSMISSION_HANDSHAKE":
                 if self.expected_packets is None:
                     self.configure_image_params(message)
-                    time.sleep(2.0)
                     self.commands.put(Command.ack(message))
                 else:
                     self.done_recv_image(message)
