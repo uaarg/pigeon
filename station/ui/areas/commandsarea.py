@@ -32,19 +32,19 @@ class CommandsArea(QtWidgets.QWidget):
         # Auto-Landing Approval
         # =============
 
-        # Label
-        self.allowLandLabel = BoldQLabel()
-        self.allowLandLabel.setText("Approve Auto-Land")
-        self.layout.addWidget(self.allowLandLabel, 1, 1)
+        # # Label
+        # self.allowLandLabel = BoldQLabel()
+        # self.allowLandLabel.setText("Approve Auto-Land")
+        # self.layout.addWidget(self.allowLandLabel, 1, 1)
 
-        # Buttons
-        self.aproveLandBtn = QtWidgets.QPushButton("Yes")
-        self.aproveLandBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_LANDING", '1'))
-        self.layout.addWidget(self.aproveLandBtn, 1, 2)
+        # # Buttons
+        # self.aproveLandBtn = QtWidgets.QPushButton("Yes")
+        # self.aproveLandBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_LANDING", '1'))
+        # self.layout.addWidget(self.aproveLandBtn, 1, 2)
 
-        self.disallowLandBtn = QtWidgets.QPushButton("No")
-        self.disallowLandBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_LANDING", '0'))
-        self.layout.addWidget(self.disallowLandBtn, 1, 3)
+        # self.disallowLandBtn = QtWidgets.QPushButton("No")
+        # self.disallowLandBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_LANDING", '0'))
+        # self.layout.addWidget(self.disallowLandBtn, 1, 3)
 
         # Resend Last Image
         # =============
@@ -56,25 +56,27 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Buttons
         self.resendBtn = QtWidgets.QPushButton("Resend")
-        self.resendBtn.clicked.connect(lambda: self.send_command.emit("RESEND_IMAGE", '0'))
+        self.resendBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.sendImage()
+        ))
         self.layout.addWidget(self.resendBtn, 2, 3)
 
         # Stop Search Pattern
         # =============
 
-        # Label
-        self.autoNavLabel = BoldQLabel()
-        self.autoNavLabel.setText("Allow Auto-Nav")
-        self.layout.addWidget(self.autoNavLabel, 3, 1)
+        # # Label
+        # self.autoNavLabel = BoldQLabel()
+        # self.autoNavLabel.setText("Allow Auto-Nav")
+        # self.layout.addWidget(self.autoNavLabel, 3, 1)
 
-        # Buttons
-        self.resendBtn = QtWidgets.QPushButton("GO")
-        self.resendBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_AUTONAV", '1'))
-        self.layout.addWidget(self.resendBtn, 3, 2)
+        # # Buttons
+        # self.resendBtn = QtWidgets.QPushButton("GO")
+        # self.resendBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_AUTONAV", '1'))
+        # self.layout.addWidget(self.resendBtn, 3, 2)
 
-        self.disallowBtn = QtWidgets.QPushButton("STOP")
-        self.disallowBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_AUTONAV", '0'))
-        self.layout.addWidget(self.disallowBtn, 3, 3)
+        # self.disallowBtn = QtWidgets.QPushButton("STOP")
+        # self.disallowBtn.clicked.connect(lambda: self.send_command.emit("ALLOW_AUTONAV", '0'))
+        # self.layout.addWidget(self.disallowBtn, 3, 3)
 
         # Camera Capture ON?OFF
         # =============
@@ -96,6 +98,47 @@ class CommandsArea(QtWidgets.QWidget):
             Command.disableCamera()
         ))
         self.layout.addWidget(self.disableCamCaptureBtn, 4, 3)
+
+        # Mode Control
+        # =============
+
+        # Label
+        self.modeControlLabel = BoldQLabel()
+        self.modeControlLabel.setText("Mode Control")
+        self.layout.addWidget(self.modeControlLabel, 5, 1)
+
+        # Dropdown
+        self.modeControlDropdown = QtWidgets.QComboBox()
+        self.modeControlDropdown.addItems(['IDLE', 'TAKEOFF', 'FOLLOW_MISSION', 'LANDING_SEARCH', 'LAND'])
+        self.layout.addWidget(self.modeControlDropdown, 5, 2)
+
+        # Button
+        self.modeControlBtn = QtWidgets.QPushButton("SEND")
+        self.modeControlBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.setMode(self.modeControlDropdown.currentIndex())
+        ))
+        self.layout.addWidget(self.modeControlBtn, 5, 3)
+
+        # LIGHTS ON?OFF
+        # =============
+
+        # Label
+        self.lightControlLabel = BoldQLabel()
+        self.lightControlLabel.setText("Onboard LEDs")
+        self.layout.addWidget(self.lightControlLabel, 6, 1)
+
+        # Buttons
+        self.lightControlOnBtn = QtWidgets.QPushButton("ON")
+        self.lightControlOnBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.switchLights(True)
+        ))
+        self.layout.addWidget(self.lightControlOnBtn, 6, 2)
+
+        self.lightControlOffBtn = QtWidgets.QPushButton("OFF")
+        self.lightControlOffBtn.clicked.connect(lambda: self.send_command.emit(
+            Command.switchLights(False)
+        ))
+        self.layout.addWidget(self.lightControlOffBtn, 6, 3)
 
         # Hook up our slots
         self.receive_command_ack.connect(self.receiveCommandAck) # Emit in UI

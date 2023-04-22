@@ -58,6 +58,40 @@ class Command:
             0, 0, 0, 0, 0, 0, 0, 0
             )
         return Command(msg)
+
+    def setMode(mode) -> 'Command':
+        msg = mavlink2.MAVLink_command_long_message(
+            1, # Target System
+            2, # Target Component
+            255, # CUSTOM UAARG COMMAND
+            0, # No Confirmation
+            1, # SET MODE
+            mode + 1, 0, 0, 0, 0, 0
+            )
+        return Command(msg)
     
+    def switchLights(is_on) -> 'Command':
+        msg = mavlink2.MAVLink_command_long_message(
+            1, # Target System
+            2, # Target Component
+            255, # CUSTOM UAARG COMMAND
+            0, # No Confirmation
+            2, # SET LIGHTS
+            is_on, 0, 0, 0, 0, 0
+            )
+        return Command(msg)
+    
+    @staticmethod
+    def sendImage() -> 'Command':
+        msg = mavlink2.MAVLink_command_long_message(
+            1, # Target System
+            2, # Target Component
+            255, # CUSTOM UAARG COMMAND
+            0, # No Confirmation
+            3, # SEND IMAGE
+            0, 0, 0, 0, 0, 0
+            )
+        return Command(msg)
+
     def encode(self, conn: mavutil.mavfile) -> bytes:
         return self.message.pack(conn.mav)

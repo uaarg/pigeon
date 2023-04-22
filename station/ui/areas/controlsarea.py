@@ -51,23 +51,24 @@ class ControlsArea(QtWidgets.QWidget):
         self.uav_pictures_taken = ""
         self.uav_pictures_transmitted = ""
 
-        run_buttons_layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(run_buttons_layout)
+        # Causes Crash - Mackenzie
+        # run_buttons_layout = QtWidgets.QHBoxLayout()
+        # self.layout.addLayout(run_buttons_layout)
 
-        self.run_value = self.RUN_STOP
-        self.play_icon = QtGui.QIcon(icons.play)
-        self.pause_icon = QtGui.QIcon(icons.pause)
+        # self.run_value = self.RUN_STOP
+        # self.play_icon = QtGui.QIcon(icons.play)
+        # self.pause_icon = QtGui.QIcon(icons.pause)
 
-        self.stop_button = QtWidgets.QPushButton(QtGui.QIcon(icons.stop), "", self)
-        self.stop_button.clicked.connect(self.stop_button_clicked)
-        run_buttons_layout.addWidget(self.stop_button)
+        # self.stop_button = QtWidgets.QPushButton(QtGui.QIcon(icons.stop), "", self)
+        # self.stop_button.clicked.connect(self.stop_button_clicked)
+        # run_buttons_layout.addWidget(self.stop_button)
 
-        self.play_pause_button = QtWidgets.QPushButton(self.play_icon, "", self)
-        self.play_pause_button.clicked.connect(self.play_pause_button_clicked)
-        run_buttons_layout.addWidget(self.play_pause_button)
+        # self.play_pause_button = QtWidgets.QPushButton(self.play_icon, "", self)
+        # self.play_pause_button.clicked.connect(self.play_pause_button_clicked)
+        # run_buttons_layout.addWidget(self.play_pause_button)
 
-        self.run_value_label = QtWidgets.QLabel()
-        run_buttons_layout.addWidget(self.run_value_label)
+        # self.run_value_label = QtWidgets.QLabel()
+        # run_buttons_layout.addWidget(self.run_value_label)
 
         self.receive_command_ack.connect(self.receiveCommandAck)
         self.uav_connection_changed.connect(self.updateUAVConnection)

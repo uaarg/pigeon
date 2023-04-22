@@ -32,8 +32,8 @@ class FeatureDetailArea(QtWidgets.QWidget):
 
         self.add_subfeature_button = QtWidgets.QPushButton(translate("FeatureDetailArea", "Add Subfeature"), self)
         self.buttons_layout.addWidget(self.add_subfeature_button)
-
-        self.add_subfeature_button.clicked.connect(lambda: self.addSubfeatureRequested.emit(self.feature))
+        # Causes crash - Mackenzie
+        #self.add_subfeature_button.clicked.connect(lambda: self.addSubfeatureRequested.emit(self.feature))
 
     def _editFeatureData(self, data):
         """
