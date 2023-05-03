@@ -400,7 +400,7 @@ class QueueMixin:
         self.timer.start(100) # Time in milliseconds
 
 def format_duration_for_display(duration):
-    if duration:
+    if duration is not None:
         return "%.0f s" % duration.total_seconds()
     else:
         return None

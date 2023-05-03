@@ -126,6 +126,13 @@ class UAV:
 
         self.commands.put(*args, **kwargs)
 
+    def sendHeartbeat(self):
+        self.conn.mav.heartbeat_send(
+                6, #MAVTYPE = 
+                8, #MAVAUTOPILOT
+                128, # MAV_MODE = 
+                0,0) #MAVSTATE =
+        
     @property
     def connected(self) -> bool:
         """
@@ -175,9 +182,15 @@ class UAV:
             #StatusEchoService(self._recvStatus),
         ]
 
+        last_hb = time.time()
+
         while self.connected:
             for service in services:
                 service.tick()
+
+            if time.time() - last_hb >= 1:
+                self.sendHeartbeat()
+                last_hb = time.time()
 
             msg = self.conn.recv_match(blocking=False)
             if msg:
