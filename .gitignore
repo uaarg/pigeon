@@ -12,6 +12,7 @@ __pycache__/
 # Pyhton Virtual Envs
 env/
 venv3/
+venv/
 
 # SCons
 # Ignore database files
