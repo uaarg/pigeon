@@ -5,6 +5,7 @@ images received from the aircraft through a combination of manual and
 automatic processes. The ultimate goal is to quickly provide accurate
 information about points of interest found on the ground.
 
+
 Implemented Features:
 ---------------------
 * Imports images that exist in the target folder on startup
@@ -24,11 +25,6 @@ Implemented Features:
   other pigeon instances over an ivybus
 * Scans QR codes from selected image (under process menu), reading up to 60 cm
   away at up to 45 degrees using a 7x7cm QR code
-
-Future Features:
-----------------
-* See the bitbucket issue tracker for desired features. [Deprecated]
-* See the imaging kanban on Trello.
 
 
 Input
@@ -54,49 +50,38 @@ Output
 Installation
 ------------
 
-First, make sure that you have SSH access to bitbucket. Otherwise, the dependency script will fail.
-https://support.atlassian.com/bitbucket-cloud/docs/set-up-an-ssh-key/
+To install quickly (on an Ubuntu/Debian machine), simply run `sudo
+./install_dependencies.sh`.
 
-To install quickly, simply run `sudo ./install_dependencies.sh`
+> NOTE: This may no longer be valid. TODO(aidan): fix or remove this script
+
 
 Manual Installation
 -------------------
 
-Pigeon is written in PyQt. It also has a few python module dependencies. To install on Ubuntu:
+Make sure you have python >=3.10 installed on your machine and that it is in
+your `PATH`.
 
-1. First, set the timezone to New York (Competition timezone). This is required by the interop client library.
+Pigeon is written in PyQt. Which means that on a non-Windows system you may
+have to ensure some pyqt5 packages are installed. For an Ubuntu/Debian system,
+these are:
 
-2. Then, install the following apt dependencies:
-```
-sudo apt-get install python3 python3-dev
+```sh
 sudo apt-get install qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
-sudo apt-get install python3-shapely python3-pip
-sudo apt-get install libxml2-dev libxslt1-dev
-sudo apt-get install libzbar0
-sudo apt-get install protobuf-compiler
 ```
 
 3. Then install python dependencies located in `requirements.txt`:
-```bash
-python3 -m pip install -r requirements.txt.
+
+```sh
+python3 -m venv venv
+
+source ./venv/bin/activate  # (MacOS/Linux/...) unix shell
+venv\Scripts\activate.bat   # (Windows) cmd.exe
+venv\Scripts\Activate.ps1   # (Windoes) PowerShell
+
+pip install -r requirements.txt.
 ```
 
-4. Install the pyproj transformation grids.
-
-Notable Dependencies
---------------------
-
-### AUVSI Interop Client
-Pigeon requires a library to communicate with the interop server at 
-the AUSVI SUAS competition. It's used to export data for judging.
-
-See the getting started page [here](https://github.com/auvsi-suas/interop#getting-started) for more information.
-
-It is installed via `pip`.
-
-### Imaging Web Client Library
-The pigeon web client library is used to communicate with the imaging server.
-This repository is located in bitbucket and is installed by `pip`.
 
 Running the Ground Station
 --------------------------
