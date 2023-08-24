@@ -64,10 +64,8 @@ class UAV:
         except ConnectionAbortedError as err:
             raise ConnectionError(f"Connection aborted: {err}")
         else:
-            conn.wait_heartbeat()
             self.conn_lock = Lock()
             self.conn = conn
-            self._connectionChanged()
 
             self.thread = Thread(target=lambda: self._runEventLoop(), args=[])
             self.thread.start()
