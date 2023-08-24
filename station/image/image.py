@@ -5,9 +5,9 @@ Provides tools for importing images.
 import queue
 import os
 import logging
-
-import geo
 from math import degrees
+
+import station.geo
 
 logger = logging.getLogger(__name__)
 

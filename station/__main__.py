@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
-
 import os
 import logging
 import argparse
-
-import log
-from ui import UI
-from image import Watcher
-import settings
-import features
-from comms.uav import UAV
-from exporter import ExportManager
 import queue
+
+from station import log, settings, features
+from station.ui import UI
+from station.image import Watcher
+from station.comms.uav import UAV
+from station.exporter import ExportManager
 
 __version__ = "0.5.1"
 

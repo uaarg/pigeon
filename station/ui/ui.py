@@ -6,22 +6,18 @@ from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
 translate = QtCore.QCoreApplication.translate # Potential aliasing
 
-from features import BaseFeature, Feature, Marker, Point
+from station.features import BaseFeature, Feature, Marker, Point
 
-from .common import QueueMixin
-from .commonwidgets import NonEditableBaseListForm
-from .pixmaploader import PixmapLoader
-from .style import stylesheet
-from ui import icons
+from station.ui import icons
+from station.ui.areas import InfoArea, ThumbnailArea, FeatureArea, MainImageArea, SettingsArea
+from station.ui.common import QueueMixin
+from station.ui.commonwidgets import NonEditableBaseListForm
+from station.ui.dialogues import QrDiag
+from station.ui.pixmaploader import PixmapLoader
+from station.ui.style import stylesheet
 
-from image import Image
+from station.image import Image
 
-from .areas import InfoArea
-from .areas import ThumbnailArea
-from .areas import FeatureArea
-from .areas import MainImageArea
-from .areas import SettingsArea
-from .dialogues import QrDiag
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60

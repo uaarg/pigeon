@@ -5,8 +5,8 @@ import base64
 import uuid
 import io
 
-from geo import Position, PositionCollection, position_at_offset
-from image import ImageCrop
+from station.geo import Position, PositionCollection, position_at_offset
+from station.image import ImageCrop
 
 class FeatureDeserializeSecurityError(Exception):
     pass

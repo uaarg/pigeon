@@ -2,11 +2,11 @@ from enum import Enum
 from pymavlink.dialects.v20 import common as mavlink2
 import queue
 import time
-
-from .command import Command
-from .common import MavlinkService
-from image import Image
 from pymavlink import mavutil
+
+from station.comms.services.command import Command
+from station.comms.services.common import MavlinkService
+from station.image import Image
 
 class ImageCaptureState(Enum):
     WAITING_FOR_CAPTURE = 0

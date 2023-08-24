@@ -1,11 +1,11 @@
 # Ruler class for measuring distance
 from PyQt5 import QtCore, QtGui, QtWidgets
-from geo import *
 
-from ..common import PixmapLabel, PixmapLabelMarker
-from ..ui import icons
+from station.ui.common import PixmapLabel, PixmapLabelMarker
+from station.ui import icons
 
-from image import Image
+from station.image import Image
+from station.geo import *
 
 class Ruler(QtCore.QObject):
     """

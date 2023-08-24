@@ -1,13 +1,13 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
-from ..common import PixmapLabel, PixmapLabelMarker
-from ..ui import icons
+from station.ui.common import PixmapLabel, PixmapLabelMarker
+from station.ui import icons
 
-from image import Image
-from features import Feature
+from station.image import Image
+from station.features import Feature
 
-from .ruler import Ruler
+from station.ui.areas.ruler import Ruler
 
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)

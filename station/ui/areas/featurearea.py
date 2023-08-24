@@ -1,10 +1,10 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 translate = QtCore.QCoreApplication.translate
 
-from ..commonwidgets import EditableBaseListForm, BoldQLabel
-from . import FeatureDetailArea
+from station.ui.commonwidgets import EditableBaseListForm, BoldQLabel
+from station.ui.areas import FeatureDetailArea
 
-from features import BaseFeature, Feature
+from station.features import BaseFeature, Feature
 
 class FeatureArea(QtWidgets.QFrame):
     featureSelectionChanged = QtCore.pyqtSignal(BaseFeature)

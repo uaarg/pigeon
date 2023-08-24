@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QDialog
 from PyQt5 import QtWidgets, QtGui
 
-import misc.qr as qr
+import station.misc.qr as qr
 
 class QrDiag(QDialog):
     """Dialogue Class for QR code processing."""

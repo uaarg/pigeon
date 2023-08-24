@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from comms.services.command import Command
-from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
+from station.comms.services.command import Command
+from station.ui.commonwidgets import NonEditableBaseListForm, BoldQLabel
 
 def markMessageReceived(func=None):
     """
