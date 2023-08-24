@@ -24,6 +24,7 @@ venv/
 *.kmz
 *.csv
 *.json
+!data/ground_control_points.json
 
 # Modules
 modules/
