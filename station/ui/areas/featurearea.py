@@ -1,20 +1,24 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 
-from station.ui.commonwidgets import EditableBaseListForm, BoldQLabel
+from station.ui.commonwidgets import BoldQLabel
 from station.ui.areas import FeatureDetailArea
 
-from station.features import BaseFeature, Feature
+from station.features import BaseFeature
+
 
 class FeatureArea(QtWidgets.QFrame):
     featureSelectionChanged = QtCore.pyqtSignal(BaseFeature)
 
-    def __init__(self, *args, settings_data={}, minimum_width=250,**kwargs):
+    def __init__(self, *args, settings_data={}, minimum_width=250, **kwargs):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
-        self.features = {} # Mapping from feature id's to items.
+        self.features = {}  # Mapping from feature id's to items.
 
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
         self.setSizePolicy(size_policy)
@@ -42,16 +46,22 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_detail_area = FeatureDetailArea()
         self.layout.addWidget(self.feature_detail_area, 2, 0, 1, 1)
 
-        self.feature_tree.currentItemChanged.connect(lambda current, previous: self.featureSelectionChanged.emit(current.feature))
-        self.featureSelectionChanged.connect(self.feature_detail_area.showFeature)
+        self.feature_tree.currentItemChanged.connect(
+            lambda current, previous: self.featureSelectionChanged.emit(
+                current.feature))
+        self.featureSelectionChanged.connect(
+            self.feature_detail_area.showFeature)
 
     def _getFeatureIcon(self, feature):
         if feature.picture_crop:
-            cropping_rect = QtCore.QRect(QtCore.QPoint(*feature.picture_crop.top_left), QtCore.QPoint(*feature.picture_crop.bottom_right))
+            cropping_rect = QtCore.QRect(
+                QtCore.QPoint(*feature.picture_crop.top_left),
+                QtCore.QPoint(*feature.picture_crop.bottom_right))
             try:
-                original_picture = feature.picture_crop.image.pixmap_loader.getPixmapForSize(None)
+                original_picture = feature.picture_crop.image.pixmap_loader.getPixmapForSize(
+                    None)
             except ValueError:
-                return None # Don't have the image yet: can't make a picture from the crop.
+                return None  # Don't have the image yet: can't make a picture from the crop.
             else:
                 picture = original_picture.copy(cropping_rect)
                 feature.thumbnail = picture
@@ -79,11 +89,9 @@ class FeatureArea(QtWidgets.QFrame):
     # def removeFeature(self, id):
     #     self.feature.pop()
 
-
     def showFeature(self, feature):
         self.feature_detail_area.showFeature(feature)
         self.feature_tree.setCurrentItem(self.features[feature.id])
-
 
     def updateFeature(self, feature, parent=None):
         item = self.features.get(feature.id)

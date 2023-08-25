@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets, QtGui
 
 import station.misc.qr as qr
 
+
 class QrDiag(QDialog):
     """Dialogue Class for QR code processing."""
 

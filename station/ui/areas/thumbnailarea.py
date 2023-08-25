@@ -1,18 +1,23 @@
 import logging
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 
 from ..common import WidthForHeightPixmapLabel, ListImageItem, ScaledListWidget
 
 
 class ThumbnailArea(QtWidgets.QWidget):
+
     def __init__(self, *args, settings_data={}, minimum_height=60, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.logger = logging.getLogger(__name__ + "." +
+                                        self.__class__.__name__)
         self.settings_data = settings_data
 
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Preferred)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Preferred)
         size_policy.setHorizontalStretch(10)
         size_policy.setVerticalStretch(10)
         self.setSizePolicy(size_policy)
@@ -35,10 +40,9 @@ class ThumbnailArea(QtWidgets.QWidget):
 
         self.images = []
 
-
     def addImage(self, image, index=None):
         if index:
-            raise(NotImplementedError())
+            raise (NotImplementedError())
 
         item = ListImageItem(image.pixmap_loader, self.contents)
         item.image = image

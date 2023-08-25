@@ -8,6 +8,7 @@ from .command import Command
 
 
 class MavlinkService:
+
     def recv_message(self, message: mavlink2.MAVLink_message):
         """
         This runs whenever a message is received and the service can then be
@@ -21,6 +22,7 @@ class MavlinkService:
         which may want to implement timeouts or regular message sending.
         """
         pass
+
 
 class HearbeatService(MavlinkService):
     """
@@ -38,7 +40,10 @@ class HearbeatService(MavlinkService):
     disconnect: Callable
     commands: queue.Queue
 
-    def __init__(self, commands: queue.Queue, disconnect: Callable, heartbeat_freq: float = 1):
+    def __init__(self,
+                 commands: queue.Queue,
+                 disconnect: Callable,
+                 heartbeat_freq: float = 1):
         self.commands = commands
         self.disconnect = disconnect
         self.heartbeat_interval = 1 / heartbeat_freq
@@ -53,13 +58,15 @@ class HearbeatService(MavlinkService):
         now = time.time()
 
         if now - self.last_sent_heartbeat < self.heartbeat_interval:
-            last_heartbeat = now
             heartbeat = Command.heartbeat()
             self.commands.put(heartbeat)
 
         if now - self.last_recv_heartbeat > 15 * self.heartbeat_interval:
-            print(f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago")
+            print(
+                f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago"
+            )
             self.disconnect()
+
 
 class StatusEchoService(MavlinkService):
     """

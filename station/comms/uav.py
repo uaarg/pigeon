@@ -2,25 +2,25 @@ from dataclasses import field, dataclass
 from typing import Any, Callable
 
 from pymavlink import mavutil
-from pymavlink.dialects.v20 import common as mavlink2
 from threading import Lock, Thread
 import time
 import logging
 import queue
 
-from .services.common import StatusEchoService, HearbeatService
 from .services.imagesservice import ImageService
-from .services.command import Command
 
 logger = logging.getLogger(__name__)
+
 
 class ConnectionError(Exception):
     """
     An error which may occur when constructing or communicating with a socket
     via the UAVSocket class.
     """
+
     def __init__(self, message):
         super().__init__(message)
+
 
 @dataclass
 class UAV:
@@ -51,12 +51,15 @@ class UAV:
             raise ConnectionError("Connection already exists")
 
         try:
-            serial_device = "usb" in self.device.lower() or "com" in self.device.lower()
+            serial_device = "usb" in self.device.lower(
+            ) or "com" in self.device.lower()
             if serial_device:
                 # set the baud rate for serial connections
-                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, 57600, source_system=255, source_component=2)
+                conn: mavutil.mavfile = mavutil.mavlink_connection(
+                    self.device, 57600, source_system=255, source_component=2)
             else:
-                conn: mavutil.mavfile = mavutil.mavlink_connection(self.device, source_system=255, source_component=2)
+                conn: mavutil.mavfile = mavutil.mavlink_connection(
+                    self.device, source_system=255, source_component=2)
         except ConnectionRefusedError as err:
             raise ConnectionError(f"Connection refused: {err}")
         except ConnectionResetError as err:
@@ -77,7 +80,8 @@ class UAV:
 
         This should be non-destructive
         """
-        if self.conn is None: return
+        if self.conn is None:
+            return
         assert self.conn_lock is not None
 
         self.conn_lock.acquire(blocking=True)
@@ -125,12 +129,14 @@ class UAV:
         self.commands.put(*args, **kwargs)
 
     def sendHeartbeat(self):
+        # TODO: resolve these comments
         self.conn.mav.heartbeat_send(
-                6, #MAVTYPE = 
-                8, #MAVAUTOPILOT
-                128, # MAV_MODE = 
-                0,0) #MAVSTATE =
-        
+            6,  # MAVTYPE =
+            8,  # MAVAUTOPILOT
+            128,  # MAV_MODE =
+            0,
+            0)  # MAVSTATE =
+
     @property
     def connected(self) -> bool:
         """
@@ -202,4 +208,4 @@ class UAV:
             except queue.Empty:
                 pass
 
-            time.sleep(0.0001) # s = 100us
+            time.sleep(0.0001)  # s = 100us

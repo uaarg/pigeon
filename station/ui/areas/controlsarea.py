@@ -1,12 +1,13 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 import datetime
 import json
 
 from ..commonwidgets import NonEditableBaseListForm, BoldQLabel
 
-from ..ui import icons
 from ..common import format_duration_for_display
+
 
 def markMessageReceived(func=None):
     """
@@ -14,10 +15,13 @@ def markMessageReceived(func=None):
     decorator for methods who's class has a last_message_received_time
     attribute.
     """
+
     def new_func(*args, **kwargs):
         args[0].last_message_received_time = datetime.datetime.now()
         func(*args, **kwargs)
+
     return new_func
+
 
 class ControlsArea(QtWidgets.QWidget):
     send_command = QtCore.pyqtSignal(str, str)
@@ -30,9 +34,8 @@ class ControlsArea(QtWidgets.QWidget):
     RUN_PAUSE = "1"
     RUN_PLAY = "2"
 
-    RUN_CHOICES = ((RUN_STOP, "Stopped"),
-                   (RUN_PAUSE, "Paused"),
-                   (RUN_PLAY, "Running"))
+    RUN_CHOICES = ((RUN_STOP, "Stopped"), (RUN_PAUSE, "Paused"), (RUN_PLAY,
+                                                                  "Running"))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -116,14 +119,16 @@ class ControlsArea(QtWidgets.QWidget):
 
     def _updateDisplayedInfo(self):
         if self.last_message_received_time:
-            time_since_last_message = format_duration_for_display(datetime.datetime.now() - self.last_message_received_time)
+            time_since_last_message = format_duration_for_display(
+                datetime.datetime.now() - self.last_message_received_time)
         else:
             time_since_last_message = "(never)"
-        data = [("UAV Connected", self.uav_connected),
-                ("Time since last message", time_since_last_message),
-                ("Pictures captured", self.uav_pictures_taken),
-                ("Pictures transmitted", self.uav_pictures_transmitted),
-               ]
+        data = [
+            ("UAV Connected", self.uav_connected),
+            ("Time since last message", time_since_last_message),
+            ("Pictures captured", self.uav_pictures_taken),
+            ("Pictures transmitted", self.uav_pictures_transmitted),
+        ]
         self.uav_status_form.setData(data)
 
     def updateUAVConnection(self, connected):

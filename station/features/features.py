@@ -8,8 +8,10 @@ import io
 from station.geo import Position, PositionCollection, position_at_offset
 from station.image import ImageCrop
 
+
 class FeatureDeserializeSecurityError(Exception):
     pass
+
 
 class WhiteListUnpickler(pickle.Unpickler):
     """
@@ -19,29 +21,36 @@ class WhiteListUnpickler(pickle.Unpickler):
 
     Add classes set as attributes of BaseFeature or any subclasses here.
     """
-    allowed_classes = [("image.image", "Image"),
-                       ("image.image", "ImageCrop"),
-                       ("geo.geo", "Orientation"),
-                       ("geo.geo", "Position"),
-                       ("geo.geo", "GeoReference"),
-                       ("geo.geo", "CameraSpecs"),
-                       ("ui.pixmaploader", "PixmapLoader"),
-                       ("PyQt5.QtGui", "QPixmap"),
-                       ("features.features", "BaseFeature"),
-                       ("features.features", "PointOfInterest"),
-                       ("features.features", "Marker"),
-                       ("features.features", "Feature"),
-                       ("features.features", "GroundControlPoint"),
-                      ]
+    allowed_classes = [
+        ("image.image", "Image"),
+        ("image.image", "ImageCrop"),
+        ("geo.geo", "Orientation"),
+        ("geo.geo", "Position"),
+        ("geo.geo", "GeoReference"),
+        ("geo.geo", "CameraSpecs"),
+        ("ui.pixmaploader", "PixmapLoader"),
+        ("PyQt5.QtGui", "QPixmap"),
+        ("features.features", "BaseFeature"),
+        ("features.features", "PointOfInterest"),
+        ("features.features", "Marker"),
+        ("features.features", "Feature"),
+        ("features.features", "GroundControlPoint"),
+    ]
 
     def find_class(self, module, name):
         if (module, name) in self.allowed_classes:
             return super().find_class(module, name)
         else:
-            raise FeatureDeserializeSecurityError("Not allowed to unpickle %s.%s because it hasn't been listed as safe. Either it should be added to the whitelist or an intrusion was just prevented." % (module, name))
+            raise FeatureDeserializeSecurityError(
+                "Not allowed to unpickle %s.%s because it hasn't been listed as safe. "
+                % (module, name) +
+                "Either it should be added to the whitelist or an intrusion was just prevented."
+            )
+
 
 def loads_whitelisted(string):
     return WhiteListUnpickler(io.BytesIO(string)).load()
+
 
 class BaseFeature:
     """
@@ -52,7 +61,10 @@ class BaseFeature:
     data = []
 
     def __init__(self):
-        self.id = str(uuid.uuid4())[:8] # Unique identifier for this feature accross all Pigeon instances
+        self.id = str(
+            uuid.uuid4()
+        )[:
+          8]  # Unique identifier for this feature accross all Pigeon instances
 
     def __str__(self):
         if self.data:
@@ -84,7 +96,8 @@ class BaseFeature:
         Subclasses should not need to re-implement. Uses pickle to automatically get
         everything.
         """
-        data = base64.b64encode(pickle.dumps(self)).decode("ascii") # Ivybus expects a normal string but pickle gives a binary string. So b64 encoding.
+        # Ivybus expects a normal string but pickle gives a binary string. So b64 encoding.
+        data = base64.b64encode(pickle.dumps(self)).decode("ascii")
         return data
 
     @classmethod
@@ -103,6 +116,7 @@ class PointOfInterest(BaseFeature):
     etc... as seen in a particular image. AKA, an instance of feature
     or part of a feature.
     """
+
     def __init__(self, image, position, icon_name, icon_size, name=""):
         super().__init__()
 
@@ -116,11 +130,13 @@ class PointOfInterest(BaseFeature):
         self._determinePointOnImage()
 
     def __repr__(self):
-        return "%s(image=%r, position=%r)" % (self.__class__.__name__, self.image, self.position)
+        return "%s(image=%r, position=%r)" % (self.__class__.__name__,
+                                              self.image, self.position)
 
     def _determinePointOnImage(self):
         if self.image:
-            self.point_on_image = self.image.invGeoReferencePoint(self.position)
+            self.point_on_image = self.image.invGeoReferencePoint(
+                self.position)
         else:
             self.point_on_image = (None, None)
 
@@ -128,24 +144,34 @@ class PointOfInterest(BaseFeature):
         self.position = position
         self._determinePointOnImage()
 
+
 class Feature(BaseFeature):
     """
     Base class for all features: features are things of interest
     on the ground. Might be a point, an area, etc...
     """
+
     def __init__(self, name=""):
         super().__init__()
         #self.data = [("Name", name), ("Colour", ""), ("Letter", ""), ("Notes", ""), ("Export", True)]
         self.data = [
             ("Name", name),
             ("Type", "", ["", "standard", "qrc", "off_axis", "emergent"]),
-            ("Shape", "", ["", "circle", "semicircle", "quarter_circle", "triangle", "square", "rectangle", "trapezoid", "pentagon", "hexagon", "heptagon", "octagon", "star", "cross"]),
-            ("Orientation", "", ["", "N", "NE", "E", "SE", "S", "SW", "W", "NW"]),
-            ("Bkgnd_Color", "", ["", "white", "black", "gray", "red", "blue", "green", "yellow", "purple", "brown", "orange"]),
-            ("Alphanumeric", ""),
-            ("Alpha_Color", "", ["", "white", "black", "gray", "red", "blue", "green", "yellow", "purple", "brown", "orange"]),
-            ("Notes", ""),
-            ("Export", True)
+            ("Shape", "", [
+                "", "circle", "semicircle", "quarter_circle", "triangle",
+                "square", "rectangle", "trapezoid", "pentagon", "hexagon",
+                "heptagon", "octagon", "star", "cross"
+            ]),
+            ("Orientation", "",
+             ["", "N", "NE", "E", "SE", "S", "SW", "W", "NW"]),
+            ("Bkgnd_Color", "", [
+                "", "white", "black", "gray", "red", "blue", "green", "yellow",
+                "purple", "brown", "orange"
+            ]), ("Alphanumeric", ""),
+            ("Alpha_Color", "", [
+                "", "white", "black", "gray", "red", "blue", "green", "yellow",
+                "purple", "brown", "orange"
+            ]), ("Notes", ""), ("Export", True)
         ]
 
         # Holds references from external programs to this feature.
@@ -163,27 +189,37 @@ class Feature(BaseFeature):
             (dict)  Dictionary form of data
         """
 
-        data_dict = {item[0]:item[1] for item in self.data}
+        data_dict = {item[0]: item[1] for item in self.data}
         return data_dict
+
 
 class Point(Feature):
     """
     Base class for features on the ground that are described by a
     single point.
     """
-    def __init__(self, image, position=None, point=None,  *args, **kwargs):
+
+    def __init__(self, image, position=None, point=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not position and not point:
-            raise(TypeError("Must provide either a position or a point."))
+            raise TypeError("Must provide either a position or a point.")
         elif position and point:
-            raise(TypeError("Can't provided a position and a point."))
+            raise TypeError("Can't provided a position and a point.")
         elif point:
             position = image.geoReferencePoint(point[0], point[1])
 
-        self.instances = {image: PointOfInterest(image, position, self.icon_name, self.icon_size, name="(in image %s)" % image)}
-            # The feature could be spotted in multiple images so keeping track of them all here.
+        # The feature could be spotted in multiple images so keeping track of them all here.
+        self.instances = {
+            image:
+            PointOfInterest(image,
+                            position,
+                            self.icon_name,
+                            self.icon_size,
+                            name="(in image %s)" % image)
+        }
 
-        self.viewed_instances = {} # For instances shown to the user but not set by them yet.
+        self.viewed_instances = {
+        }  # For instances shown to the user but not set by them yet.
 
     def updatePosition(self, image, position):
         """
@@ -193,7 +229,12 @@ class Point(Feature):
         if image in self.instances.keys():
             self.instances[image].updatePosition(position)
         else:
-            self.instances[image] = PointOfInterest(image, position, self.icon_name, self.icon_size, name="(in image %s)" % image)
+            self.instances[image] = PointOfInterest(image,
+                                                    position,
+                                                    self.icon_name,
+                                                    self.icon_size,
+                                                    name="(in image %s)" %
+                                                    image)
 
     def updatePoint(self, image, point):
         """
@@ -211,10 +252,13 @@ class Point(Feature):
         if id_ in [instance.id for instance in self.instances.values()]:
             self.updatePoint(image, point)
             return True
-        elif id_ in [instance.id for instance in self.viewed_instances.values()]:
+        elif id_ in [
+                instance.id for instance in self.viewed_instances.values()
+        ]:
             for instance_image, instance in self.viewed_instances.items():
                 if instance.id == id_:
-                    self.instances[image] = self.viewed_instances[instance_image]
+                    self.instances[image] = self.viewed_instances[
+                        instance_image]
                     self.updatePoint(image, point)
                     return True
         else:
@@ -240,7 +284,12 @@ class Point(Feature):
         if image in self.instances.keys():
             return [self.instances[image]]
         else:
-            self.viewed_instances[image] = PointOfInterest(image, self.position, self.icon_name, self.icon_size, name="(in image %s)" % image)
+            self.viewed_instances[image] = PointOfInterest(
+                image,
+                self.position,
+                self.icon_name,
+                self.icon_size,
+                name="(in image %s)" % image)
             return [self.viewed_instances[image]]
 
     def dispLatLon(self):
@@ -279,21 +328,26 @@ class Point(Feature):
             if position:
                 pixel_x, pixel_y = image.invGeoReferencePoint(position)
                 offset_position = position_at_offset(position, float(size), 0)
-                offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(offset_position)
+                offset_pixel_x, offset_pixel_y = image.invGeoReferencePoint(
+                    offset_position)
 
                 if offset_pixel_x and offset_pixel_y:
-                    offset_pixels = max(abs(offset_pixel_x - pixel_x), abs(offset_pixel_y - pixel_y))
+                    offset_pixels = max(abs(offset_pixel_x - pixel_x),
+                                        abs(offset_pixel_y - pixel_y))
 
-                    self.picture_crop = ImageCrop(image, (pixel_x, pixel_y), offset_pixels)
+                    self.picture_crop = ImageCrop(image, (pixel_x, pixel_y),
+                                                  offset_pixels)
 
 
 class GroundControlPoint(Point):
     icon_name = "x"
     icon_size = (10, 10)
 
+
 class Marker(Point):
     icon_name = "flag"
     icon_size = (20, 20)
+
 
 def load_ground_control_points():
     """
@@ -306,11 +360,13 @@ def load_ground_control_points():
     ground_control_points = []
     for name, value in data.items():
         position = Position(float(value[0]), float(value[1]))
-        ground_control_points.append(GroundControlPoint(None, position, name=name))
+        ground_control_points.append(
+            GroundControlPoint(None, position, name=name))
     return ground_control_points
 
+
 def load_ground_control_points_Dictionary():
-        location = os.path.join(*["data", "ground_control_points.json"])
-        with open(location) as f:
-            data = json.load(f)
-        return data
+    location = os.path.join(*["data", "ground_control_points.json"])
+    with open(location) as f:
+        data = json.load(f)
+    return data

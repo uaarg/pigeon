@@ -1,17 +1,16 @@
 # Ruler class for measuring distance
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
 
-from station.ui.common import PixmapLabel, PixmapLabelMarker
+from station.ui.common import PixmapLabelMarker
 from station.ui import icons
 
-from station.image import Image
-from station.geo import *
 
 class Ruler(QtCore.QObject):
     """
     Measures the real-world distance and angle between two points in a single Image.
     """
-    ruler_updated = QtCore.pyqtSignal(int,str,str)
+    ruler_updated = QtCore.pyqtSignal(int, str, str)
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.distance = 0
@@ -30,13 +29,23 @@ class Ruler(QtCore.QObject):
         self.initPoints()
 
     def initPoints(self):
-        self.pixmap_label_marker_1 = PixmapLabelMarker(self.image_area, icons.ruler, offset=QtCore.QPoint(-9, -19))
-        self.pixmap_label_marker_2 = PixmapLabelMarker(self.image_area, icons.ruler, offset=QtCore.QPoint(-9, -19))
+        self.pixmap_label_marker_1 = PixmapLabelMarker(self.image_area,
+                                                       icons.ruler,
+                                                       offset=QtCore.QPoint(
+                                                           -9, -19))
+        self.pixmap_label_marker_2 = PixmapLabelMarker(self.image_area,
+                                                       icons.ruler,
+                                                       offset=QtCore.QPoint(
+                                                           -9, -19))
 
         self.image_area.addPixmapLabelFeature(self.pixmap_label_marker_1)
         self.image_area.addPixmapLabelFeature(self.pixmap_label_marker_2)
 
-        self.rulertext = PixmapLabelMarker(self.image_area, icons.airplane, size=(150, 20), id_="its aruler", isruler=True)
+        self.rulertext = PixmapLabelMarker(self.image_area,
+                                           icons.airplane,
+                                           size=(150, 20),
+                                           id_="its aruler",
+                                           isruler=True)
         self.rulertext.setStyleSheet("QLabel {background-color: white;}")
         self.image_area.addPixmapLabelFeature(self.rulertext)
 
@@ -52,20 +61,19 @@ class Ruler(QtCore.QObject):
 
         if self.calculated:
             self.clear()
-            self.calculated = False;
-            self.num_clicks = 0;
+            self.calculated = False
+            self.num_clicks = 0
             self.moved = False
 
         if self.num_clicks == 1:
             self.draggable = True
-            self.calc(image,point)
+            self.calc(image, point)
             return
-
 
     def release(self, image, point):
         self.draggable = False
         if self.moved:
-            self.calc(image,point)
+            self.calc(image, point)
 
     def move(self, image, point):
         self.moved = True
@@ -75,12 +83,15 @@ class Ruler(QtCore.QObject):
         self.pixmap_label_marker_2.moveTo(point)
         self.pixmap_label_marker_2.show()
         self.point2 = point
-        self.line.setP2(point) # set second point
-        self.distance = image.distance([self.line.x1(), self.line.y1()],
-                                  [self.line.x2(), self.line.y2()])
-        self.angle = image.heading([self.line.x1(), self.line.y1()],
-                              [self.line.x2(), self.line.y2()])
-        self.rulertext.setText("Dist:" + str("{0:.2f}".format(self.distance)) + "m  Angl:" + str("{0:.2f}".format(self.angle)))
+        self.line.setP2(point)  # set second point
+        self.distance = image.distance(
+            [self.line.x1(), self.line.y1()],
+            [self.line.x2(), self.line.y2()])
+        self.angle = image.heading(
+            [self.line.x1(), self.line.y1()],
+            [self.line.x2(), self.line.y2()])
+        self.rulertext.setText("Dist:" + str("{0:.2f}".format(self.distance)) +
+                               "m  Angl:" + str("{0:.2f}".format(self.angle)))
         self.rulertext.moveTo(point)
         self.rulertext.show()
         self.calculated = True
@@ -89,5 +100,5 @@ class Ruler(QtCore.QObject):
         self.pixmap_label_marker_1.hide()
         self.pixmap_label_marker_2.hide()
         self.rulertext.hide()
-        self.angle = 0;
-        self.distance = 0;
+        self.angle = 0
+        self.distance = 0

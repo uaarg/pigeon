@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtGui
 
 logger = logging.getLogger(__name__)
 
+
 class PixmapLoader:
     """
     Class for efficiently loading and displaying images.
@@ -10,28 +11,29 @@ class PixmapLoader:
     requested size. Tries to optimize performance by balancing
     memory usage and disk access.
     """
+
     def __init__(self, image):
         self.image = image
-        self.pixmap = None # This is where the pixmap is cached in memory
+        self.pixmap = None  # This is where the pixmap is cached in memory
         self.image_width = None
         self.image_height = None
         self.image_size = None
 
-        self.hold_original = False # A hint indicating the the original image should be held.
+        self.hold_original = False  # A hint indicating the the original image should be held.
         self.used_sizes = []
-            # A history of sizes of the pixamp used; a hint for what sizes to potentially keep when freeing memory.
-            # Each entry is a tuple, with the second element being the requested size and the first the used size.
-            # (they are likley different because getPixmapForSize will keep the original pixmap's aspect ratio)
+        # A history of sizes of the pixamp used; a hint for what sizes to potentially keep when freeing memory.
+        # Each entry is a tuple, with the second element being the requested size and the first the used size.
+        # (they are likley different because getPixmapForSize will keep the original pixmap's aspect ratio)
 
         self.maximum_megabytes_to_safely_keep = 1
-            # Pixmaps under this size (in MB) will be kept in memory to avoid raving to re-load from disk.
-            # Although you probably don't need to change it, if you want to tune things:
-            #   For a given number of images:
-            #     * If your computer is running out of memory, decrease this.
-            #     * If you experience lag while performing operations that result in a new image being displayed somewhere,
-            #       and your computer has enough memroy, increase this.
-            #
-            #   Typical numbers are likely: 1000 images * 1 MB/image (this number above) = 1 GB
+        # Pixmaps under this size (in MB) will be kept in memory to avoid raving to re-load from disk.
+        # Although you probably don't need to change it, if you want to tune things:
+        #   For a given number of images:
+        #     * If your computer is running out of memory, decrease this.
+        #     * If you experience lag while performing operations that result in a new image being displayed somewhere,
+        #       and your computer has enough memroy, increase this.
+        #
+        #   Typical numbers are likely: 1000 images * 1 MB/image (this number above) = 1 GB
 
         self.slightly_large_size_factor = 2
 
@@ -57,12 +59,20 @@ class PixmapLoader:
         if not size:
             size = QtCore.QSize(self.image_width, self.image_height)
         self._requireLoad()
-        if not self.pixmap or ((size.width() > self.pixmap.width() and size.height() > self.pixmap.height()) and (self.pixmap.width() < self.image_width or self.pixmap.height() < self.image_height)):
-            logger.debug("Performing load to get bigger pixmap (have: %s need: %s, %s)" % ("%s, %s" % (self.pixmap.width(), self.pixmap.height()) if self.pixmap else None, size.width(), size.height()))
+        if not self.pixmap or ((size.width() > self.pixmap.width()
+                                and size.height() > self.pixmap.height()) and
+                               (self.pixmap.width() < self.image_width
+                                or self.pixmap.height() < self.image_height)):
+            logger.debug(
+                "Performing load to get bigger pixmap (have: %s need: %s, %s)"
+                % ("%s, %s" % (self.pixmap.width(), self.pixmap.height())
+                   if self.pixmap else None, size.width(), size.height()))
             self._loadOriginalPixmap()
         pixmap = self.pixmap.scaled(size, QtCore.Qt.KeepAspectRatio)
         self.used_sizes.append((pixmap.size(), size))
-        return pixmap # Note that this returned pixmap is now owned by the caller: PixmapLoader isn't responsible for freeing that memory (and in fact can't)
+        # Note that this returned pixmap is now owned by the caller: PixmapLoader isn't responsible for
+        # freeing that memory (and in fact can't)
+        return pixmap
 
     def width(self):
         """
@@ -116,21 +126,40 @@ class PixmapLoader:
                 # Keeping a small version of the pixmap if something used it (because it might use it again).
                 if might_need_a_bit_bigger:
                     slightly_large_size = size * self.slightly_large_size_factor
-                    if slightly_large_size.width() <= self.pixmap.width() and slightly_large_size.height() <= self.pixmap.height() and self._estimatePixmapMemory(slightly_large_size, self.pixmap.depth()) < self.maximum_megabytes_to_safely_keep:
-                        self.pixmap = self.pixmap.scaled(slightly_large_size, QtCore.Qt.KeepAspectRatio)
+                    if slightly_large_size.width() <= self.pixmap.width(
+                    ) and slightly_large_size.height(
+                    ) <= self.pixmap.height() and self._estimatePixmapMemory(
+                            slightly_large_size, self.pixmap.depth()
+                    ) < self.maximum_megabytes_to_safely_keep:
+                        self.pixmap = self.pixmap.scaled(
+                            slightly_large_size, QtCore.Qt.KeepAspectRatio)
                         break
 
-                if size.width() <= self.pixmap.width() and size.height() <= self.pixmap.height() and self._estimatePixmapMemory(size, self.pixmap.depth()) < self.maximum_megabytes_to_safely_keep:
-                    self.pixmap = self.pixmap.scaled(requested_size, QtCore.Qt.KeepAspectRatio) # Using the actual, requested size to ensure the exact same scaling is performed as before: don't want to be off by even 1 pixel
+                if size.width() <= self.pixmap.width() and size.height(
+                ) <= self.pixmap.height() and self._estimatePixmapMemory(
+                        size, self.pixmap.depth()
+                ) < self.maximum_megabytes_to_safely_keep:
+                    self.pixmap = self.pixmap.scaled(requested_size,
+                                                     QtCore.Qt.KeepAspectRatio)
+                    # Using the actual, requested size to ensure the exact same scaling is performed as before: don't
+                    # want to be off by even 1 pixel
                     break
             else:
-                if self.pixmap.width() == self.image_width and self.pixmap.height() == self.image_height:
-                    logger.debug("In PixmapLoader.optimizeMemory(), completely clearing out pixmap to reduce memory usage.")
+                if self.pixmap.width(
+                ) == self.image_width and self.pixmap.height(
+                ) == self.image_height:
+                    logger.debug(
+                        "In PixmapLoader.optimizeMemory(), completely clearing out pixmap to reduce memory usage."
+                    )
                     self.pixmap = None
                 else:
                     pass
-        # if self.pixmap:
-        #     logger.debug("In PixmapLoader.optimizeMemory(), keeping size %s, %s at %.2f MB" % (self.pixmap.width(), self.pixmap.height(), self._estimatePixmapMemory(self.pixmap.size(), self.pixmap.depth())))
+        if self.pixmap:
+            logger.debug(
+                "In PixmapLoader.optimizeMemory(), keeping size %s, %s at %.2f MB"
+                % (self.pixmap.width(), self.pixmap.height(),
+                   self._estimatePixmapMemory(self.pixmap.size(),
+                                              self.pixmap.depth())))
 
     def _requireLoad(self):
         """
@@ -141,11 +170,11 @@ class PixmapLoader:
 
     def _loadOriginalPixmap(self):
         if not self.image.path:
-            raise(ValueError("Don't have a path to load image."))
+            raise (ValueError("Don't have a path to load image."))
         self.pixmap = QtGui.QPixmap(self.image.path)
         if self.pixmap.isNull():
             self.pixmap = None
-            raise(ValueError("Failed to load image at %s" % self.image.path))
+            raise (ValueError("Failed to load image at %s" % self.image.path))
         self.image_width = self.pixmap.width()
         self.image_height = self.pixmap.height()
 

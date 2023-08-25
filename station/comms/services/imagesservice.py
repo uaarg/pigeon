@@ -1,12 +1,12 @@
 from enum import Enum
 from pymavlink.dialects.v20 import common as mavlink2
 import queue
-import time
 from pymavlink import mavutil
 
 from station.comms.services.command import Command
 from station.comms.services.common import MavlinkService
 from station.image import Image
+
 
 class ImageCaptureState(Enum):
     WAITING_FOR_CAPTURE = 0
@@ -58,12 +58,15 @@ class ImageService(MavlinkService):
         self.recving_img = True
         print("Receiving new image")
 
-    def configure_image_params(self, message: mavlink2.MAVLink_data_transmission_handshake_message):
+    def configure_image_params(
+            self,
+            message: mavlink2.MAVLink_data_transmission_handshake_message):
         self.image_bytes = message.size
         self.expected_packets = message.packets
         print(f"Expecting {message.packets} packets")
 
-    def recv_image_packet(self, message: mavlink2.MAVLink_encapsulated_data_message):
+    def recv_image_packet(self,
+                          message: mavlink2.MAVLink_encapsulated_data_message):
         print(f'Got packet no {message.seqnr}')
         self.image_packets[message.seqnr] = message
 
@@ -73,7 +76,9 @@ class ImageService(MavlinkService):
         packet_nos = self.image_packets.keys()
         packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
         if packet_count != self.expected_packets:
-            print("WARNING: Did not receive all packets requesting missing packets")
+            print(
+                "WARNING: Did not receive all packets requesting missing packets"
+            )
             self.request_missing_packets()
         else:
             self.assemble_image()
@@ -86,13 +91,18 @@ class ImageService(MavlinkService):
         print(f"Missing Packets: {missing}")
         for missing_no in missing:
             req_packet = mavlink2.MAVLink_command_long_message(
-                1, # Target System
-                2, # Target Component
-                mavutil.mavlink.MAV_CMD_REQUEST_IMAGE_CAPTURE, # CUSTOM UAARG COMMAND
-                0, # No Confirmation
-                missing_no, # missing packet
-                0, 0, 0, 0, 0, 0
-            )
+                1,  # Target System
+                2,  # Target Component
+                mavutil.mavlink.
+                MAV_CMD_REQUEST_IMAGE_CAPTURE,  # CUSTOM UAARG COMMAND
+                0,  # No Confirmation
+                missing_no,  # missing packet
+                0,
+                0,
+                0,
+                0,
+                0,
+                0)
             self.commands.put(Command(req_packet))
 
     def assemble_image(self):
@@ -101,8 +111,9 @@ class ImageService(MavlinkService):
         packet_nos = self.image_packets.keys()
         packet_count = max(packet_nos) if len(packet_nos) > 0 else 0
         for i in range(packet_count):
-            packet = self.image_packets.get(i+1)
-            if packet is None: return
+            packet = self.image_packets.get(i + 1)
+            if packet is None:
+                return
             image += bytes(packet.data)
 
         image = image[:self.image_bytes]

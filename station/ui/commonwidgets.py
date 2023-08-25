@@ -1,10 +1,13 @@
 from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
+
 
 class BoldQLabel(QtWidgets.QLabel):
     """
     Bolding defined in the stylesheet.
     """
+
 
 class EditableBaseListForm(QtWidgets.QWidget):
     dataEdited = QtCore.pyqtSignal(list)
@@ -68,7 +71,8 @@ class EditableBaseListForm(QtWidgets.QWidget):
         self.data = data
 
         # Creating the widgets
-        for (i, (field_name, field_value, field_choices, field_editable)) in enumerate(self._interpreted_data(data)):
+        for (i, (field_name, field_value, field_choices,
+                 field_editable)) in enumerate(self._interpreted_data(data)):
             label = QtWidgets.QLabel(self)
             label.setText(translate(self.__class__.__name__, field_name))
 
@@ -78,8 +82,11 @@ class EditableBaseListForm(QtWidgets.QWidget):
                 edit_widget.setEnabled(field_editable)
 
                 def state_changed_closure(field_name):
-                    return lambda state: self._updateData(field_name, bool(state))
-                edit_widget.stateChanged.connect(state_changed_closure(field_name))
+                    return lambda state: self._updateData(
+                        field_name, bool(state))
+
+                edit_widget.stateChanged.connect(
+                    state_changed_closure(field_name))
             elif isinstance(field_value, str):
                 if field_choices and field_editable:
                     edit_widget = QtWidgets.QComboBox(self)
@@ -87,8 +94,11 @@ class EditableBaseListForm(QtWidgets.QWidget):
                     edit_widget.setCurrentText(field_value)
 
                     def state_changed_closure(field_name, field_choices):
-                        return lambda index: self._updateData(field_name, field_choices[index])
-                    edit_widget.currentIndexChanged.connect(state_changed_closure(field_name, field_choices))
+                        return lambda index: self._updateData(
+                            field_name, field_choices[index])
+
+                    edit_widget.currentIndexChanged.connect(
+                        state_changed_closure(field_name, field_choices))
 
                 else:
                     edit_widget = QtWidgets.QLineEdit(self)
@@ -96,14 +106,19 @@ class EditableBaseListForm(QtWidgets.QWidget):
                     edit_widget.setText(field_value)
 
                     def state_changed_closure(field_name, edit_widget):
-                        return lambda: self._updateData(field_name, edit_widget.text())
-                    edit_widget.editingFinished.connect(state_changed_closure(field_name, edit_widget))
+                        return lambda: self._updateData(
+                            field_name, edit_widget.text())
+
+                    edit_widget.editingFinished.connect(
+                        state_changed_closure(field_name, edit_widget))
             else:
-                raise(ValueError("Only string and boolean data supported. %s provided for field '%s'." % (type(field_value).__name__, field_name)))
+                raise (ValueError(
+                    "Only string and boolean data supported. %s provided for field '%s'."
+                    % (type(field_value).__name__, field_name)))
 
             if len(self.fields) == i:
-                self.layout.addWidget(label, i+1, 0, 1, 1)
-                self.layout.addWidget(edit_widget, i+1, 1, 1, 1)
+                self.layout.addWidget(label, i + 1, 0, 1, 1)
+                self.layout.addWidget(edit_widget, i + 1, 1, 1, 1)
                 self.fields.append([label, edit_widget])
             else:
                 self.layout.replaceWidget(self.fields[i][0], label)
@@ -123,7 +138,8 @@ class EditableBaseListForm(QtWidgets.QWidget):
         """
         Updates the feature with changes made by the user.
         """
-        for (i, (existing_field_name, existing_field_value, _, _)) in enumerate(self._interpreted_data(self.data)):
+        for (i, (existing_field_name, existing_field_value, _,
+                 _)) in enumerate(self._interpreted_data(self.data)):
             if existing_field_name == field_name:
                 data = list(self.data[i])
                 data[1] = field_value
@@ -134,7 +150,9 @@ class EditableBaseListForm(QtWidgets.QWidget):
     def getData(self):
         return self.data
 
+
 class NonEditableBaseListForm(EditableBaseListForm):
+
     def __init__(self, *args, **kwargs):
         kwargs["editable"] = False
         super().__init__(*args, **kwargs)

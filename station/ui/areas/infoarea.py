@@ -1,6 +1,7 @@
 import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 
 from ..commonwidgets import NonEditableBaseListForm
@@ -10,21 +11,27 @@ from . import ControlsArea
 from . import SettingsArea
 from .commandsarea import CommandsArea
 
+
 class ImageInfoArea(NonEditableBaseListForm):
     # Removed title so that the image info tab doesn't
     # have a gigantic second title.
     pass
 
+
 class StateArea(NonEditableBaseListForm):
+
     def _title(self):
         return "State:"
 
 
 class InfoArea(QtWidgets.QFrame):
+
     def __init__(self, *args, settings_data={}, minimum_width=250, **kwargs):
         super().__init__(*args, **kwargs)
 
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
         self.setSizePolicy(size_policy)
@@ -50,8 +57,9 @@ class InfoArea(QtWidgets.QFrame):
         self.imageInfoTab.layout.addWidget(self.image_info_area)
 
         self.state_area = StateArea(self.pigeonTab, editable=False)
-        self.settings_area = SettingsArea(self.pigeonTab, 
-            settings_data=settings_data, 
+        self.settings_area = SettingsArea(
+            self.pigeonTab,
+            settings_data=settings_data,
             fields_to_display=["Follow Images", "Plane Plumbline"])
         self.pigeonTab.layout.addWidget(self.state_area)
         self.pigeonTab.layout.addWidget(self.settings_area)
@@ -71,7 +79,7 @@ class InfoArea(QtWidgets.QFrame):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self._updateInfo)
         self.timer.start(1000)
-    
+
     def createTab(self, name):
         """
         Creates and returns a tab with a layout widget
@@ -89,12 +97,14 @@ class InfoArea(QtWidgets.QFrame):
         """
         Updates the info area with data about the image being shown.
         """
-        data = [("Image Name", image.name),
-                ("Height", image.plane_position.dispHeight()),
-                ("Pitch", image.plane_orientation.dispPitch()),
-                ("Roll", image.plane_orientation.dispRoll()),
-                ("Yaw", image.plane_orientation.dispYaw()),
-                ("Plane Position", image.plane_position.dispLatLon()),]
+        data = [
+            ("Image Name", image.name),
+            ("Height", image.plane_position.dispHeight()),
+            ("Pitch", image.plane_orientation.dispPitch()),
+            ("Roll", image.plane_orientation.dispRoll()),
+            ("Yaw", image.plane_orientation.dispYaw()),
+            ("Plane Position", image.plane_position.dispLatLon()),
+        ]
         self.image_info_area.setData(data)
 
     def addImage(self, image):
@@ -116,6 +126,8 @@ class InfoArea(QtWidgets.QFrame):
         else:
             last_image_time_ago = "(none received)"
 
-        data = [("Image Count", str(self.image_count)),
-                ("Time since last image", last_image_time_ago),]
+        data = [
+            ("Image Count", str(self.image_count)),
+            ("Time since last image", last_image_time_ago),
+        ]
         self.state_area.setData(data)

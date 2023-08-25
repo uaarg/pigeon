@@ -1,4 +1,5 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 
 from station.ui.common import PixmapLabel, PixmapLabelMarker
@@ -8,6 +9,7 @@ from station.image import Image
 from station.features import Feature
 
 from station.ui.areas.ruler import Ruler
+
 
 class MainImageArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
@@ -20,8 +22,8 @@ class MainImageArea(QtWidgets.QWidget):
         self.settings_data = settings_data
         self.features = features
 
-
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored,
+                                            QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.setSizePolicy(size_policy)
@@ -37,7 +39,8 @@ class MainImageArea(QtWidgets.QWidget):
         # self.layout.addWidget(self.title)
 
         self.image_area = PixmapLabel(interactive=True)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored,
+                                            QtWidgets.QSizePolicy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.image_area.setSizePolicy(size_policy)
@@ -52,7 +55,8 @@ class MainImageArea(QtWidgets.QWidget):
 
         # Features as drawn:
         self.feature_pixmap_label_markers = {}
-        self.image_area.pixmap_label_marker_dropped.connect(self._moveFeatureById)
+        self.image_area.pixmap_label_marker_dropped.connect(
+            self._moveFeatureById)
 
         self.ruler = Ruler()
         self.ruler.bindimagearea(self.image_area)
@@ -82,7 +86,8 @@ class MainImageArea(QtWidgets.QWidget):
 
         if self.settings_data.get("Plane Plumbline", True):
             if not self.plumbline:
-                self.plumbline = PixmapLabelMarker(self.image_area, icons.airplane)
+                self.plumbline = PixmapLabelMarker(self.image_area,
+                                                   icons.airplane)
                 self.image_area.addPixmapLabelFeature(self.plumbline)
 
             pixel_x, pixel_y = self.image.getPlanePlumbPixel()
@@ -103,26 +108,34 @@ class MainImageArea(QtWidgets.QWidget):
 
     def _drawFeature(self, feature):
         if not self.image:
-            return # Don't need to draw anything if we don't have an image to draw on
+            return  # Don't need to draw anything if we don't have an image to draw on
 
-        if feature.id in [feature.id for feature in self.features]: # Only drawing top-level features, not subfeatures
+        if feature.id in [
+                feature.id for feature in self.features
+        ]:  # Only drawing top-level features, not subfeatures
             for feature_point in feature.visiblePoints(self.image):
                 # Cleaning up any UI elements already drawn for this feature if they exist:
-                old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(feature_point.id, None)
+                old_pixmap_label_marker = self.feature_pixmap_label_markers.pop(
+                    feature_point.id, None)
                 if old_pixmap_label_marker:
                     old_pixmap_label_marker.hide()
 
                 pixel_x, pixel_y = feature_point.point_on_image
                 if False and pixel_x and pixel_y:
                     point = QtCore.QPoint(pixel_x, pixel_y)
-                    pixmap_label_marker = PixmapLabelMarker(self, icons.name_map[feature_point.icon_name], feature_point.icon_size, moveable=True, id_=feature_point.id)
+                    pixmap_label_marker = PixmapLabelMarker(
+                        self,
+                        icons.name_map[feature_point.icon_name],
+                        feature_point.icon_size,
+                        moveable=True,
+                        id_=feature_point.id)
                     self.image_area.addPixmapLabelFeature(pixmap_label_marker)
                     pixmap_label_marker.moveTo(point)
                     pixmap_label_marker.setToolTip(str(feature))
                     pixmap_label_marker.show()
 
-                    self.feature_pixmap_label_markers[feature_point.id] = pixmap_label_marker
-
+                    self.feature_pixmap_label_markers[
+                        feature_point.id] = pixmap_label_marker
 
     def _drawFeatures(self):
         for feature in self.features:
@@ -130,12 +143,15 @@ class MainImageArea(QtWidgets.QWidget):
 
     def _moveFeatureById(self, id_, point):
         for feature in self.features:
-            result = feature.updatePointById(id_, self.image, (point.x(), point.y()))
+            result = feature.updatePointById(id_, self.image,
+                                             (point.x(), point.y()))
             if result:
                 self._moveFeature(feature, point)
                 break
         else:
-            raise(Exception("Provided id of '%s' doesn't match any known features." % (id_,)))
+            raise (Exception(
+                "Provided id of '%s' doesn't match any known features." %
+                (id_, )))
 
     def _moveFeature(self, feature, point):
         feature.updatePoint(self.image, (point.x(), point.y()))
@@ -152,7 +168,9 @@ class MainImageArea(QtWidgets.QWidget):
         '''
         Used to draw the end icon of the Ruler
         '''
-        pixmap_label_marker = PixmapLabelMarker(self.image_area, icons.end_point, offset=QtCore.QPoint(-9, -19))
+        pixmap_label_marker = PixmapLabelMarker(self.image_area,
+                                                icons.end_point,
+                                                offset=QtCore.QPoint(-9, -19))
         self.image_area.addPixmapLabelFeature(pixmap_label_marker)
         pixmap_label_marker.moveTo(point)
         #pixmap_label_marker.setToolTip(str(feature))
@@ -169,7 +187,7 @@ class MainImageArea(QtWidgets.QWidget):
             point = QtCore.QPoint(event.x(), event.y())
             point = self.image_area.pointOnOriginal(point)
             if point:
-                self.ruler.press(self.image,point)
+                self.ruler.press(self.image, point)
 
     def mouseReleaseEvent(self, event):
         """
@@ -183,11 +201,11 @@ class MainImageArea(QtWidgets.QWidget):
         if event.button() == QtCore.Qt.LeftButton and point:
             self.image_clicked.emit(self.image, point)
         if event.button() == QtCore.Qt.RightButton and point:
-            self.ruler.release(self.image,point)
+            self.ruler.release(self.image, point)
 
     def mouseMoveEvent(self, event):
         if self.ruler.draggable:
             point = QtCore.QPoint(event.x(), event.y())
             point = self.image_area.pointOnOriginal(point)
             if point:
-                self.ruler.move(self.image,point)
+                self.ruler.move(self.image, point)

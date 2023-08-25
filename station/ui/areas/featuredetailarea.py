@@ -1,9 +1,11 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 translate = QtCore.QCoreApplication.translate
 
 from station.ui.commonwidgets import EditableBaseListForm, BoldQLabel
 
-from station.features import BaseFeature, Feature
+from station.features import BaseFeature
+
 
 class FeatureDetailArea(QtWidgets.QWidget):
     featureChanged = QtCore.pyqtSignal(BaseFeature)
@@ -23,14 +25,16 @@ class FeatureDetailArea(QtWidgets.QWidget):
         self.edit_form = EditableBaseListForm(self)
         self.layout.addWidget(self.edit_form)
 
-        self.edit_form.dataEdited.connect(lambda data: self._editFeatureData(data))
+        self.edit_form.dataEdited.connect(
+            lambda data: self._editFeatureData(data))
 
         self.setLayout(self.layout)
 
         self.buttons_layout = QtWidgets.QHBoxLayout()
         self.layout.addLayout(self.buttons_layout)
 
-        self.add_subfeature_button = QtWidgets.QPushButton(translate("FeatureDetailArea", "Add Subfeature"), self)
+        self.add_subfeature_button = QtWidgets.QPushButton(
+            translate("FeatureDetailArea", "Add Subfeature"), self)
         self.buttons_layout.addWidget(self.add_subfeature_button)
         # Causes crash - Mackenzie
         #self.add_subfeature_button.clicked.connect(lambda: self.addSubfeatureRequested.emit(self.feature))
@@ -55,9 +59,11 @@ class FeatureDetailArea(QtWidgets.QWidget):
         if hasattr(feature, "dispLatLon"):
             display_data.append(("Position", feature.dispLatLon(), [], False))
         if hasattr(feature, "dispMaxPositionDistance"):
-            display_data.append(("Error", feature.dispMaxPositionDistance(), [], False))
+            display_data.append(
+                ("Error", feature.dispMaxPositionDistance(), [], False))
         if hasattr(feature, "image") and feature.image:
-            display_data.append(("Image Name", str(feature.image.name), [], False))
+            display_data.append(
+                ("Image Name", str(feature.image.name), [], False))
         self.edit_form.setData(display_data)
         if self.feature.allowSubfeatures():
             self.add_subfeature_button.show()

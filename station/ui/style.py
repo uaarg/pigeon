@@ -4,7 +4,7 @@ Stylesheet for use with Qt's setStyleSheet() function.
 
 stylesheet = """
 
-QLineEdit[readOnly="true"] 
+QLineEdit[readOnly="true"]
 {
     color: #808080;
     background-color: #F0F0F0;

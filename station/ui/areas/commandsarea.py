@@ -1,6 +1,9 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from station.comms.services.command import Command
-from station.ui.commonwidgets import NonEditableBaseListForm, BoldQLabel
+from station.ui.commonwidgets import BoldQLabel
+
+import datetime
+
 
 def markMessageReceived(func=None):
     """
@@ -8,10 +11,13 @@ def markMessageReceived(func=None):
     decorator for methods who's class has a last_message_received_time
     attribute.
     """
+
     def new_func(*args, **kwargs):
         args[0].last_message_received_time = datetime.datetime.now()
         func(*args, **kwargs)
+
     return new_func
+
 
 class CommandsArea(QtWidgets.QWidget):
     """
@@ -22,7 +28,6 @@ class CommandsArea(QtWidgets.QWidget):
     # This is how we send commands in the plane. Hooked up in ui.py
     send_command = QtCore.pyqtSignal(Command)
     receive_command_ack = QtCore.pyqtSignal(str, str)
-    
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,9 +61,8 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Buttons
         self.resendBtn = QtWidgets.QPushButton("Resend")
-        self.resendBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.sendImage()
-        ))
+        self.resendBtn.clicked.connect(
+            lambda: self.send_command.emit(Command.sendImage()))
         self.layout.addWidget(self.resendBtn, 2, 3)
 
         # Stop Search Pattern
@@ -88,15 +92,13 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Buttons
         self.enableCamCaptureBtn = QtWidgets.QPushButton("ON")
-        self.enableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.enableCamera()
-        ))
+        self.enableCamCaptureBtn.clicked.connect(
+            lambda: self.send_command.emit(Command.enableCamera()))
         self.layout.addWidget(self.enableCamCaptureBtn, 4, 2)
 
         self.disableCamCaptureBtn = QtWidgets.QPushButton("OFF")
-        self.disableCamCaptureBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.disableCamera()
-        ))
+        self.disableCamCaptureBtn.clicked.connect(
+            lambda: self.send_command.emit(Command.disableCamera()))
         self.layout.addWidget(self.disableCamCaptureBtn, 4, 3)
 
         # Mode Control
@@ -109,14 +111,14 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Dropdown
         self.modeControlDropdown = QtWidgets.QComboBox()
-        self.modeControlDropdown.addItems(['IDLE', 'TAKEOFF', 'FOLLOW_MISSION', 'LANDING_SEARCH', 'LAND'])
+        self.modeControlDropdown.addItems(
+            ['IDLE', 'TAKEOFF', 'FOLLOW_MISSION', 'LANDING_SEARCH', 'LAND'])
         self.layout.addWidget(self.modeControlDropdown, 5, 2)
 
         # Button
         self.modeControlBtn = QtWidgets.QPushButton("SEND")
         self.modeControlBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.setMode(self.modeControlDropdown.currentIndex())
-        ))
+            Command.setMode(self.modeControlDropdown.currentIndex())))
         self.layout.addWidget(self.modeControlBtn, 5, 3)
 
         # LIGHTS ON?OFF
@@ -129,19 +131,17 @@ class CommandsArea(QtWidgets.QWidget):
 
         # Buttons
         self.lightControlOnBtn = QtWidgets.QPushButton("ON")
-        self.lightControlOnBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.switchLights(True)
-        ))
+        self.lightControlOnBtn.clicked.connect(
+            lambda: self.send_command.emit(Command.switchLights(True)))
         self.layout.addWidget(self.lightControlOnBtn, 6, 2)
 
         self.lightControlOffBtn = QtWidgets.QPushButton("OFF")
-        self.lightControlOffBtn.clicked.connect(lambda: self.send_command.emit(
-            Command.switchLights(False)
-        ))
+        self.lightControlOffBtn.clicked.connect(
+            lambda: self.send_command.emit(Command.switchLights(False)))
         self.layout.addWidget(self.lightControlOffBtn, 6, 3)
 
         # Hook up our slots
-        self.receive_command_ack.connect(self.receiveCommandAck) # Emit in UI
+        self.receive_command_ack.connect(self.receiveCommandAck)  # Emit in UI
 
     @markMessageReceived
     def receiveCommandAck(self, command, value):

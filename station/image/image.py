@@ -7,21 +7,25 @@ import os
 import logging
 from math import degrees
 
-import station.geo
+from station import geo
 
 logger = logging.getLogger(__name__)
 
-supported_image_formats = ["bmp", "gif", "jpg", "jpeg", "png", "pbm", "pgm", "ppm", "xbm", "xpm"]
+supported_image_formats = [
+    "bmp", "gif", "jpg", "jpeg", "png", "pbm", "pgm", "ppm", "xbm", "xpm"
+]
 supported_info_formats = ["txt"]
 
-images = {} # Dictionary of images by id so we can avoid creating duplicates.
+images = {}  # Dictionary of images by id so we can avoid creating duplicates.
+
 
 class Image(object):
+    # This is static method because it doesn't need access to the instance and
+    # we want to be able to call it from __new__() (when the instance doesn't
+    # exist yet). It's basically just a normal function, but belonging to this
+    # class.
     @staticmethod
-    def parseFilePath(path): # This is static method because it doesn't need access to the instance and
-                             # we want to be able to call it from __new__() (when the instance doesn't
-                             # exist yet). It's basically just a normal function, but belonging to this
-                             # class.
+    def parseFilePath(path):
         """
         Parses a filepath, returning a tuple with four parts:
         * The directory of the file (ex. /home/bob/)
@@ -33,12 +37,13 @@ class Image(object):
         filename, extension = os.path.splitext(tail)
         return (head, tail, filename, extension)
 
-    def __new__(cls, *args): # __new__() is what actually makes a new instance of a class. Called immediately
-                             # before __init__(). Overriding it so that we can reuse an existing instance instead
-                             # of creating a new one when the id is the same. Needed for multi-operator support
-                             # since images objects can be created two different ways: as part of a feature and
-                             # when a new image file is found. We want the two to end up refering to the same object
-        _, id_, _, _ = cls.parseFilePath(args[0]) # The filename is the id
+    # __new__() is what actually makes a new instance of a class. Called immediately
+    # before __init__(). Overriding it so that we can reuse an existing instance instead
+    # of creating a new one when the id is the same. Needed for multi-operator support
+    # since images objects can be created two different ways: as part of a feature and
+    # when a new image file is found. We want the two to end up refering to the same object
+    def __new__(cls, *args):
+        _, id_, _, _ = cls.parseFilePath(args[0])  # The filename is the id
 
         existing_image = images.get(id_)
         if existing_image:
@@ -48,14 +53,13 @@ class Image(object):
             images[id_] = image
             return image
 
-
     def __init__(self, image_path, info_path):
         self._parsePaths(image_path, info_path)
         self._readInfo()
         self._prepareProperties()
 
-        self.width = None # Automatically set later when image read
-        self.height = None # Automatically set later when  image read
+        self.width = None  # Automatically set later when image read
+        self.height = None  # Automatically set later when  image read
         self.georeference = None
 
     def __str__(self):
@@ -106,7 +110,7 @@ class Image(object):
             for line in f:
                 key, sep, value = line.partition("=")
                 self.info_data[key.strip()] = value.strip()
-        return  self.info_data
+        return self.info_data
 
     def _prepareProperties(self):
         """
@@ -116,35 +120,44 @@ class Image(object):
         # Going through some extra effort to be able to surface a
         # list of missing fields, not just the first missing one
         # for a more user-friendly error message.
-        field_map = {"easting": "utm_east",
-                     "northing": "utm_north",
-                     "zone": "utm_zone",
-                     "height": "z",
-                     "alt": "z",
-                     "pitch": "theta",
-                     "roll": "phi",
-                     "yaw": "psi"}
+        field_map = {
+            "easting": "utm_east",
+            "northing": "utm_north",
+            "zone": "utm_zone",
+            "height": "z",
+            "alt": "z",
+            "pitch": "theta",
+            "roll": "phi",
+            "yaw": "psi"
+        }
 
-        missing_fields = [field for field in field_map.values() if field not in self.info_data.keys()]
+        missing_fields = [
+            field for field in field_map.values()
+            if field not in self.info_data.keys()
+        ]
 
         if len(missing_fields) != 0:
-            raise(KeyError("Missing %s field(s) from info file." % ", ".join(missing_fields)))
+            raise KeyError("Missing %s field(s) from info file." %
+                           ", ".join(missing_fields))
 
         # Ensuring we don't let in any infinities or Nan's (both are valid for floats, but not integers):
         for field in field_map.values():
             try:
                 int(float(self.info_data[field]))
             except (ValueError, OverflowError) as e:
-                raise(ValueError("%s for field '%s'" % (e, field)))
+                raise ValueError("%s for field '%s'" % (e, field))
 
         easting = float(self.info_data[field_map["easting"]]) / 100
         northing = float(self.info_data[field_map["northing"]]) / 100
         zone = int(self.info_data[field_map["zone"]])
         height = float(self.info_data[field_map["height"]])
         alt = float(self.info_data[field_map["alt"]])
-        pitch = degrees(float(self.info_data[field_map["pitch"]])) * -1 # top of camera pointing towards plane tail
-        roll = degrees(float(self.info_data[field_map["roll"]])) * -1 # top of camera pointing towards plane tail
-        yaw = degrees(float(self.info_data[field_map["yaw"]])) # top of camera pointing towards plane tail
+        pitch = degrees(float(self.info_data[field_map["pitch"]])
+                        ) * -1  # top of camera pointing towards plane tail
+        roll = degrees(float(self.info_data[field_map["roll"]])
+                       ) * -1  # top of camera pointing towards plane tail
+        yaw = degrees(float(self.info_data[
+            field_map["yaw"]]))  # top of camera pointing towards plane tail
         # yaw is absolute comparison to north, can't just flip
 
         lat, lon = geo.utm_to_DD(easting, northing, zone)
@@ -158,14 +171,16 @@ class Image(object):
         if anything important is missing (ex. image width or height).
         """
         if not self.width:
-            raise(Exception("Can't geo-reference image. Missing image width."))
+            raise Exception("Can't geo-reference image. Missing image width.")
         if not self.height:
-            raise(Exception("Can't geo-reference image. Missing image height."))
+            raise Exception("Can't geo-reference image. Missing image height.")
 
-        field_of_view_horiz = 58.38 # Hardcoded for now. Should come from the UAV in the info file eventually.
-        field_of_view_vert = 48.25 
+        field_of_view_horiz = 58.38  # Hardcoded for now. Should come from the UAV in the info file eventually.
+        field_of_view_vert = 48.25
 
-        self.camera_specs = geo.CameraSpecs(self.width, self.height, field_of_view_horiz, field_of_view_vert)
+        self.camera_specs = geo.CameraSpecs(self.width, self.height,
+                                            field_of_view_horiz,
+                                            field_of_view_vert)
         self.georeference = geo.GeoReference(self.camera_specs)
 
     def _requireGeo(self):
@@ -178,7 +193,9 @@ class Image(object):
         at pixel.
         """
         self._requireGeo()
-        return self.georeference.pointInImage(self.plane_position, self.plane_orientation, pixel_x, pixel_y)
+        return self.georeference.pointInImage(self.plane_position,
+                                              self.plane_orientation, pixel_x,
+                                              pixel_y)
 
     def invGeoReferencePoint(self, position):
         """
@@ -186,7 +203,8 @@ class Image(object):
         position.
         """
         self._requireGeo()
-        return self.georeference.pointOnImage(self.plane_position, self.plane_orientation, position)
+        return self.georeference.pointOnImage(self.plane_position,
+                                              self.plane_orientation, position)
 
     def getPlanePlumbPixel(self):
         """
@@ -196,7 +214,8 @@ class Image(object):
         Returns None, None if the point isn't in the image.
         """
         self._requireGeo()
-        return self.georeference.pointBelowPlane(self.plane_position, self.plane_orientation)
+        return self.georeference.pointBelowPlane(self.plane_position,
+                                                 self.plane_orientation)
 
     def distance(self, point_a, point_b):
         """
@@ -204,8 +223,10 @@ class Image(object):
         refered to by the provided pixel locations.
         """
         self._requireGeo()
-        positions = [self.geoReferencePoint(*point_a),
-                     self.geoReferencePoint(*point_b)]
+        positions = [
+            self.geoReferencePoint(*point_a),
+            self.geoReferencePoint(*point_b)
+        ]
         return geo.PositionCollection(positions).length()
 
     def heading(self, point_a, point_b):
@@ -214,8 +235,10 @@ class Image(object):
         by the provided pixel locations.
         """
         self._requireGeo()
-        positions = [self.geoReferencePoint(*point_a),
-                     self.geoReferencePoint(*point_b)]
+        positions = [
+            self.geoReferencePoint(*point_a),
+            self.geoReferencePoint(*point_b)
+        ]
         return geo.heading_between_positions(positions[0], positions[1])
 
     def getImageOutline(self):
@@ -224,14 +247,18 @@ class Image(object):
         ground that the picture covers.
         """
         positions = []
-        for x, y in [(0, self.height), (self.width, self.height), (self.width, 0), (0, 0)]: # All corners of the image
+        corners = [(0, self.height), (self.width, self.height),
+                   (self.width, 0), (0, 0)]  # All corners of the image
+        for x, y in corners:
             positions.append(self.geoReferencePoint(x, y))
         return geo.PositionCollection(positions)
+
 
 class ImageCrop:
     """
     Represents a cropped area of a particular image.
     """
+
     def __init__(self, image, center, offset):
         self.image = image
         self.center = center
@@ -261,6 +288,7 @@ class ImageCrop:
     def bottom_right(self):
         return (self.max_x, self.max_y)
 
+
 class Watcher:
     # Empty watcher class
     # This will have to be replaced by something else as we no longer use pyinotify
@@ -272,8 +300,17 @@ class Watcher:
         self.pending_infos = {}
 
     # no-op old Watcher class methods
-    def createImage(self, image_pathname, info_pathname): pass
-    def loadExistingImages(self, path): pass
-    def setDirectory(self, path): pass
-    def start(self): pass
-    def stop(self): pass
+    def createImage(self, image_pathname, info_pathname):
+        pass
+
+    def loadExistingImages(self, path):
+        pass
+
+    def setDirectory(self, path):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass

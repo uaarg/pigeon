@@ -13,6 +13,4 @@ pause = os.path.join(*["data", "icons", "pause.png"])
 stop = os.path.join(*["data", "icons", "stop.png"])
 ruler = os.path.join(*["data", "icons", "ruler.png"])
 
-name_map = {"marker": marker,
-            "flag": flag,
-            "x": x}
+name_map = {"marker": marker, "flag": flag, "x": x}

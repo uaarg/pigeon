@@ -20,13 +20,14 @@ default_settings_data = {
     "MavLink Device": "udp:127.0.0.1:14550",
 }
 
-settings_data = default_settings_data.copy() # Global settings data.
-
+settings_data = default_settings_data.copy()  # Global settings data.
 
 logger = logging.getLogger(__name__)
 
+
 def _update_global_dict(new_data):
     settings_data.update(new_data)
+
 
 def _handleMigrations():
     """
@@ -53,6 +54,7 @@ def _handleMigrations():
     if custom_uav_network == "127:2010":
         settings_data["UAV Network"] = "127:2011"
 
+
 def load():
     """
     Returns a dictionary of the saved settings. This mutable object
@@ -60,7 +62,7 @@ def load():
     this dict to get updates if desired.
 
     Settings are loaded from a file located at the location variable.
-    In the event that the file DNE, then it is created with the 
+    In the event that the file DNE, then it is created with the
     default settings.
     """
     try:
@@ -79,6 +81,7 @@ def load():
     _handleMigrations()
     return settings_data
 
+
 def save(settings):
     """
     Saves provided dictionary of settings. Updates the dictionary
@@ -87,7 +90,11 @@ def save(settings):
     """
     _update_global_dict(settings)
 
-    different_data = {key: value for key, value in settings_data.items() if value != default_settings_data.get(key)}
+    different_data = {
+        key: value
+        for key, value in settings_data.items()
+        if value != default_settings_data.get(key)
+    }
     with open(location, "w") as settings_file:
         json.dump(different_data, settings_file, indent=4)
 
