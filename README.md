@@ -47,10 +47,16 @@ python3 station.py
 ```
 
 
-Running the Tests
--------------
+Development
+-----------
 
-TODO: we no longer have tests. I, Aidan, am working on adding these.
+To help aid in development and managing the codebase, we have the following tools:
+
+- `./scripts/fmt.sh` -- Format all python files
+- `./scripts/lint.sh` -- Lint (check for common errors) all python files
+- `./scripts/test.sh` -- Run all tests
+
+The linter and tests are all run on each commit/PR via our CI.
 
 
 Contributing
