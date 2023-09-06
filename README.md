@@ -36,8 +36,8 @@ pip install -r requirements.txt.
 ```
 
 
-Running Pidgeon
----------------
+Running Pigeon
+--------------
 
 Before running the GUI, start a shell session in the repo root. Activate the
 virtual environment. Then run the following in the station folder:
