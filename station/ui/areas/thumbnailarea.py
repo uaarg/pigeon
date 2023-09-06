@@ -1,6 +1,6 @@
 import logging
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 translate = QtCore.QCoreApplication.translate
 
@@ -16,8 +16,8 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.settings_data = settings_data
 
         size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Preferred)
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.Preferred)
         size_policy.setHorizontalStretch(10)
         size_policy.setVerticalStretch(10)
         self.setSizePolicy(size_policy)
@@ -27,7 +27,7 @@ class ThumbnailArea(QtWidgets.QWidget):
         self.layout = QtWidgets.QHBoxLayout(self)
 
         self.contents = ScaledListWidget()
-        self.contents.setFlow(QtWidgets.QListWidget.LeftToRight)
+        self.contents.setFlow(QtWidgets.QListWidget.Flow.LeftToRight)
         self.layout.addWidget(self.contents)
 
         self.recent_image = WidthForHeightPixmapLabel()

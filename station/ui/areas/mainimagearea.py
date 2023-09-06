@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 translate = QtCore.QCoreApplication.translate
 
@@ -22,8 +22,8 @@ class MainImageArea(QtWidgets.QWidget):
         self.settings_data = settings_data
         self.features = features
 
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored,
-                                            QtWidgets.QSizePolicy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored,
+                                            QtWidgets.QSizePolicy.Policy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.setSizePolicy(size_policy)
@@ -39,13 +39,13 @@ class MainImageArea(QtWidgets.QWidget):
         # self.layout.addWidget(self.title)
 
         self.image_area = PixmapLabel(interactive=True)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored,
-                                            QtWidgets.QSizePolicy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored,
+                                            QtWidgets.QSizePolicy.Policy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.image_area.setSizePolicy(size_policy)
         self.image_area.setMinimumSize(QtCore.QSize(50, 50))
-        self.image_area.setAlignment(QtCore.Qt.AlignHCenter)
+        self.image_area.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         self.layout.addWidget(self.image_area)
 
         self.image = None

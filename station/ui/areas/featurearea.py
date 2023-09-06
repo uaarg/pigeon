@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 translate = QtCore.QCoreApplication.translate
 
@@ -17,15 +17,15 @@ class FeatureArea(QtWidgets.QFrame):
         self.features = {}  # Mapping from feature id's to items.
 
         size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.MinimumExpanding)
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
         self.setSizePolicy(size_policy)
         self.setMinimumSize(QtCore.QSize(minimum_width, 200))
 
-        self.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+        self.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.setObjectName("feature_area")
 
         self.title = BoldQLabel(self)
@@ -38,7 +38,7 @@ class FeatureArea(QtWidgets.QFrame):
         self.feature_tree = QtWidgets.QTreeWidget()
         self.feature_tree.header().close()
 
-        self.feature_tree.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.feature_tree.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.icon_size = QtCore.QSize(40, 40)
         self.feature_tree.setIconSize(self.icon_size)
         self.layout.addWidget(self.feature_tree, 1, 0, 1, 1)

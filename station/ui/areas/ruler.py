@@ -1,5 +1,5 @@
 # Ruler class for measuring distance
-from PyQt5 import QtCore
+from PyQt6 import QtCore
 
 from station.ui.common import PixmapLabelMarker
 from station.ui import icons

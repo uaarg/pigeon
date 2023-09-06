@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 from station.comms.services.command import Command
 from station.ui.commonwidgets import BoldQLabel
 

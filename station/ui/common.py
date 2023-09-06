@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt6 import QtCore, QtWidgets, QtGui
 import queue as queue_module
 import logging
 import uuid
@@ -112,7 +112,7 @@ class BasePixmapLabel(QtWidgets.QLabel):
                 size)  # Need a bigger pixmap than the one we already have
         else:
             pixmap = self.pixmap().scaled(
-                size, QtCore.Qt.KeepAspectRatio
+                size, QtCore.Qt.AspectRatioMode.KeepAspectRatio
             )  # Just need to shrink our existing pixmap
             if pixmap.isNull():
                 raise (Exception("Failed to scale pixmap to size %s, %s" %
@@ -287,7 +287,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         # to because only the PixmapLabel knows how to do that mapping.
 
         if self.moveable:
-            self.setCursor(QtCore.Qt.OpenHandCursor)
+            self.setCursor(QtCore.Qt.CursorShape.OpenHandCursor)
 
     def position(self):
         """
@@ -319,7 +319,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
             event.ignore()
 
     def mousePressEvent(self, event):
-        if self.moveable and event.button() == QtCore.Qt.LeftButton:
+        if self.moveable and event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):
@@ -361,7 +361,7 @@ class ScaledListWidget(BaseQListWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
 
         def on_scroll(*args, **kwargs):
             self._updateIconSizes()
@@ -404,15 +404,15 @@ class ScaledListWidget(BaseQListWidget):
         self._updateIconSizes()
 
     def calculateIconSize(self):
-        if self.Flow() == QtWidgets.QListWidget.LeftToRight:
+        if self.flow() == QtWidgets.QListWidget.Flow.LeftToRight:
             size = self.height()
-        elif self.Flow() == QtWidgets.QListWidget.TopToBottom:
+        elif self.flow() == QtWidgets.QListWidget.Flow.TopToBottom:
             size = self.width()
         else:
             raise (Exception(
                 "Unexpected flow encountered: %s. Expected %s or %s." %
-                (self.Flow(), QtWidgets.QListWidget.LeftToRight,
-                 QtWidgets.QListWidget.TopToBottom)))
+                (self.flow(), QtWidgets.QListWidget.Flow.LeftToRight,
+                 QtWidgets.QListWidget.Flow.TopToBottom)))
         return QtCore.QSize(size, size)
 
 

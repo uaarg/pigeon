@@ -1,5 +1,5 @@
 import logging
-from PyQt5 import QtCore, QtGui
+from PyQt6 import QtCore, QtGui
 
 logger = logging.getLogger(__name__)
 

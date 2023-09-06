@@ -2,7 +2,7 @@ import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
 
-from PyQt5 import Qt, QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 
 translate = QtCore.QCoreApplication.translate  # Potential aliasing
 
@@ -30,7 +30,7 @@ class UI(QtCore.QObject, QueueMixin):
     """
     Class for the rest of the application to interface with the UI.
 
-    This implementation of the class uses PyQt5 to provide the UI but
+    This implementation of the class uses PyQt6 to provide the UI but
     theoretically, other frameworks could be used without the rest of
     the application caring, as long as this class's API is
     implemented. Or, more likely: a mock UI instance could be used in
@@ -100,7 +100,7 @@ class UI(QtCore.QObject, QueueMixin):
         """
         self.main_window.show()
         self.startQueueMonitoring()
-        return self.app.exec_()
+        return self.app.exec()
 
     def addImage(self, image):
         """
@@ -185,14 +185,14 @@ class AboutWindow(QtWidgets.QWidget):
         self.setWindowTitle(translate("About Window", "About"))
 
         frame_rect = self.frameGeometry()
-        center_point = QtWidgets.QApplication.desktop().availableGeometry(
+        center_point = QtWidgets.QApplication.primaryScreen().availableGeometry(
         ).center()
         frame_rect.moveCenter(center_point)
         self.move(frame_rect.topLeft())
 
         self.layout = QtWidgets.QVBoxLayout(self)
         about_label = QtWidgets.QLabel(about_text, self)
-        about_label.setAlignment(Qt.Qt.AlignCenter)
+        about_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(about_label)
 
 
@@ -206,15 +206,15 @@ class SettingsWindow(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setObjectName("settings_window")
         self.setMinimumSize(QtCore.QSize(400, 300))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                            QtWidgets.QSizePolicy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                            QtWidgets.QSizePolicy.Policy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
         self.setWindowTitle(translate("Settings Window", "Settings"))
 
         frame_rect = self.frameGeometry()
-        center_point = QtWidgets.QApplication.desktop().availableGeometry(
+        center_point = QtWidgets.QApplication.primaryScreen().availableGeometry(
         ).center()
         frame_rect.moveCenter(center_point)
         self.move(frame_rect.topLeft())
@@ -225,7 +225,7 @@ class SettingsWindow(QtWidgets.QWidget):
                                           fields_to_display=sorted(
                                               settings_data.keys()))
         self.layout.addWidget(self.settings_area)
-        self.layout.setAlignment(self.settings_area, Qt.Qt.AlignCenter)
+        self.layout.setAlignment(self.settings_area, QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.settings_area.settings_save_requested.connect(
             self.settings_save_requested.emit)
@@ -265,8 +265,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setObjectName("main_window")
         self.showMaximized()
         self.setMinimumSize(QtCore.QSize(500, 500))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                            QtWidgets.QSizePolicy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                                            QtWidgets.QSizePolicy.Policy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
@@ -280,17 +280,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.grid_layout.setObjectName("grid_layout")
 
         self.main_vertical_split = QtWidgets.QSplitter()
-        self.main_vertical_split.setOrientation(QtCore.Qt.Vertical)
+        self.main_vertical_split.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.main_vertical_split.setObjectName("main_vertical_split")
         self.grid_layout.addWidget(self.main_vertical_split, 0, 0, 1, 1)
 
         self.main_horizontal_split = QtWidgets.QSplitter(
             self.main_vertical_split)
-        self.main_horizontal_split.setOrientation(QtCore.Qt.Horizontal)
+        self.main_horizontal_split.setOrientation(QtCore.Qt.Orientation.Horizontal)
         self.main_horizontal_split.setObjectName("main_horizontal_split")
         size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Preferred)
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.Preferred)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(100)
         self.main_horizontal_split.setSizePolicy(size_policy)
@@ -364,19 +364,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu = self.menubar.addMenu("&File")
 
-        exit_action = QtWidgets.QAction("Exit", self)
+        exit_action = QtGui.QAction("Exit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.exit_cb)
         menu.addAction(exit_action)
 
         menu = self.menubar.addMenu("&Edit")
-        settings_action = QtWidgets.QAction("Settings", self)
+        settings_action = QtGui.QAction("Settings", self)
         settings_action.triggered.connect(self.showSettingsWindow)
         menu.addAction(settings_action)
 
         menu = self.menubar.addMenu("&Help")
 
-        about_action = QtWidgets.QAction("About Pigeon", self)
+        about_action = QtGui.QAction("About Pigeon", self)
         about_action.setShortcut("Ctrl+A")
         about_action.triggered.connect(self.showAboutWindow)
         menu.addAction(about_action)
@@ -387,7 +387,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Extra Processing for images, like QR codes
         menu = self.menubar.addMenu("&Process")
 
-        process_action = QtWidgets.QAction("Process QR Code", self)
+        process_action = QtGui.QAction("Process QR Code", self)
         process_action.triggered.connect(self.decodeQR)
 
         # Activate only on first image load

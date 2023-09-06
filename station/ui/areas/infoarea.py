@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 translate = QtCore.QCoreApplication.translate
 
@@ -30,15 +30,15 @@ class InfoArea(QtWidgets.QFrame):
         super().__init__(*args, **kwargs)
 
         size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.MinimumExpanding)
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
         self.setSizePolicy(size_policy)
         self.setMinimumSize(QtCore.QSize(minimum_width, 200))
 
-        self.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+        self.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.setObjectName("info_area")
 
         self.layout = QtWidgets.QVBoxLayout(self)
