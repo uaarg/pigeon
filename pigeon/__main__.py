@@ -42,7 +42,7 @@ Running in "%(run_directory)s"
 
 Version: %(version)s
 
-Copyright (c) 2016 UAARG
+Copyright (c) 2023 UAARG
 """ % {
             "version": __version__,
             "run_directory": os.getcwd()
