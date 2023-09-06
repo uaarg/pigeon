@@ -9,14 +9,10 @@
 *.py[cod]
 __pycache__/
 
-# Pyhton Virtual Envs
+# Python Virtual Envs
 env/
 venv3/
 venv/
-
-# SCons
-# Ignore database files
-.sconsign.dblite
 
 # Data
 *.log
@@ -25,12 +21,3 @@ venv/
 *.csv
 *.json
 !data/ground_control_points.json
-
-# Modules
-modules/
-
-# AUVSI Lib
-station/auvsi_suas
-
-# ctags
-tags
