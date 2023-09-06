@@ -185,8 +185,8 @@ class AboutWindow(QtWidgets.QWidget):
         self.setWindowTitle(translate("About Window", "About"))
 
         frame_rect = self.frameGeometry()
-        center_point = QtWidgets.QApplication.primaryScreen().availableGeometry(
-        ).center()
+        center_point = QtWidgets.QApplication.primaryScreen(
+        ).availableGeometry().center()
         frame_rect.moveCenter(center_point)
         self.move(frame_rect.topLeft())
 
@@ -206,16 +206,17 @@ class SettingsWindow(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setObjectName("settings_window")
         self.setMinimumSize(QtCore.QSize(400, 300))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                            QtWidgets.QSizePolicy.Policy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
         self.setWindowTitle(translate("Settings Window", "Settings"))
 
         frame_rect = self.frameGeometry()
-        center_point = QtWidgets.QApplication.primaryScreen().availableGeometry(
-        ).center()
+        center_point = QtWidgets.QApplication.primaryScreen(
+        ).availableGeometry().center()
         frame_rect.moveCenter(center_point)
         self.move(frame_rect.topLeft())
 
@@ -225,7 +226,8 @@ class SettingsWindow(QtWidgets.QWidget):
                                           fields_to_display=sorted(
                                               settings_data.keys()))
         self.layout.addWidget(self.settings_area)
-        self.layout.setAlignment(self.settings_area, QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.layout.setAlignment(self.settings_area,
+                                 QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.settings_area.settings_save_requested.connect(
             self.settings_save_requested.emit)
@@ -265,8 +267,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setObjectName("main_window")
         self.showMaximized()
         self.setMinimumSize(QtCore.QSize(500, 500))
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                            QtWidgets.QSizePolicy.Policy.Expanding)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding)
         size_policy.setHorizontalStretch(1)
         size_policy.setVerticalStretch(1)
         self.setSizePolicy(size_policy)
@@ -286,7 +289,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.main_horizontal_split = QtWidgets.QSplitter(
             self.main_vertical_split)
-        self.main_horizontal_split.setOrientation(QtCore.Qt.Orientation.Horizontal)
+        self.main_horizontal_split.setOrientation(
+            QtCore.Qt.Orientation.Horizontal)
         self.main_horizontal_split.setObjectName("main_horizontal_split")
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,

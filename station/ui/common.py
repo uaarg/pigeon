@@ -319,7 +319,8 @@ class PixmapLabelMarker(QtWidgets.QLabel):
             event.ignore()
 
     def mousePressEvent(self, event):
-        if self.moveable and event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if self.moveable and event.button(
+        ) == QtCore.Qt.MouseButton.LeftButton:
             self.drag_start_position = event.pos()
 
     def mouseMoveEvent(self, event):

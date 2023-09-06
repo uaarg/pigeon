@@ -22,8 +22,9 @@ class MainImageArea(QtWidgets.QWidget):
         self.settings_data = settings_data
         self.features = features
 
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored,
-                                            QtWidgets.QSizePolicy.Policy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.setSizePolicy(size_policy)
@@ -39,8 +40,9 @@ class MainImageArea(QtWidgets.QWidget):
         # self.layout.addWidget(self.title)
 
         self.image_area = PixmapLabel(interactive=True)
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored,
-                                            QtWidgets.QSizePolicy.Policy.Ignored)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Ignored)
         size_policy.setHorizontalStretch(100)
         size_policy.setVerticalStretch(100)
         self.image_area.setSizePolicy(size_policy)
