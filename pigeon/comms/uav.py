@@ -199,7 +199,6 @@ class UAV:
 
             try:
                 command = self.commands.get(block=False)
-                print(f"Sending: {command.message}")
                 self.conn.write(command.encode(self.conn))
             except queue.Empty:
                 pass

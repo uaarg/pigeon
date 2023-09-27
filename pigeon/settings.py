@@ -17,7 +17,7 @@ default_settings_data = {
     "Feature Export Path": "data/exports",
     "Nominal Target Size": "2.5",
     "Instance Name": "",
-    "MavLink Device": "udp:127.0.0.1:14550",
+    "MavLink Device": "tcp:127.0.0.1:14550",
 }
 
 settings_data = default_settings_data.copy()  # Global settings data.
