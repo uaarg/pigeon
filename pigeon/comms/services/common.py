@@ -51,15 +51,16 @@ class HearbeatService(MavlinkService):
         self.last_recv_heartbeat = time.time()
 
     def recv_message(self, message: mavlink2.MAVLink_message):
-        if message.get_type() == "HEARBEAT":
+        if message.get_type() == "HEARTBEAT":
             self.last_recv_heartbeat = time.time()
 
     def tick(self):
         now = time.time()
 
-        if now - self.last_sent_heartbeat < self.heartbeat_interval:
+        if now - self.last_sent_heartbeat > self.heartbeat_interval:
             heartbeat = Command.heartbeat()
             self.commands.put(heartbeat)
+            self.last_sent_heartbeat = time.time()
 
         if now - self.last_recv_heartbeat > 15 * self.heartbeat_interval:
             print(
