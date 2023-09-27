@@ -40,7 +40,17 @@ Running Pigeon
 --------------
 
 Before running the GUI, start a shell session in the repo root. Activate the
-virtual environment. Then run the following:
+virtual environment. **Repeat this for two seperate terminals.**
+
+In the first terminal, run the following. (*This will start a program which
+will pretend to be the drone for testing.*)
+
+```sh
+python3 -m tools mock-uav
+```
+
+Then, in the second terminal, run the followng. (*This will actually start the
+pigeon GUI.*)
 
 ```sh
 python3 -m pigeon
