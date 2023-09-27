@@ -19,7 +19,9 @@ def main(device: str):
 
     print("Mocking UAV on %s" % device)
 
-    conn = mavutil.mavlink_connection(device, source_system=1, source_component=2)
+    conn = mavutil.mavlink_connection(device,
+                                      source_system=1,
+                                      source_component=2)
     connected = True
 
     commands = queue.Queue()

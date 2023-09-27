@@ -43,8 +43,8 @@ class Command:
 
     @staticmethod
     def statustext(message: str) -> 'Command':
-        msg = mavlink2.MAVLink_statustext_message(severity=mavlink2.MAV_SEVERITY_INFO,
-                                                  text=message.encode())
+        msg = mavlink2.MAVLink_statustext_message(
+            severity=mavlink2.MAV_SEVERITY_INFO, text=message.encode())
         return Command(msg)
 
     @staticmethod
