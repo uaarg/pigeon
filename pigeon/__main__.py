@@ -77,7 +77,7 @@ Copyright (c) 2023 UAARG
         if self.settings_data["Load Existing Images"]:
             self.image_watcher.loadExistingImages(
                 self.settings_data["Monitor Folder"])
-        self.uav.connect()
+        self.uav.try_connect()
         self.image_watcher.start()
 
         self.ui.run()  # This runs until the user exits the GUI

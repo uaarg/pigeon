@@ -38,6 +38,15 @@ class UAV:
     command_acks_cbs: list[Callable] = field(default_factory=list)
     status_cbs: list[Callable] = field(default_factory=list)
 
+    def try_connect(self):
+        """
+        Will attempt to connect(), but won't fail if that connection cannot be made.
+        """
+        try:
+            self.connect()
+        except ConnectionError:
+            pass
+
     def connect(self):
         """
         Attempt to start a connection with the drone.
