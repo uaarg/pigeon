@@ -6,14 +6,17 @@ import queue
 
 from pymavlink import mavutil
 
-from pigeon.comms import uav
 from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command
+
 
 def disconnect():
     print("Error! Disconnected from server. Exiting", file=sys.stderr)
     sys.exit(1)
 
+
 def main(device: str):
+    # Uses a similar struture to pigeon.comms.uav
+
     print("Mocking UAV on %s" % device)
 
     conn = mavutil.mavlink_connection(device, source_system=1, source_component=2)
@@ -42,5 +45,5 @@ def main(device: str):
         except queue.Empty:
             pass
 
+        # TODO: we should be using some type of select utlity to avoid burning a CPU core
         time.sleep(0.0001)  # s = 100us
-
