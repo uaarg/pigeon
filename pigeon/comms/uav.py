@@ -8,6 +8,7 @@ import logging
 import queue
 
 from .services.imagesservice import ImageService
+from .services.common import HearbeatService, StatusEchoService
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ class UAV:
         else:
             self.conn_lock = Lock()
             self.conn = conn
+            self._connectionChanged()
 
             self.thread = Thread(target=lambda: self._runEventLoop(), args=[])
             self.thread.start()
@@ -137,15 +139,6 @@ class UAV:
 
         self.commands.put(*args, **kwargs)
 
-    def sendHeartbeat(self):
-        # TODO: resolve these comments
-        self.conn.mav.heartbeat_send(
-            6,  # MAVTYPE =
-            8,  # MAVAUTOPILOT
-            128,  # MAV_MODE =
-            0,
-            0)  # MAVSTATE =
-
     @property
     def connected(self) -> bool:
         """
@@ -190,20 +183,14 @@ class UAV:
         # forward those commands as they come in through the `command` queue.
 
         services = [
-            #HearbeatService(self.commands, self.disconnect),
+            HearbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
-            #StatusEchoService(self._recvStatus),
+            StatusEchoService(self._recvStatus),
         ]
-
-        last_hb = time.time()
 
         while self.connected:
             for service in services:
                 service.tick()
-
-            if time.time() - last_hb >= 1:
-                self.sendHeartbeat()
-                last_hb = time.time()
 
             msg = self.conn.recv_match(blocking=False)
             if msg:
