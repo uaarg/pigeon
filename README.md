@@ -20,7 +20,25 @@ these are:
 sudo apt-get install qtdeclarative5-dev qtmultimedia5-dev python3-pyqt5
 ```
 
-3. Then install python dependencies located in `requirements.txt`:
+3. Install system dependencies
+
+If you are on **MacOS**, you need to install `libzbar`. First, make sure to
+install [homebrew](https://brew.sh/). Then run:
+
+```sh
+brew install zbar
+```
+
+If you are on **Linux**, you will need to find which package your package
+manager provides `libzbar` under. On Ubuntu (as of writing), this is:
+
+```sh
+sudo apt install libzbar0
+```
+
+**Windows** users do not need to install anything else.
+
+4. Then install python dependencies located in `requirements.txt`:
 
 ```sh
 # Setup the python virtual environment (do this once)
