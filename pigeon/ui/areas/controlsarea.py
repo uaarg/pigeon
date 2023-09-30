@@ -39,10 +39,10 @@ class ControlsArea(QtWidgets.QWidget):
 
     def __init__(self, uav, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.uav = uav
         self.layout = QtWidgets.QVBoxLayout(self)
-        
+
         self.title = BoldQLabel(self)
         self.title.setText(translate("ControlsArea", "UAV:"))
         self.layout.addWidget(self.title)

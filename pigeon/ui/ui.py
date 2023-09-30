@@ -60,8 +60,8 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav, self.settings_data, self.features,
-                                      about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav, self.settings_data,
+                                      self.features, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -304,7 +304,8 @@ class MainWindow(QtWidgets.QMainWindow):
             QtCore.QSize(200, THUMBNAIL_AREA_START_HEIGHT))
 
         # Populating the page layout with the major components.
-        self.info_area = InfoArea(uav, self.main_horizontal_split,
+        self.info_area = InfoArea(uav,
+                                  self.main_horizontal_split,
                                   settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split,

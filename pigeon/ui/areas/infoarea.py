@@ -26,9 +26,14 @@ class StateArea(NonEditableBaseListForm):
 
 class InfoArea(QtWidgets.QFrame):
 
-    def __init__(self, uav, *args, settings_data={}, minimum_width=250, **kwargs):
+    def __init__(self,
+                 uav,
+                 *args,
+                 settings_data={},
+                 minimum_width=250,
+                 **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         self.uav = uav
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
