@@ -156,7 +156,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.uav.addUAVConnectedChangedCb(
             self.main_window.info_area.controls_area.uav_connection_changed.
             emit)
-        
+
         self.uav.addLastMessageReceivedCb(
             self.main_window.info_area.controls_area.message_received.emit)
 
