@@ -48,11 +48,11 @@ Copyright (c) 2023 UAARG
             "run_directory": os.getcwd()
         }
 
-        self.ui = UI(save_settings=self.saveSettings,
+        self.ui = UI(uav=self.uav,
+                     save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
                      image_in_queue=self.im_queue,
                      feature_io_queue=self.feature_queue,
-                     uav=self.uav,
                      ground_control_points=ground_control_points,
                      about_text=about_text)
 
