@@ -38,9 +38,10 @@ class ControlsArea(QtWidgets.QWidget):
     RUN_CHOICES = ((RUN_STOP, "Stopped"), (RUN_PAUSE, "Paused"), (RUN_PLAY,
                                                                   "Running"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, uav, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.uav = uav
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.title = BoldQLabel(self)
@@ -54,6 +55,9 @@ class ControlsArea(QtWidgets.QWidget):
         self.last_message_received_time = None
         self.uav_pictures_taken = ""
         self.uav_pictures_transmitted = ""
+        self.reconnectBtn = QtWidgets.QPushButton("Reconnect")
+        self.reconnectBtn.clicked.connect(lambda: self.uav.try_connect())
+        self.layout.addWidget(self.reconnectBtn)
 
         # Causes Crash - Mackenzie
         # run_buttons_layout = QtWidgets.QHBoxLayout()
@@ -140,8 +144,11 @@ class ControlsArea(QtWidgets.QWidget):
     def updateUAVConnection(self, connected):
         if connected:
             self.uav_connected = "Yes"
+            self.reconnectBtn.setEnabled(False)
+
         else:
             self.uav_connected = "No"
+            self.reconnectBtn.setEnabled(True)
         self._updateDisplayedInfo()
 
     @markMessageReceived
