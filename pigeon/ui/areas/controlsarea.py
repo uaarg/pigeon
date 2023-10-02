@@ -54,7 +54,7 @@ class ControlsArea(QtWidgets.QWidget):
         self.last_message_received_time = None
         self.uav_pictures_taken = ""
         self.uav_pictures_transmitted = ""
-        self.reconnectBtn = QtWidgets.QPushButton("Reonnect")
+        self.reconnectBtn = QtWidgets.QPushButton("Reconnect")
         self.reconnectBtn.clicked.connect(lambda: self.uav.try_connect())
         self.layout.addWidget(self.reconnectBtn)
 
@@ -138,8 +138,11 @@ class ControlsArea(QtWidgets.QWidget):
     def updateUAVConnection(self, connected):
         if connected:
             self.uav_connected = "Yes"
+            self.reconnectBtn.setEnabled(False)
+
         else:
             self.uav_connected = "No"
+            self.reconnectBtn.setEnabled(True)
         self._updateDisplayedInfo()
 
     @markMessageReceived
