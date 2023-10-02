@@ -172,12 +172,10 @@ class UAV:
 
     def _messageReceived(self):
         """
-        Notify all listeners via that a command was received.
+        Notify all listeners that a command was received.
         """
-        print(self.last_message_received_cbs)
         for cb in self.last_message_received_cbs:
             cb(True)
-            print("This works")
 
     def _recvStatus(self, status):
         """
@@ -213,7 +211,6 @@ class UAV:
                 for service in services:
                     service.recv_message(msg)
                 self._messageReceived()
-                print("sdfghjkl")
 
             try:
                 command = self.commands.get(block=False)
