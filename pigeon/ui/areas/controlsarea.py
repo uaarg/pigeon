@@ -29,6 +29,7 @@ class ControlsArea(QtWidgets.QWidget):
     receive_status_message = QtCore.pyqtSignal(str)
 
     uav_connection_changed = QtCore.pyqtSignal(bool)
+    message_received = QtCore.pyqtSignal(bool)
 
     RUN_STOP = "0"
     RUN_PAUSE = "1"
@@ -75,6 +76,7 @@ class ControlsArea(QtWidgets.QWidget):
 
         self.receive_command_ack.connect(self.receiveCommandAck)
         self.uav_connection_changed.connect(self.updateUAVConnection)
+        self.message_received.connect(self.lastMessageReceivedTime)
         self.receive_status_message.connect(self.receiveStatusMessage)
 
         self.timer = QtCore.QTimer()
@@ -130,6 +132,10 @@ class ControlsArea(QtWidgets.QWidget):
             ("Pictures transmitted", self.uav_pictures_transmitted),
         ]
         self.uav_status_form.setData(data)
+
+    def lastMessageReceivedTime(self):
+        self.last_message_received_time = datetime.datetime.now()
+        self._updateDisplayedInfo()
 
     def updateUAVConnection(self, connected):
         if connected:
