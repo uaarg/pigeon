@@ -78,8 +78,6 @@ class UI(QtCore.QObject, QueueMixin):
             lambda feature: self.feature_io_queue.out_queue.put(feature))
 
         self.settings_changed.connect(self.save_settings)
-        self.settings_changed.connect(lambda changed_data: self.main_window.
-                                      main_image_area._drawPlanePlumb())
         self.settings_changed.connect(
             lambda changed_data: self.main_window.info_area.settings_area.
             setSettings(self.settings_data))
@@ -481,7 +479,6 @@ class MainWindow(QtWidgets.QMainWindow):
             point (Point): pixel location of marker on image
         """
         marker = Marker(image, point=(point.x(), point.y()))
-        marker.setPictureCrop(image, self.settings_data["Nominal Target Size"])
         self.featureAddedLocally.emit(marker)
 
     def collectSubfeature(self, feature):

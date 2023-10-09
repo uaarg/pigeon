@@ -68,40 +68,12 @@ class MainImageArea(QtWidgets.QWidget):
         # clear past Ruler?
         self.image = image
         self.image_area.setPixmap(image.pixmap_loader)
-
-        self._drawPlanePlumb()
         self._drawFeatures()
         self.imageChanged.emit()
 
     def getImage(self):
         """Gets the current image being displayed"""
         return self.image
-
-    def _drawPlanePlumb(self):
-        """
-        Draw a little plane icon on the image at the point directly
-        below the plane. But only if this behaviour is enabled in the
-        settings.
-        """
-        if not self.image:
-            return
-
-        if self.settings_data.get("Plane Plumbline", True):
-            if not self.plumbline:
-                self.plumbline = PixmapLabelMarker(self.image_area,
-                                                   icons.airplane)
-                self.image_area.addPixmapLabelFeature(self.plumbline)
-
-            pixel_x, pixel_y = self.image.getPlanePlumbPixel()
-            if False and pixel_x and pixel_y:
-                point = QtCore.QPoint(pixel_x, pixel_y)
-                self.plumbline.moveTo(point)
-                self.plumbline.show()
-            else:
-                self.plumbline.hide()
-
-        elif self.plumbline:
-            self.plumbline.hide()
 
     def _clearFeatures(self):
         for pixmap_label_marker in self.feature_pixmap_label_markers.values():

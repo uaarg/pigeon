@@ -69,14 +69,13 @@ Copyright (c) 2023 UAARG
         Applies settings to things that need them. This should be called
         anytime the settings have been changed.
         """
-        self.image_watcher.setDirectory(self.settings_data["Monitor Folder"])
+        pass
 
     def run(self):
         self._propagateSettings()
 
         if self.settings_data["Load Existing Images"]:
-            self.image_watcher.loadExistingImages(
-                self.settings_data["Monitor Folder"])
+            pass
         self.uav.try_connect()
         self.image_watcher.start()
 
