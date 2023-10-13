@@ -177,7 +177,7 @@ class MainImageArea(QtWidgets.QWidget):
         pixmap_label_marker.moveTo(point)
         #pixmap_label_marker.setToolTip(str(feature))
         pixmap_label_marker.show()
-                
+
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user releases clicks on the image.
@@ -190,7 +190,7 @@ class MainImageArea(QtWidgets.QWidget):
             point = self.image_area.pointOnOriginal(point)
             if event.button() == QtCore.Qt.LeftButton and point:
                 self.image_clicked.emit(self.image, point)
-        except:
+        except AttributeError:
             pass
 
     def mouseMoveEvent(self, event):
