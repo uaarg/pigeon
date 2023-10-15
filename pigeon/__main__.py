@@ -62,18 +62,8 @@ Copyright (c) 2023 UAARG
 
     def saveSettings(self, settings_data):
         settings.save(settings_data)
-        self._propagateSettings()
-
-    def _propagateSettings(self):
-        """
-        Applies settings to things that need them. This should be called
-        anytime the settings have been changed.
-        """
-        pass
 
     def run(self):
-        self._propagateSettings()
-
         if self.settings_data["Load Existing Images"]:
             pass
         self.uav.try_connect()
