@@ -66,7 +66,7 @@ class InfoArea(QtWidgets.QFrame):
         self.settings_area = SettingsArea(
             self.pigeonTab,
             settings_data=settings_data,
-            fields_to_display=["Follow Images", "Plane Plumbline"])
+            fields_to_display=["Follow Images"])
         self.pigeonTab.layout.addWidget(self.state_area)
         self.pigeonTab.layout.addWidget(self.settings_area)
 

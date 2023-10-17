@@ -8,7 +8,7 @@ from pigeon.ui import UI
 from pigeon.image import Watcher
 from pigeon.comms.uav import UAV
 
-__version__ = "0.5.1"
+__version__ = "2.0.0"
 
 
 class IOQueue():
@@ -62,21 +62,10 @@ Copyright (c) 2023 UAARG
 
     def saveSettings(self, settings_data):
         settings.save(settings_data)
-        self._propagateSettings()
-
-    def _propagateSettings(self):
-        """
-        Applies settings to things that need them. This should be called
-        anytime the settings have been changed.
-        """
-        self.image_watcher.setDirectory(self.settings_data["Monitor Folder"])
 
     def run(self):
-        self._propagateSettings()
-
         if self.settings_data["Load Existing Images"]:
-            self.image_watcher.loadExistingImages(
-                self.settings_data["Monitor Folder"])
+            pass
         self.uav.try_connect()
         self.image_watcher.start()
 

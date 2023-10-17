@@ -38,6 +38,7 @@ class UAV:
     conn_changed_cbs: list[Callable] = field(default_factory=list)
     command_acks_cbs: list[Callable] = field(default_factory=list)
     status_cbs: list[Callable] = field(default_factory=list)
+    last_message_received_cbs: list[Callable] = field(default_factory=list)
 
     def try_connect(self):
         """
@@ -115,6 +116,12 @@ class UAV:
         self.conn_changed_cbs.append(cb)
         cb(self.connected)
 
+    def addLastMessageReceivedCb(self, cb):
+        """
+        Add a function to be called when the UAV sends a status message about its last connection
+        """
+        self.last_message_received_cbs.append(cb)
+
     def addUAVStatusCb(self, cb):
         """
         Add a function to be called when the UAV sends a status message.
@@ -163,6 +170,13 @@ class UAV:
         for cb in self.command_acks_cbs:
             cb()
 
+    def _messageReceived(self):
+        """
+        Notify all listeners that a command was received.
+        """
+        for cb in self.last_message_received_cbs:
+            cb(True)
+
     def _recvStatus(self, status):
         """
         Notify all listeners via the command ACKed callback about a command
@@ -196,6 +210,7 @@ class UAV:
             if msg:
                 for service in services:
                     service.recv_message(msg)
+                self._messageReceived()
 
             try:
                 command = self.commands.get(block=False)
