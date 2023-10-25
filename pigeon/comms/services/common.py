@@ -63,14 +63,13 @@ class HearbeatService(MavlinkService):
             heartbeat = Command.heartbeat()
             self.commands.put(heartbeat)
             self.last_sent_heartbeat = time.time()
-        
+
         if self.timeout > 0:
             if now - self.last_recv_heartbeat > self.timeout * self.heartbeat_interval:
                 print(
                     f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago"
                 )
                 self.disconnect()
-
 
 
 class StatusEchoService(MavlinkService):
