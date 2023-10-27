@@ -43,12 +43,14 @@ class HearbeatService(MavlinkService):
     def __init__(self,
                  commands: queue.Queue,
                  disconnect: Callable,
+                 timeout: int = 15,
                  heartbeat_freq: float = 1):
         self.commands = commands
         self.disconnect = disconnect
         self.heartbeat_interval = 1 / heartbeat_freq
         self.last_sent_heartbeat = time.time()
         self.last_recv_heartbeat = time.time()
+        self.timeout = timeout
 
     def recv_message(self, message: mavlink2.MAVLink_message):
         if message.get_type() == "HEARTBEAT":
@@ -62,11 +64,12 @@ class HearbeatService(MavlinkService):
             self.commands.put(heartbeat)
             self.last_sent_heartbeat = time.time()
 
-        if now - self.last_recv_heartbeat > 15 * self.heartbeat_interval:
-            print(
-                f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago"
-            )
-            self.disconnect()
+        if self.timeout > 0:
+            if now - self.last_recv_heartbeat > self.timeout * self.heartbeat_interval:
+                print(
+                    f"WARN: Lost connection to drone, last received a heartbeat {now - self.last_recv_heartbeat}s ago"
+                )
+                self.disconnect()
 
 
 class StatusEchoService(MavlinkService):
