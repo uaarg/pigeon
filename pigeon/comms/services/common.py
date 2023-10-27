@@ -43,7 +43,7 @@ class HearbeatService(MavlinkService):
     def __init__(self,
                  commands: queue.Queue,
                  disconnect: Callable,
-                 timeout: int,
+                 timeout: int = 15,
                  heartbeat_freq: float = 1):
         self.commands = commands
         self.disconnect = disconnect
