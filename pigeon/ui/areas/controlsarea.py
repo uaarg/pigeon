@@ -29,6 +29,7 @@ class ControlsArea(QtWidgets.QWidget):
     receive_status_message = QtCore.pyqtSignal(str)
 
     uav_connection_changed = QtCore.pyqtSignal(bool)
+    message_received = QtCore.pyqtSignal(bool)
 
     RUN_STOP = "0"
     RUN_PAUSE = "1"
@@ -37,9 +38,10 @@ class ControlsArea(QtWidgets.QWidget):
     RUN_CHOICES = ((RUN_STOP, "Stopped"), (RUN_PAUSE, "Paused"), (RUN_PLAY,
                                                                   "Running"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, uav, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.uav = uav
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.title = BoldQLabel(self)
@@ -53,6 +55,9 @@ class ControlsArea(QtWidgets.QWidget):
         self.last_message_received_time = None
         self.uav_pictures_taken = ""
         self.uav_pictures_transmitted = ""
+        self.reconnectBtn = QtWidgets.QPushButton("Reconnect")
+        self.reconnectBtn.clicked.connect(lambda: self.uav.try_connect())
+        self.layout.addWidget(self.reconnectBtn)
 
         # Causes Crash - Mackenzie
         # run_buttons_layout = QtWidgets.QHBoxLayout()
@@ -75,6 +80,7 @@ class ControlsArea(QtWidgets.QWidget):
 
         self.receive_command_ack.connect(self.receiveCommandAck)
         self.uav_connection_changed.connect(self.updateUAVConnection)
+        self.message_received.connect(self.lastMessageReceivedTime)
         self.receive_status_message.connect(self.receiveStatusMessage)
 
         self.timer = QtCore.QTimer()
@@ -131,11 +137,18 @@ class ControlsArea(QtWidgets.QWidget):
         ]
         self.uav_status_form.setData(data)
 
+    def lastMessageReceivedTime(self):
+        self.last_message_received_time = datetime.datetime.now()
+        self._updateDisplayedInfo()
+
     def updateUAVConnection(self, connected):
         if connected:
             self.uav_connected = "Yes"
+            self.reconnectBtn.setEnabled(False)
+
         else:
             self.uav_connected = "No"
+            self.reconnectBtn.setEnabled(True)
         self._updateDisplayedInfo()
 
     @markMessageReceived

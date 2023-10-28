@@ -42,10 +42,14 @@ def send_image(conn):
     )
     conn.write(handshake_msg)
 
-def main(device: str):
+def main(device: str, timeout: int):
     # Uses a similar struture to pigeon.comms.uav
 
     print("Mocking UAV on %s" % device)
+    if timeout > 0:
+        print("Mock UAV will timeout in %d seconds" % timeout)
+    else:
+        print("Mock UAV will run forever")
 
     conn = mavutil.mavlink_connection(device,
                                       source_system=1,
@@ -54,7 +58,7 @@ def main(device: str):
 
     commands = queue.Queue()
     services = [
-        HearbeatService(commands, disconnect),
+        HearbeatService(commands, disconnect, timeout),
         StatusEchoService(recv_status=print),
     ]
 

@@ -26,9 +26,15 @@ class StateArea(NonEditableBaseListForm):
 
 class InfoArea(QtWidgets.QFrame):
 
-    def __init__(self, *args, settings_data={}, minimum_width=250, **kwargs):
+    def __init__(self,
+                 uav,
+                 *args,
+                 settings_data={},
+                 minimum_width=250,
+                 **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.uav = uav
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -51,16 +57,15 @@ class InfoArea(QtWidgets.QFrame):
         self.imageInfoTab = self.createTab("Image Info")
 
         # Create Controls and add to respective tabs
-        self.controls_area = ControlsArea(self)
+        self.controls_area = ControlsArea(self.uav)
 
         self.image_info_area = ImageInfoArea(self.imageInfoTab, editable=False)
         self.imageInfoTab.layout.addWidget(self.image_info_area)
 
         self.state_area = StateArea(self.pigeonTab, editable=False)
-        self.settings_area = SettingsArea(
-            self.pigeonTab,
-            settings_data=settings_data,
-            fields_to_display=["Follow Images", "Plane Plumbline"])
+        self.settings_area = SettingsArea(self.pigeonTab,
+                                          settings_data=settings_data,
+                                          fields_to_display=["Follow Images"])
         self.pigeonTab.layout.addWidget(self.state_area)
         self.pigeonTab.layout.addWidget(self.settings_area)
 
