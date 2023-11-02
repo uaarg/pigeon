@@ -6,7 +6,7 @@ import os
 import json
 import logging
 
-location = os.path.join(*["data", "settings.json"])
+location = os.path.join("data", "settings.json")
 default_settings_data = {
     "Load Existing Images": True,
     "Follow Images": True,
