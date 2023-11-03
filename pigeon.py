@@ -1,9 +1,7 @@
 import pigeon
-
 import os
-os.chdir(os.path.dirname(__file__))
 
-print(os.path.abspath(os.curdir))
-print("\n".join(sorted(os.listdir(os.curdir + "/data"))))
+# Make sure PWD contains the data/ dir
+os.chdir(os.path.dirname(__file__))
 
 pigeon.main()
