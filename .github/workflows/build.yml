@@ -2,7 +2,8 @@ name: Build
 
 on:
   push:
-    branches: [ "prod" ]
+    tags:
+      - '*'
 
 permissions:
   contents: read
