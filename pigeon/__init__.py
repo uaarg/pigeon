@@ -8,7 +8,7 @@ from pigeon.ui import UI
 from pigeon.image import Watcher
 from pigeon.comms.uav import UAV
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 
 class IOQueue():
