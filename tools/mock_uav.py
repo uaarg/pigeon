@@ -11,9 +11,11 @@ from pymavlink.dialects.v20 import common as mavlink2
 
 from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command
 
+
 def disconnect():
     print("Error! Disconnected from server. Exiting", file=sys.stderr)
     sys.exit(1)
+
 
 def send_image(conn):
     """Sends a test image to the GUI"""
@@ -28,9 +30,9 @@ def send_image(conn):
     # Open image
     with open(f"{image_path}_cmp.jpg", "rb") as f:
         image_data = bytearray(f.read())
-    
-    message = mavlink2.MAVLink_camera_image_captured_message(time_boot_ms=int(
-        time.time()),
+
+    message = mavlink2.MAVLink_camera_image_captured_message(
+        time_boot_ms=int(time.time()),
         time_utc=0,
         camera_id=0,
         lat=0,
@@ -55,7 +57,7 @@ def send_image(conn):
         0,
     )
     conn.write(handshake_msg.pack(conn.mav))
-        
+
     data = []
     for start in range(0, len(image_data), ENCAPSULATED_DATA_LEN):
         data_seg = image_data[start:start + ENCAPSULATED_DATA_LEN]
@@ -64,10 +66,11 @@ def send_image(conn):
     for msg_index, data_seg in enumerate(data):
         if len(data_seg) < ENCAPSULATED_DATA_LEN:
             data_seg.extend(bytearray(ENCAPSULATED_DATA_LEN - len(data_seg)))
-        encapsulated_data_msg = mavlink2.MAVLink_encapsulated_data_message(msg_index + 1, data_seg)
+        encapsulated_data_msg = mavlink2.MAVLink_encapsulated_data_message(
+            msg_index + 1, data_seg)
         conn.write(encapsulated_data_msg.pack(conn.mav))
         time.sleep(0.2)
-    
+
     handshake_msg = mavlink2.MAVLink_data_transmission_handshake_message(
         0,
         len(image_data),
@@ -78,7 +81,8 @@ def send_image(conn):
         0,
     )
     conn.write(handshake_msg.pack(conn.mav))
-    
+
+
 def main(device: str, timeout: int):
     # Uses a similar struture to pigeon.comms.uav
 
