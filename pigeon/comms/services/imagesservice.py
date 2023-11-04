@@ -135,7 +135,7 @@ class ImageService(MavlinkService):
         self.image_packets.clear()
 
     def recv_message(self, message):
-        #print(message.get_type())
+        print(message.get_type())
         match message.get_type():
             case "CAMERA_IMAGE_CAPTURED":
                 print("here")
