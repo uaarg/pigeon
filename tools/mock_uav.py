@@ -69,7 +69,6 @@ def send_image(conn):
         encapsulated_data_msg = mavlink2.MAVLink_encapsulated_data_message(
             msg_index + 1, data_seg)
         conn.write(encapsulated_data_msg.pack(conn.mav))
-        time.sleep(0.2)
 
     handshake_msg = mavlink2.MAVLink_data_transmission_handshake_message(
         0,
