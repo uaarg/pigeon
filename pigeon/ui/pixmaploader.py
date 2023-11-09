@@ -133,15 +133,17 @@ class PixmapLoader:
                             slightly_large_size, self.pixmap.depth()
                     ) < self.maximum_megabytes_to_safely_keep:
                         self.pixmap = self.pixmap.scaled(
-                            slightly_large_size, QtCore.Qt.KeepAspectRatio)
+                            slightly_large_size,
+                            QtCore.Qt.AspectRatioMode.KeepAspectRatio)
                         break
 
                 if size.width() <= self.pixmap.width() and size.height(
                 ) <= self.pixmap.height() and self._estimatePixmapMemory(
                         size, self.pixmap.depth()
                 ) < self.maximum_megabytes_to_safely_keep:
-                    self.pixmap = self.pixmap.scaled(requested_size,
-                                                     QtCore.Qt.KeepAspectRatio)
+                    self.pixmap = self.pixmap.scaled(
+                        requested_size,
+                        QtCore.Qt.AspectRatioMode.KeepAspectRatio)
                     # Using the actual, requested size to ensure the exact same scaling is performed as before: don't
                     # want to be off by even 1 pixel
                     break
