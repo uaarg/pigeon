@@ -202,20 +202,24 @@ class UAV:
             StatusEchoService(self._recvStatus),
         ]
 
-        while self.connected:
-            for service in services:
-                service.tick()
-
-            msg = self.conn.recv_match(blocking=False)
-            if msg:
+        try:
+            while self.connected:
                 for service in services:
-                    service.recv_message(msg)
-                self._messageReceived()
+                    service.tick()
 
-            try:
-                command = self.commands.get(block=False)
-                self.conn.write(command.encode(self.conn))
-            except queue.Empty:
-                pass
+                msg = self.conn.recv_match(blocking=False)
+                if msg:
+                    for service in services:
+                        service.recv_message(msg)
+                    self._messageReceived()
 
-            time.sleep(0.0001)  # s = 100us
+                try:
+                    command = self.commands.get(block=False)
+                    self.conn.write(command.encode(self.conn))
+                except queue.Empty:
+                    pass
+
+                time.sleep(0.0001)  # s = 100us
+        except ConnectionResetError:
+            print("WARN: Lost connection... peer hung up.")
+            self.disconnect()
