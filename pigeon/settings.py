@@ -6,18 +6,12 @@ import os
 import json
 import logging
 
-location = os.path.join(*["data", "settings.json"])
+location = os.path.join("data", "settings.json")
 default_settings_data = {
-    "Plane Plumbline": True,
     "Load Existing Images": True,
-    "Monitor Folder": "data/images",
-    "UAV Network": "127:2011",
-    "Pigeon Network": "127:2010",
     "Follow Images": True,
     "Feature Export Path": "data/exports",
-    "Nominal Target Size": "2.5",
-    "Instance Name": "",
-    "MavLink Device": "tcp:127.0.0.1:14550",
+    "MavLink Device": "tcp:127.0.0.1:14550"
 }
 
 settings_data = default_settings_data.copy()  # Global settings data.
@@ -48,11 +42,6 @@ def _handleMigrations():
     own in this case (so should clear their settings if they run into
     any issues).
     """
-
-    # 1 - Moving UAV Network to different port
-    custom_uav_network = settings_data.get("UAV Network")
-    if custom_uav_network == "127:2010":
-        settings_data["UAV Network"] = "127:2011"
 
 
 def load():

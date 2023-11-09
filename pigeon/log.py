@@ -13,7 +13,9 @@ DEBUG = logging.DEBUG
 def initialize(file_level=logging.DEBUG,
                console_level=logging.CRITICAL,
                filename="log"):
-    log_file = os.path.join(*["data", "logs", "main"])
+    log_file = os.path.join("data", "logs", "main")
+    os.makedirs(os.path.dirname(log_file),
+                exist_ok=True)  # make sure data/logs exists
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

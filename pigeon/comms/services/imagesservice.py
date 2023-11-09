@@ -56,18 +56,18 @@ class ImageService(MavlinkService):
     def begin_recv_image(self):
         self.image_packets.clear()
         self.recving_img = True
-        print("Receiving new image")
+        #print("Receiving new image")
 
     def configure_image_params(
             self,
             message: mavlink2.MAVLink_data_transmission_handshake_message):
         self.image_bytes = message.size
         self.expected_packets = message.packets
-        print(f"Expecting {message.packets} packets")
+        #print(f"Expecting {message.packets} packets")
 
     def recv_image_packet(self,
                           message: mavlink2.MAVLink_encapsulated_data_message):
-        print(f'Got packet no {message.seqnr}')
+        #print(f'Got packet no {message.seqnr}')
         self.image_packets[message.seqnr] = message
 
     def done_recv_image(self, message):
@@ -88,7 +88,7 @@ class ImageService(MavlinkService):
         recvd_packets = set(self.image_packets.keys())
         expected_packets = set(range(self.expected_packets + 1))
         missing = expected_packets - recvd_packets
-        print(f"Missing Packets: {missing}")
+        #print(f"Missing Packets: {missing}")
         for missing_no in missing:
             req_packet = mavlink2.MAVLink_command_long_message(
                 1,  # Target System
@@ -121,10 +121,10 @@ class ImageService(MavlinkService):
         with open(file, "bw") as image_file:
             image_file.write(image)
             image_file.flush()
-        print(f"Image saved to {file}")
+        #print(f"Image saved to {file}")
 
         try:
-            self.im_queue.put(Image(file, 'image.txt'))
+            self.im_queue.put(Image(file, 'pigeon/image.txt'))
             self.i += 1
         except Exception as err:
             print(f"ERROR: Failed to parse image\n{err}")
@@ -138,7 +138,6 @@ class ImageService(MavlinkService):
         #print(message.get_type())
         match message.get_type():
             case "CAMERA_IMAGE_CAPTURED":
-                print("here")
                 self.image_packets.clear()
                 self.begin_recv_image()
                 self.expected_packets = None
@@ -153,7 +152,6 @@ class ImageService(MavlinkService):
 
             case 'ENCAPSULATED_DATA':
                 if self.recving_img:
-                    print("Got a packet")
                     self.recv_image_packet(message)
                 else:
                     print("WARNING: Received unexpected ENCAPSULATED_DATA")

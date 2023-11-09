@@ -39,11 +39,11 @@ class UI(QtCore.QObject, QueueMixin):
     settings_changed = QtCore.pyqtSignal(dict)
 
     def __init__(self,
+                 uav,
                  save_settings,
                  load_settings,
                  image_in_queue,
                  feature_io_queue,
-                 uav,
                  ground_control_points=[],
                  about_text=""):
         super().__init__()
@@ -60,8 +60,8 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.settings_data, self.features,
-                                      about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav, self.settings_data,
+                                      self.features, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -78,8 +78,6 @@ class UI(QtCore.QObject, QueueMixin):
             lambda feature: self.feature_io_queue.out_queue.put(feature))
 
         self.settings_changed.connect(self.save_settings)
-        self.settings_changed.connect(lambda changed_data: self.main_window.
-                                      main_image_area._drawPlanePlumb())
         self.settings_changed.connect(
             lambda changed_data: self.main_window.info_area.settings_area.
             setSettings(self.settings_data))
@@ -250,11 +248,13 @@ class MainWindow(QtWidgets.QMainWindow):
     settings_save_requested = QtCore.pyqtSignal(dict)
 
     def __init__(self,
+                 uav,
                  settings_data={},
                  features=[],
                  about_text="",
                  exit_cb=noop):
         super().__init__()
+        self.uav = uav
         self.settings_data = settings_data
         self.features = features
         self.about_text = about_text
@@ -306,7 +306,8 @@ class MainWindow(QtWidgets.QMainWindow):
             QtCore.QSize(200, THUMBNAIL_AREA_START_HEIGHT))
 
         # Populating the page layout with the major components.
-        self.info_area = InfoArea(self.main_horizontal_split,
+        self.info_area = InfoArea(uav,
+                                  self.main_horizontal_split,
                                   settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split,
@@ -485,7 +486,6 @@ class MainWindow(QtWidgets.QMainWindow):
             point (Point): pixel location of marker on image
         """
         marker = Marker(image, point=(point.x(), point.y()))
-        marker.setPictureCrop(image, self.settings_data["Nominal Target Size"])
         self.featureAddedLocally.emit(marker)
 
     def collectSubfeature(self, feature):

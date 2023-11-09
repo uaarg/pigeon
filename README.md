@@ -50,7 +50,7 @@ venv\Scripts\activate.bat   # (Windows) cmd.exe
 venv\Scripts\Activate.ps1   # (Windoes) PowerShell
 
 # Install dependencies (do this at setup and/or when requirements.txt changes)
-pip install -r requirements.txt.
+pip install -r requirements.txt
 ```
 
 

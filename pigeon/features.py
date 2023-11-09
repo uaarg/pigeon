@@ -354,7 +354,7 @@ def load_ground_control_points():
     Returns a list of ground control points (GCP) as defined in the
     ground_control_points.json file.
     """
-    location = os.path.join(*["data", "ground_control_points.json"])
+    location = os.path.join("data", "ground_control_points.json")
     with open(location) as f:
         data = json.load(f)
     ground_control_points = []
@@ -363,10 +363,3 @@ def load_ground_control_points():
         ground_control_points.append(
             GroundControlPoint(None, position, name=name))
     return ground_control_points
-
-
-def load_ground_control_points_Dictionary():
-    location = os.path.join(*["data", "ground_control_points.json"])
-    with open(location) as f:
-        data = json.load(f)
-    return data

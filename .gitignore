@@ -21,3 +21,7 @@ venv/
 *.csv
 *.json
 !data/ground_control_points.json
+
+# Artifact directories
+build/
+dist/
