@@ -68,7 +68,7 @@ class PixmapLoader:
                 % ("%s, %s" % (self.pixmap.width(), self.pixmap.height())
                    if self.pixmap else None, size.width(), size.height()))
             self._loadOriginalPixmap()
-        pixmap = self.pixmap.scaled(size, QtCore.Qt.KeepAspectRatio)
+        pixmap = self.pixmap.scaled(size, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         self.used_sizes.append((pixmap.size(), size))
         # Note that this returned pixmap is now owned by the caller: PixmapLoader isn't responsible for
         # freeing that memory (and in fact can't)

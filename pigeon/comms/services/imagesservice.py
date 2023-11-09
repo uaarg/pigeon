@@ -124,7 +124,7 @@ class ImageService(MavlinkService):
         print(f"Image saved to {file}")
 
         try:
-            self.im_queue.put(Image(file, 'image.txt'))
+            self.im_queue.put(Image(file, 'pigeon/image.txt'))
             self.i += 1
         except Exception as err:
             print(f"ERROR: Failed to parse image\n{err}")
