@@ -150,19 +150,6 @@ class MainImageArea(QtWidgets.QWidget):
         #pixmap_label_marker.setToolTip(str(feature))
         pixmap_label_marker.show()
 
-    def mousePressEvent(self, event):
-        """
-        Called by Qt when the user clicks on the image.
-
-        Emitting an image_right_clicked event with the point if it was a
-        right click.
-        """
-        if event.button() == QtCore.Qt.MouseButton.RightButton:
-            point = QtCore.QPoint(event.x(), event.y())
-            point = self.image_area.pointOnOriginal(point)
-            if point:
-                self.ruler.press(self.image, point)
-
     def mouseReleaseEvent(self, event):
         """
         Called by Qt when the user releases clicks on the image.
@@ -170,12 +157,13 @@ class MainImageArea(QtWidgets.QWidget):
         Emitting an image_right_clicked event with the point if it was a
         right click.
         """
-        point = QtCore.QPoint(event.x(), event.y())
-        point = self.image_area.pointOnOriginal(point)
-        if event.button() == QtCore.Qt.LeftButton and point:
-            self.image_clicked.emit(self.image, point)
-        if event.button() == QtCore.Qt.RightButton and point:
-            self.ruler.release(self.image, point)
+        try:
+            point = QtCore.QPoint(event.x(), event.y())
+            point = self.image_area.pointOnOriginal(point)
+            if event.button() == QtCore.Qt.LeftButton and point:
+                self.image_clicked.emit(self.image, point)
+        except AttributeError:
+            pass
 
     def mouseMoveEvent(self, event):
         if self.ruler.draggable:
