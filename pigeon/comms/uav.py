@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 from pymavlink import mavutil
 from threading import Lock, Thread
+import serial
 import time
 import logging
 import queue
@@ -77,6 +78,8 @@ class UAV:
             raise ConnectionError(f"Connection reset: {err}")
         except ConnectionAbortedError as err:
             raise ConnectionError(f"Connection aborted: {err}")
+        except serial.serialutil.SerialException as err:
+            raise ConnectionError(f"Connection failed: {err}")
         else:
             self.conn_lock = Lock()
             self.conn = conn
@@ -85,18 +88,20 @@ class UAV:
             self.thread = Thread(target=lambda: self._runEventLoop(), args=[])
             self.thread.start()
 
-    def disconnect(self):
+    def disconnect(self, blocking=True):
         """
         If there is an active connection with the drone, close it.
         Otherwise this function is a no-op.
 
-        This should be non-destructive
+        This should be non-destructive.
+
+        This will block unless `blocking=False` is passed.
         """
         if self.conn is None:
             return
         assert self.conn_lock is not None
 
-        self.conn_lock.acquire(blocking=True)
+        self.conn_lock.acquire(blocking=blocking)
 
         self.conn.close()
         self.conn = None
@@ -223,3 +228,9 @@ class UAV:
         except ConnectionResetError:
             print("WARN: Lost connection... peer hung up.")
             self.disconnect()
+        except serial.serialutil.SerialException:
+            print("WARN: Serial connection interrupted")
+            self.conn = None
+            self.conn_lock = None
+            self._connectionChanged()
+

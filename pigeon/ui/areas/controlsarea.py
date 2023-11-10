@@ -135,7 +135,9 @@ class ControlsArea(QtWidgets.QWidget):
             ("Pictures captured", self.uav_pictures_taken),
             ("Pictures transmitted", self.uav_pictures_transmitted),
         ]
-        self.uav_status_form.setData(data)
+
+        if data != self.uav_status_form.getData():
+            self.uav_status_form.setData(data)
 
     def lastMessageReceivedTime(self):
         self.last_message_received_time = datetime.datetime.now()
