@@ -174,6 +174,13 @@ class UI(QtCore.QObject, QueueMixin):
 #                   Windows
 # =============================================
 
+class MavLinkDebugger(QtWidgets.QWidget):
+    """
+    Window that displays all mavlink messages received and sent
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
 
 class AboutWindow(QtWidgets.QWidget):
     """
@@ -383,6 +390,12 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_action.triggered.connect(self.showSettingsWindow)
         menu.addAction(settings_action)
 
+        menu = self.menubar.addMenu("&Tools")
+
+        about_action = QtGui.QAction("Mavlink Debugger", self)
+        about_action.triggered.connect(self.displayMavlinkDebugger)
+        menu.addAction(about_action)
+
         menu = self.menubar.addMenu("&Help")
 
         about_action = QtGui.QAction("About Pigeon", self)
@@ -406,9 +419,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu.addAction(process_action)
 
+    def displayMavlinkDebugger(self):
+        self.about_window = MavLinkDebugger()
+        self.about_window.show()
+
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
         self.about_window.show()
+    
 
     def showSettingsWindow(self):
         self.settings_window = SettingsWindow(settings_data=self.settings_data)
