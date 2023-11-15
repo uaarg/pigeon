@@ -1,4 +1,3 @@
-from enum import Enum
 from pymavlink.dialects.v20 import common as mavlink2
 import queue
 from pymavlink import mavutil
