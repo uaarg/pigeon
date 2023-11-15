@@ -8,11 +8,6 @@ from pigeon.comms.services.common import MavlinkService
 from pigeon.image import Image
 
 
-class ImageCaptureState(Enum):
-    WAITING_FOR_CAPTURE = 0
-    RECIEVING_IMAGE = 1
-
-
 class ImageService(MavlinkService):
     """
     Image Transfer Protocol
