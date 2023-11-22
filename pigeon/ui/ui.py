@@ -1,6 +1,7 @@
 import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
+from queue import Queue
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
@@ -15,6 +16,7 @@ from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
 
 from pigeon.image import Image
+from pigeon.comms.services.messageservice import MavlinkMessage
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
@@ -43,6 +45,7 @@ class UI(QtCore.QObject, QueueMixin):
                  save_settings,
                  load_settings,
                  image_in_queue,
+                 message_in_queue,
                  feature_io_queue,
                  ground_control_points=[],
                  about_text=""):
@@ -69,7 +72,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(
             self.main_window.collectSubfeature)
 
-        self.connectSignals(image_in_queue)
+        self.connectSignals(image_in_queue, message_in_queue)
 
         # Hooking up some inter-component behaviour
         self.main_window.featureChangedLocally.connect(
@@ -130,12 +133,13 @@ class UI(QtCore.QObject, QueueMixin):
         else:
             self.main_window.featureAdded.emit(feature)
 
-    def connectSignals(self, image_in_queue):
+    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue):
         """
         Hook up various PyQt Signals and emissions to UI elements
 
         Parameters:
-            image_in_queue (Queue): queue that holds incoming images to be linked up
+            image_in_queue: holds incoming images to be linked up
+            message_in_queue: holds received mavlink messages
         """
 
         # Callbacks when UAV acknowledges commands
@@ -160,14 +164,14 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.
                                 receive_status_message.emit)
-        
-        self.uav.addLastMessageReceivedCb(
-            self.mavlinkdebugger_window.emit)
 
         # Multi-pigeon signals
         self.connectQueue(self.feature_io_queue.in_queue,
                           self.applyFeatureSync)
         self.connectQueue(image_in_queue, self.addImage)
+        self.connectQueue(
+            message_in_queue,
+            self.main_window.mavlinkdebugger_window.handleMessage)
 
         # Kill signal
         signal_.signal(signal_.SIGINT, lambda signum, fram: self.app.exit())
@@ -177,14 +181,22 @@ class UI(QtCore.QObject, QueueMixin):
 #                   Windows
 # =============================================
 
+
 class MavLinkDebugger(QtWidgets.QWidget):
     """
     Window that displays all mavlink messages received and sent
     """
 
+    receive_message = QtCore.pyqtSignal(MavlinkMessage)
+
     def __init__(self) -> None:
         super().__init__()
-        self.setObjectName("mavlinkdebugger_window")
+
+        self.receive_message.connect(self.handleMessage)
+
+    def handleMessage(self, message: MavlinkMessage):
+        print("Got message:", message.type)
+
 
 class AboutWindow(QtWidgets.QWidget):
     """
@@ -273,6 +285,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.about_window = None
         self.settings_window = None
+        self.mavlinkdebugger_window = MavLinkDebugger()
 
         # State
         self.collect_subfeature_for = None
@@ -424,8 +437,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu.addAction(process_action)
 
     def displayMavlinkDebugger(self):
-        self.about_window = MavLinkDebugger()
-        self.about_window.show()
+        self.mavlinkdebugger_window.show()
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
