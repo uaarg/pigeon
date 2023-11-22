@@ -160,6 +160,9 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.uav.addUAVStatusCb(self.main_window.info_area.controls_area.
                                 receive_status_message.emit)
+        
+        self.uav.addLastMessageReceivedCb(
+            self.mavlinkdebugger_window.emit)
 
         # Multi-pigeon signals
         self.connectQueue(self.feature_io_queue.in_queue,
@@ -181,6 +184,7 @@ class MavLinkDebugger(QtWidgets.QWidget):
 
     def __init__(self) -> None:
         super().__init__()
+        self.setObjectName("mavlinkdebugger_window")
 
 class AboutWindow(QtWidgets.QWidget):
     """
@@ -426,7 +430,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)
         self.about_window.show()
-    
 
     def showSettingsWindow(self):
         self.settings_window = SettingsWindow(settings_data=self.settings_data)
