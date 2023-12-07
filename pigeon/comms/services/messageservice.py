@@ -1,5 +1,6 @@
-import queue
 from dataclasses import dataclass
+import queue
+import datetime
 
 from pigeon.comms.services.common import MavlinkService
 
@@ -7,7 +8,7 @@ from pigeon.comms.services.common import MavlinkService
 @dataclass
 class MavlinkMessage:
     type: str
-    # more params go here ...
+    time: datetime.datetime
 
 
 class MessageCollectorService(MavlinkService):
@@ -20,5 +21,6 @@ class MessageCollectorService(MavlinkService):
         self.message_queue = message_queue
 
     def recv_message(self, message):
-        message_details = MavlinkMessage(type=message.get_type())
+        message_details = MavlinkMessage(type=message.get_type(),
+                                         time=datetime.datetime.now())
         self.message_queue.put(message_details)
