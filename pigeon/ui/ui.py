@@ -1,8 +1,11 @@
+import csv
+import os
 import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
 from queue import Queue
 from datetime import datetime
+# from PyQt6.QtGui import QTextCursor
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
@@ -196,15 +199,62 @@ class MavLinkDebugger(QtWidgets.QWidget):
         self.message_display = QtWidgets.QTextEdit(self)
         self.message_display.setReadOnly(True)
 
+        self.search_line = QtWidgets.QLineEdit(self)
+        self.search_button = QtWidgets.QPushButton('Search', self)
+        self.search_button.clicked.connect(self.searchText)
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.message_display)
+
+        layout.addWidget(self.search_line)
+        layout.addWidget(self.search_button)
+        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.csv'
+
+        root_directory = os.path.dirname(
+            os.path.dirname(os.path.dirname(__file__)))
+        logfiles_directory = os.path.join(root_directory,
+                                          "data/logs/mavlinklogs/")
+
+        self.csv_file = open(
+            logfiles_directory + filename,
+            "w")  # We don't close it until pigeon crashes/exits
+        fieldnames = ['Message', 'Time']
+        self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
+        self.writer.writeheader()
+        self.csv_file.flush()
+        # Will not properly closing it cause an issue?
+
+    def searchText(self):
+        search_text = self.search_line.text()
+
+        message_text = self.message_display.toPlainText()
+
+        text_index = message_text.find(search_text)
+
+        cursor = self.message_display.textCursor()
+
+        cursor.setPosition(text_index)
+        self.message_display.setTextCursor(cursor)
+        # self.message_display.find(search_text)
+
+        # while cursor.find(search_text):
+        # cursor.movePosition(cursor.MoveOperation.Right)
+
+        # To Do: Highlight the found text
+        # format_ = cursor.charFormat()
+        # format_.setForeground(QtGui.QBrush(QtGui.QColor('yellow')))
+        # cursor.setCharFormat(format_)
 
         self.receive_message.connect(self.handleMessage)
 
     def handleMessage(self, message: MavlinkMessage):
         print("Got message:", message.type)
         current_time = datetime.now().strftime("%H:%M:%S")
-        self.message_display.append(f"Message: {message.type}, Received: {current_time}")
+        self.message_display.append(
+            f"Message: {message.type}, Received: {current_time}")
+        self.writer.writerow({'Message': message.type, 'Time': current_time})
+        self.csv_file.flush(
+        )  # Manually flush after each line because we never close the file object
 
 
 class AboutWindow(QtWidgets.QWidget):
