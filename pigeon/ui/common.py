@@ -203,13 +203,18 @@ class PixmapLabel(BasePixmapLabel):
     def _resize(self):
         if self.pixmap_loader:
             super().setPixmap(self.getPixmapForSize(self.size()))
+        else:
+            self.setText("NO IMAGE RECEIVED YET")
         super()._resize()
 
     def setPixmap(self, pixmap_loader):
         self.pixmap_loader = pixmap_loader
-        self.original_pixmap_width = self.pixmap_loader.width()
-        self.original_pixmap_height = self.pixmap_loader.height()
-        self._resize()
+        if self.pixmap_loader:
+            self.original_pixmap_width = self.pixmap_loader.width()
+            self.original_pixmap_height = self.pixmap_loader.height()
+            self._resize()
+        else:
+            self.setText("NO IMAGE RECEIVED YET")
 
     def resizeEvent(self, resize_event):
         self._resize()
