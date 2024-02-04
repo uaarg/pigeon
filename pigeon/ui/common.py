@@ -214,7 +214,6 @@ class ImageArea(BasePixmapLabel):
         self.original_pixmap_height = self.pixmap_loader.height()
         self._resize()
 
-
     def resizeEvent(self, resize_event):
         self._resize()
 
