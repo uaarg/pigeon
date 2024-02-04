@@ -2,7 +2,7 @@ from PyQt6 import QtCore, QtWidgets
 
 translate = QtCore.QCoreApplication.translate
 
-from pigeon.ui.common import PixmapLabel, PixmapLabelMarker
+from pigeon.ui.common import ImageArea, PixmapLabelMarker
 from pigeon.ui import icons
 
 from pigeon.image import Image
@@ -39,7 +39,7 @@ class MainImageArea(QtWidgets.QWidget):
         # self.title.setAlignment(QtCore.Qt.AlignHCenter)
         # self.layout.addWidget(self.title)
 
-        self.image_area = PixmapLabel(interactive=True)
+        self.image_area = ImageArea(interactive=True)
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Ignored,
             QtWidgets.QSizePolicy.Policy.Ignored)
