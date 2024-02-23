@@ -9,7 +9,7 @@ import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HearbeatService, StatusEchoService
+from .services.common import HeartbeatService, StatusEchoService, ForwardingService
 
 logger = logging.getLogger(__name__)
 
@@ -198,12 +198,15 @@ class UAV:
         # The UI may also send commands from various locations. We make sure to
         # forward those commands as they come in through the `command` queue.
 
+        print("UAV event loop started")
         services = [
-            HearbeatService(self.commands, self.disconnect),
+            HeartbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
             StatusEchoService(self._recvStatus),
             MessageCollectorService(self.msg_queue),
+            ForwardingService(self.commands)
         ]
+        print("Forwarding Service Called")
 
         try:
             while self.connected:
