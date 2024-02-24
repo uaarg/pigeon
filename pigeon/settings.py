@@ -11,7 +11,8 @@ default_settings_data = {
     "Load Existing Images": True,
     "Follow Images": True,
     "Feature Export Path": "data/exports",
-    "MavLink Device": "tcp:127.0.0.1:14550"
+    "UAV Device": "tcp:127.0.0.1:14551",
+    "GSC Device": "tcpin:127.0.0.1:14550",
 }
 
 settings_data = default_settings_data.copy()  # Global settings data.

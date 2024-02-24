@@ -2,6 +2,7 @@ from typing import Callable
 
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
+from pigeon.settings import settings_data
 import time
 import queue
 
@@ -37,7 +38,8 @@ class ForwardingService(MavlinkService):
     def __init__(self, commands: queue.Queue):
         self.commands = commands
 
-        self.gsc_device = "tcpin:127.0.0.1:14551"
+        self.gsc_device = settings_data["GSC Device"]
+
         self.gsc_conn = mavutil.mavlink_connection(self.gsc_device,
                                                    source_system=1,
                                                    source_component=3)
