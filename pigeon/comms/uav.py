@@ -198,7 +198,6 @@ class UAV:
         # The UI may also send commands from various locations. We make sure to
         # forward those commands as they come in through the `command` queue.
 
-        print("UAV event loop started")
         services = [
             HeartbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
@@ -206,7 +205,6 @@ class UAV:
             MessageCollectorService(self.msg_queue),
             ForwardingService(self.commands)
         ]
-        print("Forwarding Service Called")
 
         try:
             while self.connected:

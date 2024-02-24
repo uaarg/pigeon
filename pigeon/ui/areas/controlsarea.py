@@ -38,11 +38,10 @@ class ControlsArea(QtWidgets.QWidget):
     RUN_CHOICES = ((RUN_STOP, "Stopped"), (RUN_PAUSE, "Paused"), (RUN_PLAY,
                                                                   "Running"))
 
-    def __init__(self, uav, mission_planner_server, *args, **kwargs):
+    def __init__(self, uav, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.uav = uav
-        self.mission_planner_server = mission_planner_server
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.title = BoldQLabel(self)
@@ -59,15 +58,6 @@ class ControlsArea(QtWidgets.QWidget):
         self.reconnectBtn = QtWidgets.QPushButton("Reconnect")
         self.reconnectBtn.clicked.connect(lambda: self.uav.try_connect())
         self.layout.addWidget(self.reconnectBtn)
-
-        self.forward_server_frame = QtWidgets.QFrame()
-        self.forward_server_layout = QtWidgets.QHBoxLayout(self.forward_server_frame)
-        self.forward_serverBtn = QtWidgets.QPushButton("Forward Server")
-        self.forward_serverBtn.clicked.connect(lambda: self.mission_planner_server.set_port(self.mission_planner_server.udp_port))
-        self.forward_server_layout.addWidget(self.forward_serverBtn)
-        self.forward_server_textbox = QtWidgets.QLineEdit()
-        self.forward_server_layout.addWidget(self.forward_server_textbox)
-        self.layout.addWidget(self.forward_server_frame)
 
         # Causes Crash - Mackenzie
         # run_buttons_layout = QtWidgets.QHBoxLayout()

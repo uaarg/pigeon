@@ -28,7 +28,6 @@ class InfoArea(QtWidgets.QFrame):
 
     def __init__(self,
                  uav,
-                 mission_planner_server,
                  *args,
                  settings_data={},
                  minimum_width=250,
@@ -36,7 +35,6 @@ class InfoArea(QtWidgets.QFrame):
         super().__init__(*args, **kwargs)
 
         self.uav = uav
-        self.mission_planner_server = mission_planner_server
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding)
@@ -59,7 +57,7 @@ class InfoArea(QtWidgets.QFrame):
         self.imageInfoTab = self.createTab("Image Info")
 
         # Create Controls and add to respective tabs
-        self.controls_area = ControlsArea(self.uav, self.mission_planner_server)
+        self.controls_area = ControlsArea(self.uav)
 
         self.image_info_area = ImageInfoArea(self.imageInfoTab, editable=False)
         self.imageInfoTab.layout.addWidget(self.image_info_area)

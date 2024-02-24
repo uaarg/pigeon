@@ -7,7 +7,6 @@ from pigeon import log, settings, features
 from pigeon.ui import UI
 from pigeon.image import Watcher
 from pigeon.comms.uav import UAV
-from pigeon.comms.missionplanner import MissionPlannerServer
 
 __version__ = "2.0.3"
 
@@ -32,7 +31,6 @@ class GroundStation:
         device = self.settings_data.get("MavLink Device")
         self.uav = UAV(device, self.im_queue, self.msg_queue,
                        self.feature_queue)
-        self.mission_planner_server = MissionPlannerServer()
 
         ground_control_points = features.load_ground_control_points()
 
@@ -53,7 +51,6 @@ Copyright (c) 2023 UAARG
         }
 
         self.ui = UI(uav=self.uav,
-                     mission_planner_server=self.mission_planner_server,
                      save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
                      image_in_queue=self.im_queue,

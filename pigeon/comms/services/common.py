@@ -4,7 +4,6 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 import time
 import queue
-import math
 
 from .command import Command
 
@@ -25,6 +24,7 @@ class MavlinkService:
         """
         pass
 
+
 class ForwardingService(MavlinkService):
     """
     Forwarding Service
@@ -38,51 +38,18 @@ class ForwardingService(MavlinkService):
         self.commands = commands
 
         self.gsc_device = "tcpin:127.0.0.1:14551"
-        self.uav_device = "tcpout:127.0.0.1:14550"
-        self.gsc_conn = mavutil.mavlink_connection(self.gsc_device, source_system=1, source_component=3)
-        self.uav_conn = mavutil.mavlink_connection(self.uav_device, source_system=1, source_component=2)
-        print("Server has started")
+        self.gsc_conn = mavutil.mavlink_connection(self.gsc_device,
+                                                   source_system=1,
+                                                   source_component=3)
 
     def recv_message(self, message: mavlink2.MAVLink_message):
-        """forward message to mission planner (mock gsc)"""
-
+        """
+        Forward message to mission planner (mock gsc)
+        """
         data_bytes = message.pack(self.gsc_conn.mav)
-
         data_bytes = bytearray(data_bytes)
+        self.gsc_conn.write(data_bytes)
 
-        ENCAPSULATED_DATA_LEN = 253
-
-        handshake_msg = mavutil.mavlink.MAVLink_data_transmission_handshake_message(
-            type=0,
-            size=len(data_bytes),
-            width=0,
-            height=0,
-            packets=math.ceil(len(data_bytes) / ENCAPSULATED_DATA_LEN),
-            payload=ENCAPSULATED_DATA_LEN,
-            jpg_quality=0,
-        )
-        self.gsc_conn.mav.send(handshake_msg)
-
-        for seqnr, start in enumerate(range(0, len(data_bytes), ENCAPSULATED_DATA_LEN)):
-            data_seg = data_bytes[start:start + ENCAPSULATED_DATA_LEN]
-            if len(data_seg) < ENCAPSULATED_DATA_LEN:
-                data_seg += bytearray(ENCAPSULATED_DATA_LEN - len(data_seg))
-            encapsulated_data_msg = mavutil.mavlink.MAVLink_encapsulated_data_message(
-                seqnr, list(data_seg))
-            self.gsc_conn.mav.send(encapsulated_data_msg)
-        
-        handshake_msg = mavutil.mavlink.MAVLink_data_transmission_handshake_message(
-            type=0,
-            size=len(data_bytes),
-            width=0,
-            height=0,
-            packets=math.ceil(len(data_bytes) / ENCAPSULATED_DATA_LEN),
-            payload=ENCAPSULATED_DATA_LEN,
-            jpg_quality=0,
-        )
-        self.gsc_conn.mav.send(handshake_msg)
-
-    
     def tick(self):
         """
         Checks if server from mission planner (mock gsc) has sent a message.
@@ -90,42 +57,7 @@ class ForwardingService(MavlinkService):
         """
         message = self.gsc_conn.recv_match(blocking=False)
         if message:
-            data_bytes = message.pack(self.uav_conn.mav)
-
-            data_bytes = bytearray(data_bytes)
-
-            ENCAPSULATED_DATA_LEN = 253
-
-            handshake_msg = mavutil.mavlink.MAVLink_data_transmission_handshake_message(
-                type=0,
-                size=len(data_bytes),
-                width=0,
-                height=0,
-                packets=math.ceil(len(data_bytes) / ENCAPSULATED_DATA_LEN),
-                payload=ENCAPSULATED_DATA_LEN,
-                jpg_quality=0,
-            )
-            self.uav_conn.mav.send(handshake_msg)
-
-            for seqnr, start in enumerate(range(0, len(data_bytes), ENCAPSULATED_DATA_LEN)):
-                data_seg = data_bytes[start:start + ENCAPSULATED_DATA_LEN]
-                if len(data_seg) < ENCAPSULATED_DATA_LEN:
-                    data_seg += bytearray(ENCAPSULATED_DATA_LEN - len(data_seg))
-                encapsulated_data_msg = mavutil.mavlink.MAVLink_encapsulated_data_message(
-                    seqnr, list(data_seg))
-                self.uav_conn.mav.send(encapsulated_data_msg)
-            
-            handshake_msg = mavutil.mavlink.MAVLink_data_transmission_handshake_message(
-                type=0,
-                size=len(data_bytes),
-                width=0,
-                height=0,
-                packets=math.ceil(len(data_bytes) / ENCAPSULATED_DATA_LEN),
-                payload=ENCAPSULATED_DATA_LEN,
-                jpg_quality=0,
-            )
-            self.uav_conn.mav.send(handshake_msg) 
-
+            self.commands.put(Command(message))
 
 
 class HeartbeatService(MavlinkService):

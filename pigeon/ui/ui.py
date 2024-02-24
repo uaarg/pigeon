@@ -42,7 +42,6 @@ class UI(QtCore.QObject, QueueMixin):
 
     def __init__(self,
                  uav,
-                 mission_planner_server,
                  save_settings,
                  load_settings,
                  image_in_queue,
@@ -60,13 +59,13 @@ class UI(QtCore.QObject, QueueMixin):
         self.features = ground_control_points  # For all features, not just GCP's ???
         self.feature_io_queue = feature_io_queue
         self.uav = uav
-        self.mission_planner_server = mission_planner_server
         self.save_settings = save_settings
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav, self.mission_planner_server, self.settings_data,
-                                      self.features, about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav,
+                                      self.settings_data, self.features,
+                                      about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -282,7 +281,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self,
                  uav,
-                 mission_planner_server,
                  settings_data={},
                  features=[],
                  about_text="",
@@ -342,7 +340,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(uav,
-                                  mission_planner_server,
                                   self.main_horizontal_split,
                                   settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
