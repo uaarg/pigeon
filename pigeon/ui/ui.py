@@ -1,6 +1,7 @@
 import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
+from queue import Queue
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
@@ -15,6 +16,7 @@ from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
 
 from pigeon.image import Image
+from pigeon.comms.services.messageservice import MavlinkMessage
 
 THUMBNAIL_AREA_START_HEIGHT = 100
 THUMBNAIL_AREA_MIN_HEIGHT = 60
@@ -43,6 +45,7 @@ class UI(QtCore.QObject, QueueMixin):
                  save_settings,
                  load_settings,
                  image_in_queue,
+                 message_in_queue,
                  feature_io_queue,
                  ground_control_points=[],
                  about_text=""):
@@ -69,7 +72,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(
             self.main_window.collectSubfeature)
 
-        self.connectSignals(image_in_queue)
+        self.connectSignals(image_in_queue, message_in_queue)
 
         # Hooking up some inter-component behaviour
         self.main_window.featureChangedLocally.connect(
@@ -130,12 +133,13 @@ class UI(QtCore.QObject, QueueMixin):
         else:
             self.main_window.featureAdded.emit(feature)
 
-    def connectSignals(self, image_in_queue):
+    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue):
         """
         Hook up various PyQt Signals and emissions to UI elements
 
         Parameters:
-            image_in_queue (Queue): queue that holds incoming images to be linked up
+            image_in_queue: holds incoming images to be linked up
+            message_in_queue: holds received mavlink messages
         """
 
         # Callbacks when UAV acknowledges commands
@@ -165,6 +169,9 @@ class UI(QtCore.QObject, QueueMixin):
         self.connectQueue(self.feature_io_queue.in_queue,
                           self.applyFeatureSync)
         self.connectQueue(image_in_queue, self.addImage)
+        self.connectQueue(
+            message_in_queue,
+            self.main_window.mavlinkdebugger_window.handleMessage)
 
         # Kill signal
         signal_.signal(signal_.SIGINT, lambda signum, fram: self.app.exit())
@@ -173,6 +180,30 @@ class UI(QtCore.QObject, QueueMixin):
 # ============================================
 #                   Windows
 # =============================================
+
+
+class MavLinkDebugger(QtWidgets.QWidget):
+    """
+    Window that displays all mavlink messages received and sent
+    """
+
+    receive_message = QtCore.pyqtSignal(MavlinkMessage)
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.message_display = QtWidgets.QTextEdit(self)
+        self.message_display.setReadOnly(True)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.message_display)
+
+        self.receive_message.connect(self.handleMessage)
+
+    def handleMessage(self, message: MavlinkMessage):
+        current_time = message.time.strftime("%H:%M:%S")
+        self.message_display.append(
+            f"Message: {message.type}, Received: {current_time}")
 
 
 class AboutWindow(QtWidgets.QWidget):
@@ -262,6 +293,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.about_window = None
         self.settings_window = None
+        self.mavlinkdebugger_window = MavLinkDebugger()
 
         # State
         self.collect_subfeature_for = None
@@ -383,6 +415,12 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_action.triggered.connect(self.showSettingsWindow)
         menu.addAction(settings_action)
 
+        menu = self.menubar.addMenu("&Tools")
+
+        about_action = QtGui.QAction("Mavlink Debugger", self)
+        about_action.triggered.connect(self.displayMavlinkDebugger)
+        menu.addAction(about_action)
+
         menu = self.menubar.addMenu("&Help")
 
         about_action = QtGui.QAction("About Pigeon", self)
@@ -405,6 +443,9 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda: process_action.setEnabled(True))
 
         menu.addAction(process_action)
+
+    def displayMavlinkDebugger(self):
+        self.mavlinkdebugger_window.show()
 
     def showAboutWindow(self):
         self.about_window = AboutWindow(about_text=self.about_text)

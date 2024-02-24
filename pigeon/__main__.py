@@ -23,12 +23,14 @@ class GroundStation:
     def __init__(self):
         super().__init__()
         self.im_queue = queue.Queue()
+        self.msg_queue = queue.Queue()
         self.feature_queue = IOQueue()
 
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("MavLink Device")
-        self.uav = UAV(device, self.im_queue, self.feature_queue)
+        self.uav = UAV(device, self.im_queue, self.msg_queue,
+                       self.feature_queue)
 
         ground_control_points = features.load_ground_control_points()
 
@@ -52,6 +54,7 @@ Copyright (c) 2023 UAARG
                      save_settings=self.saveSettings,
                      load_settings=self.loadSettings,
                      image_in_queue=self.im_queue,
+                     message_in_queue=self.msg_queue,
                      feature_io_queue=self.feature_queue,
                      ground_control_points=ground_control_points,
                      about_text=about_text)

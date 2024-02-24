@@ -130,7 +130,7 @@ class ControlsArea(QtWidgets.QWidget):
         else:
             time_since_last_message = "(never)"
         data = [
-            ("UAV Connected", self.uav_connected),
+            ("UAV is Connected", self.uav_connected),
             ("Time since last message", time_since_last_message),
             ("Pictures captured", self.uav_pictures_taken),
             ("Pictures transmitted", self.uav_pictures_transmitted),

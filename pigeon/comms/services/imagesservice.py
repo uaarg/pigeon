@@ -1,4 +1,3 @@
-from enum import Enum
 from pymavlink.dialects.v20 import common as mavlink2
 import queue
 from pymavlink import mavutil
@@ -6,11 +5,6 @@ from pymavlink import mavutil
 from pigeon.comms.services.command import Command
 from pigeon.comms.services.common import MavlinkService
 from pigeon.image import Image
-
-
-class ImageCaptureState(Enum):
-    WAITING_FOR_CAPTURE = 0
-    RECIEVING_IMAGE = 1
 
 
 class ImageService(MavlinkService):

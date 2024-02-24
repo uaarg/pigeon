@@ -194,15 +194,18 @@ class BasePixmapLabel(QtWidgets.QLabel):
         self.features.append(feature)
 
 
-class PixmapLabel(BasePixmapLabel):
+class ImageArea(BasePixmapLabel):
     """
-    Provides a QLabel widget which automatically scales a pixmap
-    inserted into it. Keeps the pixmap's aspect ratio constant.
+    Specialized widget for displaying images.
+    This QLabel automatically scales the inserted pixmap while maintaining its aspect ratio.
+    designed to be used as the image area in pigeon
     """
 
     def _resize(self):
         if self.pixmap_loader:
             super().setPixmap(self.getPixmapForSize(self.size()))
+        else:
+            self.setText("NO IMAGE RECEIVED YET")
         super()._resize()
 
     def setPixmap(self, pixmap_loader):
