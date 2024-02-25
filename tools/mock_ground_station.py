@@ -11,11 +11,11 @@ def disconnect():
 
 
 def main(device: str, timeout: int):
-    print("Mocking GSC on %s" % device)
+    print("Mocking GCS on %s" % device)
     if timeout > 0:
-        print("Mock GSC will timeout in %d seconds" % timeout)
+        print("Mock GCS will timeout in %d seconds" % timeout)
     else:
-        print("Mock GSC will run forever")
+        print("Mock GCS will run forever")
 
     conn = mavutil.mavlink_connection(device,
                                       source_system=255,

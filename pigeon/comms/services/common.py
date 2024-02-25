@@ -38,26 +38,26 @@ class ForwardingService(MavlinkService):
     def __init__(self, commands: queue.Queue):
         self.commands = commands
 
-        self.gsc_device = settings_data["GSC Device"]
+        self.gcs_device = settings_data["GCS Device"]
 
-        self.gsc_conn = mavutil.mavlink_connection(self.gsc_device,
+        self.gcs_conn = mavutil.mavlink_connection(self.gcs_device,
                                                    source_system=1,
                                                    source_component=3)
 
     def recv_message(self, message: mavlink2.MAVLink_message):
         """
-        Forward message to mission planner (mock gsc)
+        Forward message to mission planner (mock gcs)
         """
-        data_bytes = message.pack(self.gsc_conn.mav)
+        data_bytes = message.pack(self.gcs_conn.mav)
         data_bytes = bytearray(data_bytes)
-        self.gsc_conn.write(data_bytes)
+        self.gcs_conn.write(data_bytes)
 
     def tick(self):
         """
-        Checks if server from mission planner (mock gsc) has sent a message.
+        Checks if server from mission planner (mock gcs) has sent a message.
         If so, forward it to the drone.
         """
-        message = self.gsc_conn.recv_match(blocking=False)
+        message = self.gcs_conn.recv_match(blocking=False)
         if message:
             self.commands.put(Command(message))
 

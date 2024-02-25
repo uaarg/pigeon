@@ -12,7 +12,7 @@ default_settings_data = {
     "Follow Images": True,
     "Feature Export Path": "data/exports",
     "UAV Device": "tcp:127.0.0.1:14551",
-    "GSC Device": "tcpin:127.0.0.1:14550",
+    "GCS Device": "tcpin:127.0.0.1:14550",
 }
 
 settings_data = default_settings_data.copy()  # Global settings data.

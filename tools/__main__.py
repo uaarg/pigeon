@@ -14,11 +14,11 @@ mock_uav.add_argument("--device", type=str, default="tcpin:127.0.0.1:14551")
 mock_uav.add_argument("-timeout", "--timeout_value", type=int, default=-1)
 mock_uav.set_defaults(_command="mock-uav")
 
-mock_gsc = tools.add_parser("mock-gsc",
+mock_gcs = tools.add_parser("mock-gcs",
                             help="Utility to mock the ground station locally")
-mock_gsc.add_argument("--device", type=str, default="tcp:127.0.0.1:14550")
-mock_gsc.add_argument("-timeout", "--timeout_value", type=int, default=-1)
-mock_gsc.set_defaults(_command="mock-gsc")
+mock_gcs.add_argument("--device", type=str, default="tcp:127.0.0.1:14550")
+mock_gcs.add_argument("-timeout", "--timeout_value", type=int, default=-1)
+mock_gcs.set_defaults(_command="mock-gcs")
 
 args = root.parse_args()
 
@@ -30,7 +30,7 @@ if '_command' not in args:
 match args._command:
     case "mock-uav":
         mock_uav_main(args.device, args.timeout_value)
-    case "mock-gsc":
+    case "mock-gcs":
         mock_ground_station_main(args.device, args.timeout_value)
     case _:  # Unknown _command
         raise NotImplementedError("Unknown command: %r" % args._command)
