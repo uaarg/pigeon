@@ -2,6 +2,7 @@ from typing import Callable
 
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import all as mavlink2
+from pigeon.settings import settings_data
 import time
 import queue
 
@@ -37,19 +38,20 @@ class ForwardingService(MavlinkService):
     def __init__(self, commands: queue.Queue):
         self.commands = commands
 
-        self.gsc_device = "tcpin:127.0.0.1:14551"
-        self.gsc_conn = mavutil.mavlink_connection(self.gsc_device,
+        self.gcs_device = settings_data["GCS Device"]
+
+        self.gcs_conn = mavutil.mavlink_connection(self.gcs_device,
                                                    source_system=1,
                                                    source_component=1)
 
     def recv_message(self, message: mavlink2.MAVLink_message):
         """
-        Forward message to mission planner (mock gsc)
+        Forward message to mission planner (mock gcs)
         """
         try:
-            data_bytes = message.pack(self.gsc_conn.mav)
+            data_bytes = message.pack(self.gcs_conn.mav)
             data_bytes = bytearray(data_bytes)
-            self.gsc_conn.write(data_bytes)
+            self.gcs_conn.write(data_bytes)
         except NotImplementedError:
             # Sometimes message is a BAD_DATA type. In that case, message.pack
             # will fail. We should just ignore BAD_DATA, it's a fact of radio
@@ -58,10 +60,10 @@ class ForwardingService(MavlinkService):
 
     def tick(self):
         """
-        Checks if server from mission planner (mock gsc) has sent a message.
+        Checks if server from mission planner (mock gcs) has sent a message.
         If so, forward it to the drone.
         """
-        while message := self.gsc_conn.recv_match(blocking=False):
+        while message := self.gcs_conn.recv_match(blocking=False):
             self.commands.put(Command(message))
 
 
