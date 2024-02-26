@@ -1,7 +1,7 @@
 from typing import Callable
 
 from pymavlink import mavutil
-from pymavlink.dialects.v20 import common as mavlink2
+from pymavlink.dialects.v20 import all as mavlink2
 import time
 import queue
 
@@ -40,23 +40,28 @@ class ForwardingService(MavlinkService):
         self.gsc_device = "tcpin:127.0.0.1:14551"
         self.gsc_conn = mavutil.mavlink_connection(self.gsc_device,
                                                    source_system=1,
-                                                   source_component=3)
+                                                   source_component=1)
 
     def recv_message(self, message: mavlink2.MAVLink_message):
         """
         Forward message to mission planner (mock gsc)
         """
-        data_bytes = message.pack(self.gsc_conn.mav)
-        data_bytes = bytearray(data_bytes)
-        self.gsc_conn.write(data_bytes)
+        try:
+            data_bytes = message.pack(self.gsc_conn.mav)
+            data_bytes = bytearray(data_bytes)
+            self.gsc_conn.write(data_bytes)
+        except NotImplementedError:
+            # Sometimes message is a BAD_DATA type. In that case, message.pack
+            # will fail. We should just ignore BAD_DATA, it's a fact of radio
+            # noise/interference
+            pass
 
     def tick(self):
         """
         Checks if server from mission planner (mock gsc) has sent a message.
         If so, forward it to the drone.
         """
-        message = self.gsc_conn.recv_match(blocking=False)
-        if message:
+        while message := self.gsc_conn.recv_match(blocking=False):
             self.commands.put(Command(message))
 
 
