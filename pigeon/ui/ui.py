@@ -63,9 +63,8 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav,
-                                      self.settings_data, self.features,
-                                      about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav, self.settings_data,
+                                      self.features, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)

@@ -238,4 +238,3 @@ class UAV:
             self.conn = None
             self.conn_lock = None
             self._connectionChanged()
-
