@@ -9,7 +9,7 @@ import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HearbeatService, StatusEchoService
+from .services.common import HeartbeatService, StatusEchoService, ForwardingService
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +69,10 @@ class UAV:
             if serial_device:
                 # set the baud rate for serial connections
                 conn: mavutil.mavfile = mavutil.mavlink_connection(
-                    self.device, 57600, source_system=255, source_component=2)
+                    self.device, 57600, source_system=255, source_component=1)
             else:
                 conn: mavutil.mavfile = mavutil.mavlink_connection(
-                    self.device, source_system=255, source_component=2)
+                    self.device, source_system=255, source_component=1)
         except ConnectionRefusedError as err:
             raise ConnectionError(f"Connection refused: {err}")
         except ConnectionResetError as err:
@@ -199,10 +199,11 @@ class UAV:
         # forward those commands as they come in through the `command` queue.
 
         services = [
-            HearbeatService(self.commands, self.disconnect),
+            HeartbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
             StatusEchoService(self._recvStatus),
             MessageCollectorService(self.msg_queue),
+            ForwardingService(self.commands)
         ]
 
         try:
@@ -210,17 +211,18 @@ class UAV:
                 for service in services:
                     service.tick()
 
-                msg = self.conn.recv_match(blocking=False)
-                if msg:
+                while msg := self.conn.recv_match(blocking=False):
                     for service in services:
                         service.recv_message(msg)
                     self._messageReceived()
 
-                try:
-                    command = self.commands.get(block=False)
-                    self.conn.write(command.encode(self.conn))
-                except queue.Empty:
-                    pass
+                # Empty the entire queue
+                while True:
+                    try:
+                        command = self.commands.get(block=False)
+                        self.conn.write(command.encode(self.conn))
+                    except queue.Empty:
+                        break
 
                 time.sleep(0.0001)  # s = 100us
         except ConnectionResetError:

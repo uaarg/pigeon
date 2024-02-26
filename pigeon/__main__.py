@@ -28,7 +28,7 @@ class GroundStation:
 
         self.loadSettings()
         self.image_watcher = Watcher()
-        device = self.settings_data.get("MavLink Device")
+        device = self.settings_data.get("UAV Device")
         self.uav = UAV(device, self.im_queue, self.msg_queue,
                        self.feature_queue)
 
