@@ -89,6 +89,7 @@ class StatusEchoService(MavlinkService):
         if message.get_type() == "STATUSTEXT":
             self.recv_status(message.text)
 
+
 class DebugService(MavlinkService):
     """
     Debug Service
@@ -101,14 +102,16 @@ class DebugService(MavlinkService):
         self.flag = True
 
     def recv_message(self, message: mavlink2.MAVLink_message):
-        self.message = message      
+        self.message = message
         if message.get_type() == 'DEBUG_FLOAT_ARRAY':
-            if message.__getattribute__('name') == "dbg_box": self.get_bounding_box()
+            if message.__getattribute__('name') == "dbg_box":
+                self.get_bounding_box()
 
     def get_bounding_box(self):
-        data: list  #format: [x_position, y_position, width, height,..,..,..] len=58 (only first 4 indices valuable)
+        data: list  # format: [x_position, y_position, width, height,..,..,..] len=58 (only first 4 indices valuable)
         data = self.message.__getattribute__('data')
-        if self.flag: self.mock_debugging(data)
+        if self.flag:
+            self.mock_debugging(data)
         
         """
         TODO: Display value on GUI
@@ -119,8 +122,10 @@ class DebugService(MavlinkService):
         check = True
         values = []
         for i in range(58):
-            if i % 2 == 0: values.append(0.0)
-            else: values.append(1.0) 
+            if i % 2 == 0:
+                values.append(0.0)
+            else:
+                values.append(1.0) 
         for i in range(58):
             if data[i] != values[i]: check = False
         if check: print("mock debugging successful")

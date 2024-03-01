@@ -81,16 +81,19 @@ def send_image(conn):
     )
     conn.write(handshake_msg.pack(conn.mav))
 
+
 def mock_debug(conn):
     """Sends a debugging message to the GUI"""
     values = []
     for i in range(58):
-        if i % 2 == 0: values.append(0.0)
-        else: values.append(1.0) 
-    message = dialect.MAVLink_debug_float_array_message(name=bytes("dbg_box", 'utf-8'), 
-                                                         time_usec=int(time.time()), 
-                                                         array_id=0, 
-                                                         data=values)
+        if i % 2 == 0:
+            values.append(0.0)
+        else:
+            values.append(1.0)
+    message = dialect.MAVLink_debug_float_array_message(name=bytes("dbg_box", 'utf-8'),
+                                                        time_usec=int(time.time()),
+                                                        array_id=0,
+                                                        data=values)
     conn.mav.send(message)
 
 
@@ -141,7 +144,7 @@ def main(device: str, timeout: int):
             print("sending an image")
             send_image(conn)
             image_count += 1
-        
+
         if ((current_time - start_time) > 12) and flag:
             print("testing debugging service")
             mock_debug(conn)
