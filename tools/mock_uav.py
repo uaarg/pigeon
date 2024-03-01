@@ -8,8 +8,8 @@ from math import ceil
 
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
-
-from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command
+import pymavlink.dialects.v20.all as dialect
+from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command, DebugService
 
 
 def disconnect():
@@ -81,6 +81,18 @@ def send_image(conn):
     )
     conn.write(handshake_msg.pack(conn.mav))
 
+def mock_debug(conn):
+    """Sends a debugging message to the GUI"""
+    values = []
+    for i in range(58):
+        if i % 2 == 0: values.append(0.0)
+        else: values.append(1.0) 
+    message = dialect.MAVLink_debug_float_array_message(name=bytes("dbg_box", 'utf-8'), 
+                                                         time_usec=int(time.time()), 
+                                                         array_id=0, 
+                                                         data=values)
+    conn.mav.send(message)
+
 
 def main(device: str, timeout: int):
     # Uses a similar struture to pigeon.comms.uav
@@ -102,12 +114,13 @@ def main(device: str, timeout: int):
     services = [
         HearbeatService(commands, disconnect, timeout),
         StatusEchoService(recv_status=print),
+        DebugService()
     ]
 
     commands.put(Command.statustext("Started UAV Mocker (from %s)" % device))
 
     image_count = 0
-
+    flag = True
     while connected:
         for service in services:
             service.tick()
@@ -128,6 +141,11 @@ def main(device: str, timeout: int):
             print("sending an image")
             send_image(conn)
             image_count += 1
+        
+        if ((current_time - start_time) > 12) and flag:
+            print("testing debugging service")
+            mock_debug(conn)
+            flag = False
 
         # TODO: we should be using some type of select utlity to avoid burning a CPU core
         time.sleep(0.0001)  # s = 100us

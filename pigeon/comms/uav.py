@@ -9,7 +9,7 @@ import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HearbeatService, StatusEchoService
+from .services.common import HearbeatService, StatusEchoService, DebugService
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +203,7 @@ class UAV:
             ImageService(self.commands, self.im_queue),
             StatusEchoService(self._recvStatus),
             MessageCollectorService(self.msg_queue),
+            DebugService()
         ]
 
         try:
