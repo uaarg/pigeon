@@ -112,12 +112,12 @@ class DebugService(MavlinkService):
         data = self.message.__getattribute__('data')
         if self.flag:
             self.mock_debugging(data)
-        
+
         """
         TODO: Display value on GUI
 
         """
-    
+
     def mock_debugging(self, data):
         check = True
         values = []
@@ -125,8 +125,11 @@ class DebugService(MavlinkService):
             if i % 2 == 0:
                 values.append(0.0)
             else:
-                values.append(1.0) 
+                values.append(1.0)
         for i in range(58):
-            if data[i] != values[i]: check = False
-        if check: print("mock debugging successful")
-        else: print("mock debugging failed")
+            if data[i] != values[i]:
+                check = False
+        if check:
+            print("mock debugging successful")
+        else:
+            print("mock debugging failed")
