@@ -55,16 +55,11 @@ class UI(QtCore.QObject, QueueMixin):
         # ====
         self.logger = logging.getLogger(__name__ + "." +
                                         self.__class__.__name__)
-        self.settings_data = load_settings()
-        self.features = ground_control_points  # For all features, not just GCP's ???
-        self.feature_io_queue = feature_io_queue
         self.uav = uav
-        self.save_settings = save_settings
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav, self.settings_data,
-                                      self.features, about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -77,7 +72,6 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.featureAddedLocally.connect(
             lambda feature: self.feature_io_queue.out_queue.put(feature))
 
-        self.settings_changed.connect(self.save_settings)
         self.settings_changed.connect(
             lambda changed_data: self.main_window.info_area.settings_area.
             setSettings(self.settings_data))
@@ -163,8 +157,6 @@ class UI(QtCore.QObject, QueueMixin):
                                 receive_status_message.emit)
 
         # Multi-pigeon signals
-        self.connectQueue(self.feature_io_queue.in_queue,
-                          self.applyFeatureSync)
         self.connectQueue(image_in_queue, self.addImage)
         self.connectQueue(
             message_in_queue,
@@ -277,14 +269,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self,
                  uav,
-                 settings_data={},
-                 features=[],
                  about_text="",
                  exit_cb=noop):
         super().__init__()
         self.uav = uav
-        self.settings_data = settings_data
-        self.features = features
         self.about_text = about_text
         self.exit_cb = exit_cb
 
@@ -337,15 +325,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Populating the page layout with the major components.
         self.info_area = InfoArea(uav,
                                   self.main_horizontal_split,
-                                  settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
-        self.main_image_area = MainImageArea(self.main_horizontal_split,
-                                             settings_data=settings_data,
-                                             features=features)
-        self.message_log_area = MessageLogArea(self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.main_image_area = MainImageArea(self.main_horizontal_split)
+        self.message_log_area = MessageLogArea(self.main_horizontal_split,
+                                        minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.thumbnail_area = ThumbnailArea(
             self.main_vertical_split,
-            settings_data=settings_data,
             minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component behaviour.
@@ -353,10 +338,6 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda new_item, old_item: self.showImage(new_item.image)
         )  # Show the image that's selected
         self.main_image_area.image_clicked.connect(self.handleMainImageClick)
-
-        self.info_area.settings_area.settings_save_requested.connect(
-            self.settings_save_requested.emit)
-        # self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -494,9 +475,6 @@ class MainWindow(QtWidgets.QMainWindow):
         marker = Marker(image, point=(point.x(), point.y()))
         self.featureAddedLocally.emit(marker)
 
-    def collectSubfeature(self, feature):
-        # ??
-        self.collect_subfeature_for = feature
 
     def handleMainImageClick(self, image: Image, point: Point):
         """

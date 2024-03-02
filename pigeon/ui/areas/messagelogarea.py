@@ -1,10 +1,6 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
-
-translate = QtCore.QCoreApplication.translate
+from PyQt6 import QtCore, QtWidgets
 
 from pigeon.ui.commonwidgets import BoldQLabel
-
-from pigeon.features import BaseFeature
 
 
 class MessageLogArea(QtWidgets.QFrame):
@@ -24,7 +20,7 @@ class MessageLogArea(QtWidgets.QFrame):
         self.setObjectName("message_log_area")
 
         self.title = BoldQLabel(self)
-        self.title.setText(translate("MessageLogArea", "Message Log:"))
+        self.title.setText("Message Log:")
 
         self.layout = QtWidgets.QGridLayout(self)
         self.layout.addWidget(self.title, 0, 0, 1, 1)
@@ -36,5 +32,6 @@ class MessageLogArea(QtWidgets.QFrame):
 
         self.layout.addWidget(self.textbox, 1, 0, 1, 1)
 
+    # Method to append messages to the log
     def appendMessage(self, message):
-        self.textbox.append(message)
+        self.textbox.append(message)  # Automatically adds a new line
