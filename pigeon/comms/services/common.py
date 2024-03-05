@@ -98,7 +98,7 @@ class DebugService(MavlinkService):
     Recieves a debugging message from the uav, unpacks and displays it on the GUI.
     """
     def __init__(self):
-        self.flag = True
+        self.do_testing = True
 
     def recv_message(self, message: mavlink2.MAVLink_message):
         if message.get_type() == 'DEBUG_FLOAT_ARRAY':
@@ -107,7 +107,7 @@ class DebugService(MavlinkService):
 
     def get_bounding_box(self, message):
         data: list = message.data  # format: [x_position, y_position, width, height,..,..,..] len=58 (only first 4 indices valuable)
-        if self.flag:
+        if self.do_testing:
             self.mock_debugging(data)
 
         """
