@@ -10,7 +10,7 @@ import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HeartbeatService, StatusEchoService, ForwardingService
+from .services.common import HeartbeatService, StatusEchoService, DebugService, ForwardingService
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,8 @@ class UAV:
             ImageService(self.commands, self.im_queue),
             StatusEchoService(self._recvStatus),
             MessageCollectorService(self.msg_queue),
-            ForwardingService(self.commands)
+            DebugService(),
+            ForwardingService(self.commands),
         ]
 
         try:

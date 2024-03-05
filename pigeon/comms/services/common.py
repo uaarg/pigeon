@@ -131,3 +131,45 @@ class StatusEchoService(MavlinkService):
     def recv_message(self, message: mavlink2.MAVLink_message):
         if message.get_type() == "STATUSTEXT":
             self.recv_status(message.text)
+
+
+class DebugService(MavlinkService):
+    """
+    Debug Service
+    =================
+
+    Recieves a debugging message from the uav, unpacks and displays it on the GUI.
+    """
+
+    def __init__(self):
+        self.do_testing = True
+
+    def recv_message(self, message: mavlink2.MAVLink_message):
+        if message.get_type() == 'DEBUG_FLOAT_ARRAY':
+            if message.name == "dbg_box":
+                self.get_bounding_box(message)
+
+    def get_bounding_box(self, message):
+        # format: [x_position, y_position, width, height, ...] len=58 (only first 4 indices used)
+        data: list = message.data
+        if self.do_testing:
+            self.mock_debugging(data)
+        """
+        TODO: Display value on GUI
+        """
+
+    def mock_debugging(self, data):
+        check = True
+        values = []
+        for i in range(58):
+            if i % 2 == 0:
+                values.append(0.0)
+            else:
+                values.append(1.0)
+        for i in range(58):
+            if data[i] != values[i]:
+                check = False
+        if check:
+            print("mock debugging successful")
+        else:
+            print("mock debugging failed")
