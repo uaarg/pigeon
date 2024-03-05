@@ -1,5 +1,3 @@
-#!/usr/bin/env
-
 import sys
 import time
 import queue
@@ -9,6 +7,7 @@ from math import ceil
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 import pymavlink.dialects.v20.all as dialect
+
 from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command, DebugService
 
 
@@ -98,7 +97,7 @@ def mock_debug(conn):
 
 
 def main(device: str, timeout: int):
-    # Uses a similar struture to pigeon.comms.uav
+    # Uses a similar structure to pigeon.comms.uav
 
     start_time = time.time()
 
@@ -115,7 +114,7 @@ def main(device: str, timeout: int):
 
     commands = queue.Queue()
     services = [
-        HearbeatService(commands, disconnect, timeout),
+        HeartbeatService(commands, disconnect, timeout),
         StatusEchoService(recv_status=print),
         DebugService()
     ]
@@ -150,5 +149,5 @@ def main(device: str, timeout: int):
             mock_debug(conn)
             flag = False
 
-        # TODO: we should be using some type of select utlity to avoid burning a CPU core
+        # TODO: we should be using some type of select utility to avoid burning a CPU core
         time.sleep(0.0001)  # s = 100us

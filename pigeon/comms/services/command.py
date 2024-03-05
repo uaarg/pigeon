@@ -1,5 +1,5 @@
 from pymavlink import mavutil
-from pymavlink.dialects.v20 import common as mavlink2
+from pymavlink.dialects.v20 import all as mavlink2
 
 
 class Command:

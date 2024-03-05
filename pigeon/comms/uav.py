@@ -3,13 +3,14 @@ from typing import Any, Callable
 
 from pymavlink import mavutil
 from threading import Lock, Thread
+import serial
 import time
 import logging
 import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HearbeatService, StatusEchoService, DebugService
+from .services.common import HearbeatService, StatusEchoService, DebugService, ForwardingService
 
 logger = logging.getLogger(__name__)
 
@@ -69,16 +70,18 @@ class UAV:
             if serial_device:
                 # set the baud rate for serial connections
                 conn: mavutil.mavfile = mavutil.mavlink_connection(
-                    self.device, 57600, source_system=255, source_component=2)
+                    self.device, 57600, source_system=255, source_component=1)
             else:
                 conn: mavutil.mavfile = mavutil.mavlink_connection(
-                    self.device, source_system=255, source_component=2)
+                    self.device, source_system=255, source_component=1)
         except ConnectionRefusedError as err:
             raise ConnectionError(f"Connection refused: {err}")
         except ConnectionResetError as err:
             raise ConnectionError(f"Connection reset: {err}")
         except ConnectionAbortedError as err:
             raise ConnectionError(f"Connection aborted: {err}")
+        except serial.serialutil.SerialException as err:
+            raise ConnectionError(f"Connection failed: {err}")
         else:
             self.conn_lock = Lock()
             self.conn = conn
@@ -87,18 +90,20 @@ class UAV:
             self.thread = Thread(target=lambda: self._runEventLoop(), args=[])
             self.thread.start()
 
-    def disconnect(self):
+    def disconnect(self, blocking=True):
         """
         If there is an active connection with the drone, close it.
         Otherwise this function is a no-op.
 
-        This should be non-destructive
+        This should be non-destructive.
+
+        This will block unless `blocking=False` is passed.
         """
         if self.conn is None:
             return
         assert self.conn_lock is not None
 
-        self.conn_lock.acquire(blocking=True)
+        self.conn_lock.acquire(blocking=blocking)
 
         self.conn.close()
         self.conn = None
@@ -199,11 +204,12 @@ class UAV:
         # forward those commands as they come in through the `command` queue.
 
         services = [
-            HearbeatService(self.commands, self.disconnect),
+            HeartbeatService(self.commands, self.disconnect),
             ImageService(self.commands, self.im_queue),
             StatusEchoService(self._recvStatus),
             MessageCollectorService(self.msg_queue),
-            DebugService()
+            DebugService(),
+            ForwardingService(self.commands),
         ]
 
         try:
@@ -211,19 +217,25 @@ class UAV:
                 for service in services:
                     service.tick()
 
-                msg = self.conn.recv_match(blocking=False)
-                if msg:
+                while msg := self.conn.recv_match(blocking=False):
                     for service in services:
                         service.recv_message(msg)
                     self._messageReceived()
 
-                try:
-                    command = self.commands.get(block=False)
-                    self.conn.write(command.encode(self.conn))
-                except queue.Empty:
-                    pass
+                # Empty the entire queue
+                while True:
+                    try:
+                        command = self.commands.get(block=False)
+                        self.conn.write(command.encode(self.conn))
+                    except queue.Empty:
+                        break
 
                 time.sleep(0.0001)  # s = 100us
         except ConnectionResetError:
             print("WARN: Lost connection... peer hung up.")
             self.disconnect()
+        except serial.serialutil.SerialException:
+            print("WARN: Serial connection interrupted")
+            self.conn = None
+            self.conn_lock = None
+            self._connectionChanged()
