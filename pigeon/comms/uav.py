@@ -10,7 +10,7 @@ import queue
 
 from .services.imagesservice import ImageService
 from .services.messageservice import MessageCollectorService
-from .services.common import HearbeatService, StatusEchoService, DebugService, ForwardingService
+from .services.common import HeartbeatService, StatusEchoService, DebugService, ForwardingService
 
 logger = logging.getLogger(__name__)
 

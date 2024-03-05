@@ -8,7 +8,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 import pymavlink.dialects.v20.all as dialect
 
-from pigeon.comms.services.common import HearbeatService, StatusEchoService, Command, DebugService
+from pigeon.comms.services.common import HeartbeatService, StatusEchoService, Command, DebugService
 
 
 def disconnect():
@@ -89,10 +89,11 @@ def mock_debug(conn):
             values.append(0.0)
         else:
             values.append(1.0)
-    message = dialect.MAVLink_debug_float_array_message(name=bytes("dbg_box", 'utf-8'),
-                                                        time_usec=int(time.time()),
-                                                        array_id=0,
-                                                        data=values)
+    message = dialect.MAVLink_debug_float_array_message(
+        name=bytes("dbg_box", 'utf-8'),
+        time_usec=int(time.time()),
+        array_id=0,
+        data=values)
     conn.mav.send(message)
 
 

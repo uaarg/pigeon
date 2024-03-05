@@ -140,6 +140,7 @@ class DebugService(MavlinkService):
 
     Recieves a debugging message from the uav, unpacks and displays it on the GUI.
     """
+
     def __init__(self):
         self.do_testing = True
 
@@ -149,13 +150,12 @@ class DebugService(MavlinkService):
                 self.get_bounding_box(message)
 
     def get_bounding_box(self, message):
-        data: list = message.data  # format: [x_position, y_position, width, height,..,..,..] len=58 (only first 4 indices valuable)
+        # format: [x_position, y_position, width, height, ...] len=58 (only first 4 indices used)
+        data: list = message.data
         if self.do_testing:
             self.mock_debugging(data)
-
         """
         TODO: Display value on GUI
-
         """
 
     def mock_debugging(self, data):
