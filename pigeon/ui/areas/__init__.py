@@ -4,8 +4,7 @@ from .infoarea import *
 
 from .thumbnailarea import *
 
-from .featuredetailarea import *
-from .featurearea import *
+from .messagelogarea import *
 
 from .mainimagearea import *
 

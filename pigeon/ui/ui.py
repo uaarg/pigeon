@@ -9,7 +9,7 @@ translate = QtCore.QCoreApplication.translate  # Potential aliasing
 
 from pigeon.features import BaseFeature, Marker, Point
 
-from pigeon.ui.areas import InfoArea, ThumbnailArea, FeatureArea, MainImageArea, SettingsArea
+from pigeon.ui.areas import InfoArea, ThumbnailArea, MessageLogArea, MainImageArea, SettingsArea
 from pigeon.ui.common import QueueMixin
 from pigeon.ui.dialogues import QrDiag
 from pigeon.ui.pixmaploader import PixmapLoader
@@ -68,9 +68,6 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
-
-        self.main_window.feature_area.feature_detail_area.addSubfeatureRequested.connect(
-            self.main_window.collectSubfeature)
 
         self.connectSignals(image_in_queue, message_in_queue)
 
@@ -345,9 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_image_area = MainImageArea(self.main_horizontal_split,
                                              settings_data=settings_data,
                                              features=features)
-        self.feature_area = FeatureArea(self.main_horizontal_split,
-                                        settings_data=settings_data,
-                                        minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.message_log_area = MessageLogArea(self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.thumbnail_area = ThumbnailArea(
             self.main_vertical_split,
             settings_data=settings_data,
@@ -362,36 +357,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.info_area.settings_area.settings_save_requested.connect(
             self.settings_save_requested.emit)
         # self.main_image_area.ruler.ruler_updated.connect(self.info_area.ruler_updated)
-
-        # Hooking up feature inter-component behaviour. Listing all things we could do to change a
-        # feature and hooking them up internally and externally
-        for slot in [
-                self.feature_area.feature_detail_area.
-                featureChanged,  # Feature's details can be changed
-                # Feature's position can be changed when it's dragged
-                self.main_image_area.featureChanged,
-        ]:
-            # To let other components within this Pigeon know.
-            slot.connect(self.featureChanged.emit)
-            # To let other Pigeon's know.
-            slot.connect(self.featureChangedLocally.emit)
-
-        # These are the components that need to know when a feature is changed:
-        # Update the feature in the list
-        self.featureChanged.connect(self.feature_area.updateFeature)
-        # Update the feature in the main image window
-        self.featureChanged.connect(self.main_image_area.updateFeature)
-        # Update the feature details
-        self.featureChanged.connect(
-            self.feature_area.feature_detail_area.updateFeature)
-
-        # And things that need to know when a new feature is added, whether initiated by this Pigeon or another instance:
-        for signal in [self.featureAdded, self.featureAddedLocally]:
-            signal.connect(lambda feature: self.features.append(feature))
-            signal.connect(self.main_image_area.addFeature)
-            signal.connect(self.feature_area.addFeature)
-
-        self.featureAddedLocally.connect(self.feature_area.showFeature)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
