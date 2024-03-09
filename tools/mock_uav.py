@@ -3,12 +3,15 @@ import time
 import queue
 from PIL import Image
 from math import ceil
+import random
 
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 import pymavlink.dialects.v20.all as dialect
 
-from pigeon.comms.services.common import HeartbeatService, StatusEchoService, Command, DebugService
+from pigeon.comms.services.common import (
+    HeartbeatService, StatusEchoService, Command, DebugService, MavlinkService
+)
 
 
 def disconnect():
@@ -97,6 +100,32 @@ def mock_debug(conn):
     conn.mav.send(message)
 
 
+class DebugRandomStatusService(MavlinkService):
+    """
+    Debug Random Status Service
+    ===========================
+
+    Sends STATUSTEXT messages randomly for debugging purposes.
+    """
+
+    def __init__(self, commands: queue.Queue):
+        self.commands = commands
+        self.last_send = time.time()
+
+    def tick(self):
+        if time.time() - self.last_send > 5:
+            messages = [
+                'This is a random message',
+                'Hello there',
+                'Can you read this',
+                'How about this message',
+                'UAARG Rules!',
+            ]
+            message = Command.statustext(random.choice(messages))
+            self.commands.put(message)
+            self.last_send = time.time()
+
+
 def main(device: str, timeout: int):
     # Uses a similar structure to pigeon.comms.uav
 
@@ -117,7 +146,8 @@ def main(device: str, timeout: int):
     services = [
         HeartbeatService(commands, disconnect, timeout),
         StatusEchoService(recv_status=print),
-        DebugService()
+        DebugService(),
+        DebugRandomStatusService(commands),
     ]
 
     commands.put(Command.statustext("Started UAV Mocker (from %s)" % device))
