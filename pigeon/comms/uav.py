@@ -30,6 +30,7 @@ class UAV:
     device: str
     im_queue: queue.Queue
     msg_queue: queue.Queue
+    statustext_queue: queue.Queue
     feature_queue: Any
 
     event_loop: Thread | None = None
@@ -189,6 +190,7 @@ class UAV:
         Notify all listeners via the command ACKed callback about a command
         ACKed event.
         """
+        self.statustext_queue.put(status)
         for cb in self.status_cbs:
             cb(status)
 

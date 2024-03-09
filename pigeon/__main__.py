@@ -24,12 +24,13 @@ class GroundStation:
         super().__init__()
         self.im_queue = queue.Queue()
         self.msg_queue = queue.Queue()
+        self.statustext_queue = queue.Queue()
         self.feature_queue = IOQueue()
 
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("UAV Device")
-        self.uav = UAV(device, self.im_queue, self.msg_queue,
+        self.uav = UAV(device, self.im_queue, self.msg_queue, self.statustext_queue,
                        self.feature_queue)
 
         ground_control_points = features.load_ground_control_points()
@@ -55,6 +56,7 @@ Copyright (c) 2023 UAARG
                      load_settings=self.loadSettings,
                      image_in_queue=self.im_queue,
                      message_in_queue=self.msg_queue,
+                     statustext_in_queue=self.statustext_queue,
                      feature_io_queue=self.feature_queue,
                      ground_control_points=ground_control_points,
                      about_text=about_text)

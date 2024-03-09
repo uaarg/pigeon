@@ -1,4 +1,6 @@
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
+
+translate = QtCore.QCoreApplication.translate
 
 from pigeon.ui.commonwidgets import BoldQLabel
 
@@ -34,6 +36,5 @@ class MessageLogArea(QtWidgets.QFrame):
 
         self.layout.addWidget(self.textbox, 1, 0, 1, 1)
 
-    # Method to append messages to the log
-    def appendMessage(self, message):
-        self.textbox.append(message)  # Automatically adds a new line
+    def queueMessage(self, message):
+        self.textbox.append(message)

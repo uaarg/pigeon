@@ -14,6 +14,7 @@ from pigeon.ui.common import QueueMixin
 from pigeon.ui.dialogues import QrDiag
 from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
+from pigeon.comms.services.common import StatusEchoService
 
 from pigeon.image import Image
 from pigeon.comms.services.messageservice import MavlinkMessage
@@ -46,6 +47,7 @@ class UI(QtCore.QObject, QueueMixin):
                  load_settings,
                  image_in_queue,
                  message_in_queue,
+                 statustext_in_queue,
                  feature_io_queue,
                  ground_control_points=[],
                  about_text=""):
@@ -59,12 +61,14 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav, about_text, self.app.exit)
+        message_log_queue = Queue()
+        self.main_window = MainWindow(self.uav,
+                                      about_text, self.app.exit, message_log_queue)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
 
-        self.connectSignals(image_in_queue, message_in_queue)
+        self.connectSignals(image_in_queue, message_in_queue, statustext_in_queue)
 
         # Hooking up some inter-component behaviour
         self.main_window.featureChangedLocally.connect(
@@ -124,7 +128,7 @@ class UI(QtCore.QObject, QueueMixin):
         else:
             self.main_window.featureAdded.emit(feature)
 
-    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue):
+    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue, statustext_in_queue: Queue):
         """
         Hook up various PyQt Signals and emissions to UI elements
 
@@ -161,6 +165,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.connectQueue(
             message_in_queue,
             self.main_window.mavlinkdebugger_window.handleMessage)
+        self.connectQueue(statustext_in_queue, self.main_window.message_log_area.queueMessage)
 
         # Kill signal
         signal_.signal(signal_.SIGINT, lambda signum, fram: self.app.exit())
@@ -267,7 +272,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self, uav, about_text="", exit_cb=noop):
+    receive_message = QtCore.pyqtSignal(MavlinkMessage)
+
+    def __init__(self,
+                 uav,
+                 settings_data={},
+                 features=[],
+                 about_text="",
+                 exit_cb=noop, message_log_queue=None):
         super().__init__()
         self.uav = uav
         self.about_text = about_text
@@ -323,9 +335,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.info_area = InfoArea(uav,
                                   self.main_horizontal_split,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
-        self.main_image_area = MainImageArea(self.main_horizontal_split)
-        self.message_log_area = MessageLogArea(
-            self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.main_image_area = MainImageArea(self.main_horizontal_split,
+                                             settings_data=settings_data,
+                                             features=features)
+        self.message_log_area = MessageLogArea(self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.receive_message.connect(self.message_log_area.queueMessage)
+
         self.thumbnail_area = ThumbnailArea(
             self.main_vertical_split, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
