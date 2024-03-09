@@ -8,6 +8,7 @@ from ..commonwidgets import NonEditableBaseListForm
 from ..common import format_duration_for_display
 
 from . import ControlsArea
+from . import SettingsArea
 from .commandsarea import CommandsArea
 
 
@@ -62,8 +63,12 @@ class InfoArea(QtWidgets.QFrame):
         self.imageInfoTab.layout.addWidget(self.image_info_area)
 
         self.state_area = StateArea(self.pigeonTab, editable=False)
+        self.settings_area = SettingsArea(self.pigeonTab,
+                                          settings_data=settings_data,
+                                          fields_to_display=["Follow Images"])
 
         self.pigeonTab.layout.addWidget(self.state_area)
+        self.pigeonTab.layout.addWidget(self.settings_area)
 
         self.controls = CommandsArea(self)
         self.controlTab.layout.addWidget(self.controls)

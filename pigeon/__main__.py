@@ -30,8 +30,8 @@ class GroundStation:
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("UAV Device")
-        self.uav = UAV(device, self.im_queue, self.msg_queue, self.statustext_queue,
-                       self.feature_queue)
+        self.uav = UAV(device, self.im_queue, self.msg_queue,
+                       self.statustext_queue, self.feature_queue)
 
         ground_control_points = features.load_ground_control_points()
 

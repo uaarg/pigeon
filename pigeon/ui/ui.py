@@ -14,7 +14,6 @@ from pigeon.ui.common import QueueMixin
 from pigeon.ui.dialogues import QrDiag
 from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
-from pigeon.comms.services.common import StatusEchoService
 
 from pigeon.image import Image
 from pigeon.comms.services.messageservice import MavlinkMessage
@@ -57,18 +56,19 @@ class UI(QtCore.QObject, QueueMixin):
         # ====
         self.logger = logging.getLogger(__name__ + "." +
                                         self.__class__.__name__)
+        self.settings_data = load_settings()
         self.uav = uav
+        self.save_settings = save_settings
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        message_log_queue = Queue()
-        self.main_window = MainWindow(self.uav,
-                                      about_text, self.app.exit, message_log_queue)
+        self.main_window = MainWindow(self.uav, self.settings_data, about_text, self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
 
-        self.connectSignals(image_in_queue, message_in_queue, statustext_in_queue)
+        self.connectSignals(image_in_queue, message_in_queue,
+                            statustext_in_queue)
 
         # Hooking up some inter-component behaviour
         self.main_window.featureChangedLocally.connect(
@@ -76,6 +76,7 @@ class UI(QtCore.QObject, QueueMixin):
         self.main_window.featureAddedLocally.connect(
             lambda feature: self.feature_io_queue.out_queue.put(feature))
 
+        self.settings_changed.connect(self.save_settings)
         self.settings_changed.connect(
             lambda changed_data: self.main_window.info_area.settings_area.
             setSettings(self.settings_data))
@@ -128,7 +129,8 @@ class UI(QtCore.QObject, QueueMixin):
         else:
             self.main_window.featureAdded.emit(feature)
 
-    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue, statustext_in_queue: Queue):
+    def connectSignals(self, image_in_queue: Queue, message_in_queue: Queue,
+                       statustext_in_queue: Queue):
         """
         Hook up various PyQt Signals and emissions to UI elements
 
@@ -165,7 +167,8 @@ class UI(QtCore.QObject, QueueMixin):
         self.connectQueue(
             message_in_queue,
             self.main_window.mavlinkdebugger_window.handleMessage)
-        self.connectQueue(statustext_in_queue, self.main_window.message_log_area.queueMessage)
+        self.connectQueue(statustext_in_queue,
+                          self.main_window.message_log_area.queueMessage)
 
         # Kill signal
         signal_.signal(signal_.SIGINT, lambda signum, fram: self.app.exit())
@@ -279,9 +282,11 @@ class MainWindow(QtWidgets.QMainWindow):
                  settings_data={},
                  features=[],
                  about_text="",
-                 exit_cb=noop, message_log_queue=None):
+                 exit_cb=noop,
+                 message_log_queue=None):
         super().__init__()
         self.uav = uav
+        self.settings_data = settings_data
         self.about_text = about_text
         self.exit_cb = exit_cb
 
@@ -333,22 +338,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(uav,
-                                  self.main_horizontal_split,
+                                  self.main_horizontal_split, settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split,
                                              settings_data=settings_data,
                                              features=features)
-        self.message_log_area = MessageLogArea(self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.message_log_area = MessageLogArea(
+            self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.receive_message.connect(self.message_log_area.queueMessage)
 
         self.thumbnail_area = ThumbnailArea(
-            self.main_vertical_split, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+            self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component behaviour.
         self.thumbnail_area.contents.currentItemChanged.connect(
             lambda new_item, old_item: self.showImage(new_item.image)
         )  # Show the image that's selected
         self.main_image_area.image_clicked.connect(self.handleMainImageClick)
+
+        self.info_area.settings_area.settings_save_requested.connect(
+            self.settings_save_requested.emit)
 
         self.initMenuBar()
         QtCore.QMetaObject.connectSlotsByName(self)
