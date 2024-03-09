@@ -9,9 +9,9 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 import pymavlink.dialects.v20.all as dialect
 
-from pigeon.comms.services.common import (
-    HeartbeatService, StatusEchoService, Command, DebugService, MavlinkService
-)
+from pigeon.comms.services.common import (HeartbeatService, StatusEchoService,
+                                          Command, DebugService,
+                                          MavlinkService)
 
 
 def disconnect():

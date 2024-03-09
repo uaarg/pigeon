@@ -15,14 +15,10 @@ class SettingsArea(EditableBaseListForm):
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self,
-                 *args,
-                 fields_to_display=True,
-                 **kwargs):
+    def __init__(self, *args, fields_to_display=True, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields_to_display = fields_to_display
 
         self.dataEdited.connect(
             lambda: self.settings_save_requested.emit(self.getSettings()))
-

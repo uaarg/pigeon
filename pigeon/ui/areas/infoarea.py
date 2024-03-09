@@ -8,7 +8,6 @@ from ..commonwidgets import NonEditableBaseListForm
 from ..common import format_duration_for_display
 
 from . import ControlsArea
-from . import SettingsArea
 from .commandsarea import CommandsArea
 
 

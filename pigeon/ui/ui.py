@@ -267,10 +267,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     settings_save_requested = QtCore.pyqtSignal(dict)
 
-    def __init__(self,
-                 uav,
-                 about_text="",
-                 exit_cb=noop):
+    def __init__(self, uav, about_text="", exit_cb=noop):
         super().__init__()
         self.uav = uav
         self.about_text = about_text
@@ -327,11 +324,10 @@ class MainWindow(QtWidgets.QMainWindow):
                                   self.main_horizontal_split,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split)
-        self.message_log_area = MessageLogArea(self.main_horizontal_split,
-                                        minimum_width=FEATURE_AREA_MIN_WIDTH)
+        self.message_log_area = MessageLogArea(
+            self.main_horizontal_split, minimum_width=FEATURE_AREA_MIN_WIDTH)
         self.thumbnail_area = ThumbnailArea(
-            self.main_vertical_split,
-            minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+            self.main_vertical_split, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component behaviour.
         self.thumbnail_area.contents.currentItemChanged.connect(
@@ -474,7 +470,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         marker = Marker(image, point=(point.x(), point.y()))
         self.featureAddedLocally.emit(marker)
-
 
     def handleMainImageClick(self, image: Image, point: Point):
         """

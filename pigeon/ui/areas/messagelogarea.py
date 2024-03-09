@@ -4,6 +4,7 @@ from pigeon.ui.commonwidgets import BoldQLabel
 
 
 class MessageLogArea(QtWidgets.QFrame):
+
     def __init__(self, *args, minimum_width=250, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -28,7 +29,8 @@ class MessageLogArea(QtWidgets.QFrame):
         self.textbox = QtWidgets.QTextEdit()
         self.textbox.setObjectName("message_log_textbox")
         self.textbox.setReadOnly(True)
-        self.textbox.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.textbox.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         self.layout.addWidget(self.textbox, 1, 0, 1, 1)
 
