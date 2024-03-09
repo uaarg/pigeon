@@ -14,6 +14,7 @@ class SettingsArea(EditableBaseListForm):
     """
 
     settings_save_requested = QtCore.pyqtSignal(dict)
+
     def __init__(self,
                  *args,
                  settings_data={},
@@ -27,7 +28,7 @@ class SettingsArea(EditableBaseListForm):
 
         self.dataEdited.connect(
             lambda: self.settings_save_requested.emit(self.getSettings()))
-        
+
     def _title(self):
         return "Settings:"
 

@@ -62,7 +62,8 @@ class UI(QtCore.QObject, QueueMixin):
 
         self.app = QtWidgets.QApplication(sys.argv)
         self.app.setStyleSheet(stylesheet)
-        self.main_window = MainWindow(self.uav, self.settings_data, about_text, self.app.exit)
+        self.main_window = MainWindow(self.uav, self.settings_data, about_text,
+                                      self.app.exit)
 
         self.main_window.settings_save_requested.connect(
             self.settings_changed.emit)
@@ -282,8 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
                  settings_data={},
                  features=[],
                  about_text="",
-                 exit_cb=noop,
-                 message_log_queue=None):
+                 exit_cb=noop):
         super().__init__()
         self.uav = uav
         self.settings_data = settings_data
@@ -338,7 +338,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Populating the page layout with the major components.
         self.info_area = InfoArea(uav,
-                                  self.main_horizontal_split, settings_data=settings_data,
+                                  self.main_horizontal_split,
+                                  settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
         self.main_image_area = MainImageArea(self.main_horizontal_split,
                                              settings_data=settings_data,
@@ -348,7 +349,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.receive_message.connect(self.message_log_area.queueMessage)
 
         self.thumbnail_area = ThumbnailArea(
-            self.main_vertical_split, settings_data=settings_data, minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
+            self.main_vertical_split,
+            settings_data=settings_data,
+            minimum_height=THUMBNAIL_AREA_MIN_HEIGHT)
 
         # Hooking up some inter-component behaviour.
         self.thumbnail_area.contents.currentItemChanged.connect(
