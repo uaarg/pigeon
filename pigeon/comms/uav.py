@@ -1,5 +1,5 @@
 from dataclasses import field, dataclass
-from typing import Any, Callable
+from typing import Callable
 
 from pymavlink import mavutil
 from threading import Lock, Thread
@@ -30,7 +30,7 @@ class UAV:
     device: str
     im_queue: queue.Queue
     msg_queue: queue.Queue
-    feature_queue: Any
+    statustext_queue: queue.Queue
 
     event_loop: Thread | None = None
     conn_lock: 'Lock | None' = None
@@ -189,6 +189,7 @@ class UAV:
         Notify all listeners via the command ACKed callback about a command
         ACKed event.
         """
+        self.statustext_queue.put(status)
         for cb in self.status_cbs:
             cb(status)
 
