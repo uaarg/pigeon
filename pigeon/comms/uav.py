@@ -1,5 +1,5 @@
 from dataclasses import field, dataclass
-from typing import Any, Callable
+from typing import Callable
 
 from pymavlink import mavutil
 from threading import Lock, Thread
@@ -31,7 +31,6 @@ class UAV:
     im_queue: queue.Queue
     msg_queue: queue.Queue
     statustext_queue: queue.Queue
-    feature_queue: Any
 
     event_loop: Thread | None = None
     conn_lock: 'Lock | None' = None

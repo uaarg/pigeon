@@ -3,19 +3,12 @@ import logging
 import argparse
 import queue
 
-from pigeon import log, settings, features
+from pigeon import log, settings
 from pigeon.ui import UI
 from pigeon.image import Watcher
 from pigeon.comms.uav import UAV
 
 __version__ = "2.0.3"
-
-
-class IOQueue():
-
-    def __init__(self):
-        self.in_queue = queue.Queue()
-        self.out_queue = queue.Queue()
 
 
 class GroundStation:
@@ -25,21 +18,17 @@ class GroundStation:
         self.im_queue = queue.Queue()
         self.msg_queue = queue.Queue()
         self.statustext_queue = queue.Queue()
-        self.feature_queue = IOQueue()
 
         self.loadSettings()
         self.image_watcher = Watcher()
         device = self.settings_data.get("UAV Device")
         self.uav = UAV(device, self.im_queue, self.msg_queue,
-                       self.statustext_queue, self.feature_queue)
-
-        ground_control_points = features.load_ground_control_points()
+                       self.statustext_queue)
 
         about_text = """Pigeon
 
-Pigeon is UAARG's ground imaging software. It can be used to control
-the onboard imaging computer, view downloaded images, and make features
-within those images. Marked features can be analyzed and exported.
+Pigeon is UAARG's ground imaging software. It is used to monitor and control
+imaging processes running on the drone.
 
 Running in "%(run_directory)s"
 
@@ -57,8 +46,6 @@ Copyright (c) 2023 UAARG
                      image_in_queue=self.im_queue,
                      message_in_queue=self.msg_queue,
                      statustext_in_queue=self.statustext_queue,
-                     feature_io_queue=self.feature_queue,
-                     ground_control_points=ground_control_points,
                      about_text=about_text)
 
     def loadSettings(self):

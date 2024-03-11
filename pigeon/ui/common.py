@@ -20,7 +20,6 @@ class BasePixmapLabel(QtWidgets.QLabel):
     * Resizing the pixmap for display (in subclasses).
     * Mapping points on the displayed pixmap to points on the
       original pixmap (and back).
-    * Adding features to be displayed over the pixmap.
     """
     pixmap_label_marker_dropped = QtCore.pyqtSignal(str, QtCore.QPoint)
 
@@ -33,8 +32,6 @@ class BasePixmapLabel(QtWidgets.QLabel):
             self.original_pixmap_height = pixmap_loader.height()
 
         super().__init__(*args, **kwargs)
-
-        self.features = []
 
         self.interactive = interactive
         if self.interactive:
@@ -119,25 +116,6 @@ class BasePixmapLabel(QtWidgets.QLabel):
                                  (size.width(), size.height())))
             return pixmap
 
-    def _resize(self):
-        self._positionFeatures()
-
-    def _positionFeatures(self):
-        """
-        Reposition all the features so that they appear appear in the
-        same place in the image.
-        """
-        features_removed = []
-        for feature in self.features:
-            try:
-                feature.position()
-            except RuntimeError:
-                # The underlying C/C++ object can be deleted even if the python reference remains. Removing these features.
-                features_removed.append(feature)
-
-        for feature in features_removed:
-            self.features.remove(feature)
-
     def _processDropEvent(self, event):
         # Offset to account for cursor size:
         pos_offset_x = 20
@@ -178,21 +156,6 @@ class BasePixmapLabel(QtWidgets.QLabel):
                     bytes(id_).decode("ascii"), mapped_drop_point)
                 event.acceptProposedAction()
 
-    def addPixmapLabelFeature(self, feature):
-        """
-        Add the provided PixmapLabelFeature to this PixmapLabel.
-        """
-
-        # Giving the feature a function (not a method) that allows
-        # it to map a point on the original pixmap to the displayed
-        # pixmap:
-        def mapPoint(point, offset):
-            return self.pointOnDisplay(point, offset)
-
-        feature.mapPoint = mapPoint
-
-        self.features.append(feature)
-
 
 class ImageArea(BasePixmapLabel):
     """
@@ -206,7 +169,6 @@ class ImageArea(BasePixmapLabel):
             super().setPixmap(self.getPixmapForSize(self.size()))
         else:
             self.setText("NO IMAGE RECEIVED YET")
-        super()._resize()
 
     def setPixmap(self, pixmap_loader):
         self.pixmap_loader = pixmap_loader
@@ -237,7 +199,6 @@ class WidthForHeightPixmapLabel(BasePixmapLabel):
             )  # The large width value is a hack for infinity to get scale-to-height functionality
             self.setMinimumWidth(pixmap.width())
             super().setPixmap(pixmap)
-        super()._resize()
 
     def setPixmap(self, pixmap_loader):
         self.pixmap_loader = pixmap_loader
@@ -261,8 +222,7 @@ class PixmapLabelMarker(QtWidgets.QLabel):
                  size=(20, 20),
                  offset=QtCore.QPoint(0, 0),
                  moveable=False,
-                 id_=None,
-                 isruler=False):
+                 id_=None):
         super().__init__(parent)
 
         self.parent = parent
@@ -271,13 +231,11 @@ class PixmapLabelMarker(QtWidgets.QLabel):
         self.offset = offset
         self.moveable = moveable
         self.id_ = id_
-        self.isruler = isruler
 
-        if not self.isruler:
-            pixmap = QtGui.QPixmap(icon)
-            if pixmap.isNull():
-                raise ValueError("Unable to load icon at %s." % icon)
-            self.setPixmap(pixmap)
+        pixmap = QtGui.QPixmap(icon)
+        if pixmap.isNull():
+            raise ValueError("Unable to load icon at %s." % icon)
+        self.setPixmap(pixmap)
 
         self.setScaledContents(True)
         self.hide()
