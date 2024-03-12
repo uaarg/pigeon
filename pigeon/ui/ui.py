@@ -2,7 +2,6 @@ import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
 from queue import Queue
-from time import time
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
