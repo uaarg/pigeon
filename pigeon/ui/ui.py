@@ -9,7 +9,6 @@ translate = QtCore.QCoreApplication.translate  # Potential aliasing
 
 from pigeon.ui.areas import InfoArea, ThumbnailArea, MessageLogArea, MainImageArea, SettingsArea
 from pigeon.ui.common import QueueMixin
-from pigeon.ui.dialogues import QrDiag
 from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
 
@@ -351,22 +350,6 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action.triggered.connect(self.showAboutWindow)
         menu.addAction(about_action)
 
-        # Process Menu Bar
-        # ===============
-
-        # Extra Processing for images, like QR codes
-        menu = self.menubar.addMenu("&Process")
-
-        process_action = QtGui.QAction("Process QR Code", self)
-        process_action.triggered.connect(self.decodeQR)
-
-        # Activate only on first image load
-        process_action.setEnabled(False)
-        self.main_image_area.imageChanged.connect(
-            lambda: process_action.setEnabled(True))
-
-        menu.addAction(process_action)
-
     def displayMavlinkDebugger(self):
         self.mavlinkdebugger_window.show()
 
@@ -387,15 +370,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_window.show()
         self.settings_window.settings_save_requested.connect(
             self.settings_save_requested.emit)
-
-    def decodeQR(self):
-        """
-        Decode the QR code on the current image and then
-        create a dialog box showing result
-        """
-
-        im_path = self.main_image_area.getImage().path
-        QrDiag(self, im_path)
 
     def addImage(self, image: Image):
         """
