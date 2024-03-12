@@ -2,6 +2,7 @@ import sys
 import logging
 import signal as signal_  # For exiting pigeon from terminal
 from queue import Queue
+from time import time
 
 from PyQt6 import QtCore, QtWidgets, QtGui
 
@@ -161,6 +162,8 @@ class MavLinkDebugger(QtWidgets.QWidget):
 
         self.message_display = QtWidgets.QTextEdit(self)
         self.message_display.setReadOnly(True)
+        self.number_of_messages = 0
+        self.current_message_number = 1
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.message_display)
@@ -170,7 +173,13 @@ class MavLinkDebugger(QtWidgets.QWidget):
     def handleMessage(self, message: MavlinkMessage):
         current_time = message.time.strftime("%H:%M:%S")
         self.message_display.append(
-            f"Message: {message.type}, Received: {current_time}")
+            f"{self.current_message_number}.  Message: {message.type}, Received: {current_time}"
+        )
+        self.current_message_number += 1
+        self.number_of_messages += 1
+        if self.number_of_messages == 50000:
+            self.message_display.clear()
+            self.number_of_messages = 0
 
 
 class AboutWindow(QtWidgets.QWidget):
