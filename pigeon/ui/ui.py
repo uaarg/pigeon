@@ -159,25 +159,52 @@ class MavLinkDebugger(QtWidgets.QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        self.message_display = QtWidgets.QTextEdit(self)
-        self.message_display.setReadOnly(True)
+        self.message_table = QtWidgets.QTableWidget(self)
+        self.message_table.setColumnCount(3)
+        self.message_table.setHorizontalHeaderLabels(
+            ["Message Number", "Message Type", "Received"])
+        self.no_of_rows = 0
         self.number_of_messages = 0
         self.current_message_number = 1
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.message_display)
+        layout.addWidget(self.message_table)
 
         self.receive_message.connect(self.handleMessage)
 
+    def add_message(self, number, message_type, received):
+        row_position = self.message_table.rowCount()
+        self.message_table.insertRow(row_position)
+
+        number_item = QtWidgets.QTableWidgetItem(str(number))
+        number_item.setTextAlignment(
+            QtCore.Qt.AlignmentFlag.AlignCenter)  # Align to cell center
+        number_item.setFlags(
+            number_item.flags()
+            & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # Make it read-only
+        self.message_table.setItem(row_position, 0, number_item)
+
+        message_type_item = QtWidgets.QTableWidgetItem(message_type)
+        message_type_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        message_type_item.setFlags(message_type_item.flags()
+                                   & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+        self.message_table.setItem(row_position, 1, message_type_item)
+
+        received_item = QtWidgets.QTableWidgetItem(received)
+        received_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        received_item.setFlags(received_item.flags()
+                               & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+        self.message_table.setItem(row_position, 2, received_item)
+
     def handleMessage(self, message: MavlinkMessage):
         current_time = message.time.strftime("%H:%M:%S")
-        self.message_display.append(
-            f"{self.current_message_number}.  Message: {message.type}, Received: {current_time}"
-        )
+        self.add_message(self.current_message_number, str(message.type),
+                         current_time)
         self.current_message_number += 1
         self.number_of_messages += 1
-        if self.number_of_messages == 50000:
-            self.message_display.clear()
+        if self.number_of_messages == 1000:  # Note: Every 1000th message wont be displayed since table gets cleared at that instance
+            self.message_table.clearContents()
+            self.message_table.setRowCount(0)
             self.number_of_messages = 0
 
 
