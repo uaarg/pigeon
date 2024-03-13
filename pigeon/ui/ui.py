@@ -166,13 +166,24 @@ class MavLinkDebugger(QtWidgets.QWidget):
         self.no_of_rows = 0
         self.number_of_messages = 0
         self.current_message_number = 1
+        self.currently_filtering = False
+
+        self.search_textbox = QtWidgets.QLineEdit(self)
+        self.search_textbox.setPlaceholderText("Enter word to search")
+        self.search_button = QtWidgets.QPushButton("Search", self)
+        self.search_button.clicked.connect(self.filter)
+        self.stop_search_button = QtWidgets.QPushButton("Stop Searching", self)
+        self.stop_search_button.clicked.connect(self.undoFilterHighlighting)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.message_table)
+        layout.addWidget(self.search_textbox)
+        layout.addWidget(self.search_button)
+        layout.addWidget(self.stop_search_button)
 
         self.receive_message.connect(self.handleMessage)
 
-    def add_message(self, number, message_type, received):
+    def addMessage(self, number, message_type, received):
         row_position = self.message_table.rowCount()
         self.message_table.insertRow(row_position)
 
@@ -183,29 +194,66 @@ class MavLinkDebugger(QtWidgets.QWidget):
             number_item.flags()
             & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # Make it read-only
         self.message_table.setItem(row_position, 0, number_item)
+        number_item.setBackground(
+            QtGui.QColor("black"))  # Make the background color black
 
         message_type_item = QtWidgets.QTableWidgetItem(message_type)
         message_type_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         message_type_item.setFlags(message_type_item.flags()
                                    & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.message_table.setItem(row_position, 1, message_type_item)
+        message_type_item.setBackground(QtGui.QColor("black"))
 
         received_item = QtWidgets.QTableWidgetItem(received)
         received_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         received_item.setFlags(received_item.flags()
                                & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.message_table.setItem(row_position, 2, received_item)
+        received_item.setBackground(QtGui.QColor("black"))
+
+        text = self.search_textbox.text()
+        if text != '' and (text.lower() in message_type.lower()
+                           or text.lower() in received.lower()
+                           ) and (self.currently_filtering is True):
+            number_item.setBackground(QtGui.QColor("lightgreen"))
+            received_item.setBackground(QtGui.QColor("lightgreen"))
+            message_type_item.setBackground(QtGui.QColor("lightgreen"))
 
     def handleMessage(self, message: MavlinkMessage):
         current_time = message.time.strftime("%H:%M:%S")
-        self.add_message(self.current_message_number, str(message.type),
-                         current_time)
+        self.addMessage(self.current_message_number, str(message.type),
+                        current_time)
         self.current_message_number += 1
         self.number_of_messages += 1
         if self.number_of_messages == 1000:  # Note: Every 1000th message wont be displayed since table gets cleared at that instance
             self.message_table.clearContents()
             self.message_table.setRowCount(0)
             self.number_of_messages = 0
+
+    def filter(self, query):
+        text = self.search_textbox.text()
+        self.currently_filtering = True
+
+        if text != '':
+            for row in range(self.message_table.rowCount()):
+                item1 = self.message_table.item(row, 1)
+                item2 = self.message_table.item(row, 2)
+
+                if (text.lower() in item1.text().lower()
+                        or text.lower() in item2.text().lower()):
+                    item1.setBackground(QtGui.QColor("lightgreen"))
+                    item2.setBackground(QtGui.QColor("lightgreen"))
+                    self.message_table.item(row, 0).setBackground(
+                        QtGui.QColor("lightgreen"))
+
+    def undoFilterHighlighting(self):
+        for row in range(self.message_table.rowCount()):
+            self.message_table.item(row,
+                                    0).setBackground(QtGui.QColor("black"))
+            self.message_table.item(row,
+                                    1).setBackground(QtGui.QColor("black"))
+            self.message_table.item(row,
+                                    2).setBackground(QtGui.QColor("black"))
 
 
 class AboutWindow(QtWidgets.QWidget):
