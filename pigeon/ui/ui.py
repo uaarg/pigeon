@@ -181,7 +181,8 @@ class MavLinkDebugger(QtWidgets.QWidget):
         layout.addWidget(self.stop_search_button)
         layout.addWidget(self.message_table)
 
-        self.stop_search_button.hide() # Should be visible only when search is active
+        self.stop_search_button.hide(
+        )  # Should be visible only when search is active
         self.search_textbox.returnPressed.connect(self.filter)
 
         self.receive_message.connect(self.handleMessage)
@@ -198,7 +199,7 @@ class MavLinkDebugger(QtWidgets.QWidget):
             & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # Make it read-only
         self.message_table.setItem(row_position, 0, number_item)
         # number_item.setBackground(
-            # QtGui.QColor("black"))  # Make the background color black
+        # QtGui.QColor("black"))  # Make the background color black
 
         message_type_item = QtWidgets.QTableWidgetItem(message_type)
         message_type_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -213,15 +214,16 @@ class MavLinkDebugger(QtWidgets.QWidget):
                                & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.message_table.setItem(row_position, 2, received_item)
         # received_item.setBackground(QtGui.QColor("black"))
-        
+
         scrollbar = self.message_table.verticalScrollBar()
-        if scrollbar.value() == scrollbar.maximum(): # Automatically scroll with new rows if you're at the bottom of the table
+        if scrollbar.value() == scrollbar.maximum(
+        ):  # Automatically scroll with new rows if you're at the bottom of the table
             self.message_table.scrollToBottom()
 
         text = self.search_textbox.text()
         if text != '' and (text.lower() not in message_type.lower()
-                           and text.lower() not in received.lower()
-                           ) and (self.currently_filtering is True):
+                           and text.lower() not in received.lower()) and (
+                               self.currently_filtering is True):
             # number_item.setBackground(QtGui.QColor("lightgreen"))
             # received_item.setBackground(QtGui.QColor("lightgreen"))
             # message_type_item.setBackground(QtGui.QColor("lightgreen"))
@@ -265,7 +267,7 @@ class MavLinkDebugger(QtWidgets.QWidget):
             # self.message_table.item(row,
             #                         2).setBackground(QtGui.QColor("black"))
             self.message_table.showRow(row)
-            
+
         self.currently_filtering = False
         self.stop_search_button.hide()
 
