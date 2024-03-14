@@ -6,6 +6,7 @@ from pigeon.ui.common import ImageArea
 
 from pigeon.image import Image
 
+
 class ImageMapArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
@@ -16,7 +17,7 @@ class ImageMapArea(QtWidgets.QWidget):
         self.settings_data = settings_data
 
         self.setObjectName("main_image_widget")
-        
+
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Ignored,
             QtWidgets.QSizePolicy.Policy.Ignored)
@@ -29,7 +30,7 @@ class ImageMapArea(QtWidgets.QWidget):
         self.setLayout(main_layout)
 
         tab_widget = QtWidgets.QTabWidget()
-        main_layout.addWidget(tab_widget)  
+        main_layout.addWidget(tab_widget)
 
         # self.title = QtWidgets.QLabel()
         # self.title.setText(translate("MainImageArea", "Main Image"))
@@ -38,7 +39,7 @@ class ImageMapArea(QtWidgets.QWidget):
 
         image_tab = QtWidgets.QWidget()
         image_layout = QtWidgets.QVBoxLayout(image_tab)
-        image_tab.setLayout(image_layout)  
+        image_tab.setLayout(image_layout)
 
         self.image_area = ImageArea(interactive=True)
         size_policy = QtWidgets.QSizePolicy(
@@ -64,7 +65,7 @@ class ImageMapArea(QtWidgets.QWidget):
 
         # Plumbline marker (if needed)
         self.plumbline = None
-    
+
     def showImage(self, image):
         self.image = image
         self.image_area.setPixmap(image.pixmap_loader)
