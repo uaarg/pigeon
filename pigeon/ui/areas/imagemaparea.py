@@ -6,8 +6,7 @@ from pigeon.ui.common import ImageArea
 
 from pigeon.image import Image
 
-
-class MainImageArea(QtWidgets.QWidget):
+class ImageMapArea(QtWidgets.QWidget):
     image_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     image_right_clicked = QtCore.pyqtSignal(Image, QtCore.QPoint)
     imageChanged = QtCore.pyqtSignal()
@@ -16,6 +15,8 @@ class MainImageArea(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.settings_data = settings_data
 
+        self.setObjectName("main_image_widget")
+        
         size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Ignored,
             QtWidgets.QSizePolicy.Policy.Ignored)
@@ -24,14 +25,15 @@ class MainImageArea(QtWidgets.QWidget):
         self.setSizePolicy(size_policy)
         self.setMinimumSize(QtCore.QSize(100, 100))
 
-        self.setObjectName("main_image_widget")
+        main_layout = QtWidgets.QVBoxLayout(self)
+        self.setLayout(main_layout)
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+        tab_widget = QtWidgets.QTabWidget()
+        main_layout.addWidget(tab_widget)  
 
-        # self.title = QtWidgets.QLabel()
-        # self.title.setText(translate("MainImageArea", "Main Image"))
-        # self.title.setAlignment(QtCore.Qt.AlignHCenter)
-        # self.layout.addWidget(self.title)
+        image_tab = QtWidgets.QWidget()
+        image_layout = QtWidgets.QVBoxLayout(image_tab)
+        image_tab.setLayout(image_layout)  
 
         self.image_area = ImageArea(interactive=True)
         size_policy = QtWidgets.QSizePolicy(
@@ -42,13 +44,22 @@ class MainImageArea(QtWidgets.QWidget):
         self.image_area.setSizePolicy(size_policy)
         self.image_area.setMinimumSize(QtCore.QSize(50, 50))
         self.image_area.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
-        self.layout.addWidget(self.image_area)
+        image_layout.addWidget(self.image_area)
 
         self.image = None
 
-        # Plumbline marker (showing where directly below the plane is):
-        self.plumbline = None
+        map_tab = QtWidgets.QWidget()
+        map_layout = QtWidgets.QVBoxLayout(map_tab)
+        map_tab.setLayout(map_layout)
 
+        tab_widget.addTab(map_tab, translate("ImageMapArea", "Map"))
+        tab_widget.addTab(image_tab, translate("ImageMapArea", "Image"))
+
+        tab_widget.setCurrentIndex(tab_widget.indexOf(map_tab))
+
+        # Plumbline marker (if needed)
+        self.plumbline = None
+    
     def showImage(self, image):
         self.image = image
         self.image_area.setPixmap(image.pixmap_loader)
