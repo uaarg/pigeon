@@ -198,22 +198,18 @@ class MavLinkDebugger(QtWidgets.QWidget):
             number_item.flags()
             & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # Make it read-only
         self.message_table.setItem(row_position, 0, number_item)
-        # number_item.setBackground(
-        # QtGui.QColor("black"))  # Make the background color black
 
         message_type_item = QtWidgets.QTableWidgetItem(message_type)
         message_type_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         message_type_item.setFlags(message_type_item.flags()
                                    & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.message_table.setItem(row_position, 1, message_type_item)
-        # message_type_item.setBackground(QtGui.QColor("black"))
 
         received_item = QtWidgets.QTableWidgetItem(received)
         received_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         received_item.setFlags(received_item.flags()
                                & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.message_table.setItem(row_position, 2, received_item)
-        # received_item.setBackground(QtGui.QColor("black"))
 
         scrollbar = self.message_table.verticalScrollBar()
         if scrollbar.value() == scrollbar.maximum(
@@ -224,9 +220,6 @@ class MavLinkDebugger(QtWidgets.QWidget):
         if text != '' and (text.lower() not in message_type.lower()
                            and text.lower() not in received.lower()) and (
                                self.currently_filtering is True):
-            # number_item.setBackground(QtGui.QColor("lightgreen"))
-            # received_item.setBackground(QtGui.QColor("lightgreen"))
-            # message_type_item.setBackground(QtGui.QColor("lightgreen"))
             self.message_table.hideRow(row_position)
 
     def handleMessage(self, message: MavlinkMessage):
@@ -252,20 +245,10 @@ class MavLinkDebugger(QtWidgets.QWidget):
 
                 if (text.lower() not in item1.text().lower()
                         and text.lower() not in item2.text().lower()):
-                    # item1.setBackground(QtGui.QColor("lightgreen"))
-                    # item2.setBackground(QtGui.QColor("lightgreen"))
-                    # self.message_table.item(row, 0).setBackground(
-                    #     QtGui.QColor("lightgreen"))
                     self.message_table.hideRow(row)
 
     def undoSearch(self):
         for row in range(self.message_table.rowCount()):
-            # self.message_table.item(row,
-            #                         0).setBackground(QtGui.QColor("black"))
-            # self.message_table.item(row,
-            #                         1).setBackground(QtGui.QColor("black"))
-            # self.message_table.item(row,
-            #                         2).setBackground(QtGui.QColor("black"))
             self.message_table.showRow(row)
 
         self.currently_filtering = False
