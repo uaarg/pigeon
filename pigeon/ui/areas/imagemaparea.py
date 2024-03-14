@@ -31,6 +31,11 @@ class ImageMapArea(QtWidgets.QWidget):
         tab_widget = QtWidgets.QTabWidget()
         main_layout.addWidget(tab_widget)  
 
+        # self.title = QtWidgets.QLabel()
+        # self.title.setText(translate("MainImageArea", "Main Image"))
+        # self.title.setAlignment(QtCore.Qt.AlignHCenter)
+        # self.layout.addWidget(self.title)
+
         image_tab = QtWidgets.QWidget()
         image_layout = QtWidgets.QVBoxLayout(image_tab)
         image_tab.setLayout(image_layout)  
