@@ -1,8 +1,9 @@
 from PyQt6 import QtCore, QtWidgets
-
-translate = QtCore.QCoreApplication.translate
+import datetime
 
 from pigeon.ui.commonwidgets import BoldQLabel
+
+translate = QtCore.QCoreApplication.translate
 
 
 class MessageLogArea(QtWidgets.QFrame):
@@ -37,4 +38,5 @@ class MessageLogArea(QtWidgets.QFrame):
         self.layout.addWidget(self.textbox, 1, 0, 1, 1)
 
     def queueMessage(self, message):
-        self.textbox.append(message)
+        time = datetime.datetime.now().strftime("%H:%M:%S")
+        self.textbox.append(f"[{time}] {message}")
