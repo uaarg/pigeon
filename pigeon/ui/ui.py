@@ -159,18 +159,100 @@ class MavLinkDebugger(QtWidgets.QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        self.message_display = QtWidgets.QTextEdit(self)
-        self.message_display.setReadOnly(True)
+        self.message_table = QtWidgets.QTableWidget(self)
+        self.message_table.setColumnCount(3)
+        self.message_table.setHorizontalHeaderLabels(
+            ["Message Number", "Message Type", "Received"])
+        self.no_of_rows = 0
+        self.number_of_messages = 0
+        self.current_message_number = 1
+        self.currently_filtering = False
+
+        self.search_textbox = QtWidgets.QLineEdit(self)
+        self.search_textbox.setPlaceholderText("Enter word to search")
+        self.search_button = QtWidgets.QPushButton("Search", self)
+        self.search_button.clicked.connect(self.filter)
+        self.stop_search_button = QtWidgets.QPushButton("Stop Searching", self)
+        self.stop_search_button.clicked.connect(self.undoSearch)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.message_display)
+        layout.addWidget(self.search_textbox)
+        layout.addWidget(self.search_button)
+        layout.addWidget(self.stop_search_button)
+        layout.addWidget(self.message_table)
+
+        self.stop_search_button.hide(
+        )  # Should be visible only when search is active
+        self.search_textbox.returnPressed.connect(self.filter)
 
         self.receive_message.connect(self.handleMessage)
 
+    def addMessage(self, number, message_type, received):
+        row_position = self.message_table.rowCount()
+        self.message_table.insertRow(row_position)
+
+        number_item = QtWidgets.QTableWidgetItem(str(number))
+        number_item.setTextAlignment(
+            QtCore.Qt.AlignmentFlag.AlignCenter)  # Align to cell center
+        number_item.setFlags(
+            number_item.flags()
+            & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # Make it read-only
+        self.message_table.setItem(row_position, 0, number_item)
+
+        message_type_item = QtWidgets.QTableWidgetItem(message_type)
+        message_type_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        message_type_item.setFlags(message_type_item.flags()
+                                   & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+        self.message_table.setItem(row_position, 1, message_type_item)
+
+        received_item = QtWidgets.QTableWidgetItem(received)
+        received_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        received_item.setFlags(received_item.flags()
+                               & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+        self.message_table.setItem(row_position, 2, received_item)
+
+        scrollbar = self.message_table.verticalScrollBar()
+        if scrollbar.value() == scrollbar.maximum(
+        ):  # Automatically scroll with new rows if you're at the bottom of the table
+            self.message_table.scrollToBottom()
+
+        text = self.search_textbox.text()
+        if text != '' and (text.lower() not in message_type.lower()
+                           and text.lower() not in received.lower()) and (
+                               self.currently_filtering is True):
+            self.message_table.hideRow(row_position)
+
     def handleMessage(self, message: MavlinkMessage):
         current_time = message.time.strftime("%H:%M:%S")
-        self.message_display.append(
-            f"Message: {message.type}, Received: {current_time}")
+        self.addMessage(self.current_message_number, str(message.type),
+                        current_time)
+        self.current_message_number += 1
+        self.number_of_messages += 1
+        if self.number_of_messages == 1000:  # Note: Every 1000th message wont be displayed since table gets cleared at that instance
+            self.message_table.clearContents()
+            self.message_table.setRowCount(0)
+            self.number_of_messages = 0
+
+    def filter(self):
+        text = self.search_textbox.text()
+        self.currently_filtering = True
+        self.stop_search_button.show()
+
+        if text != '':
+            for row in range(self.message_table.rowCount()):
+                item1 = self.message_table.item(row, 1)
+                item2 = self.message_table.item(row, 2)
+
+                if (text.lower() not in item1.text().lower()
+                        and text.lower() not in item2.text().lower()):
+                    self.message_table.hideRow(row)
+
+    def undoSearch(self):
+        for row in range(self.message_table.rowCount()):
+            self.message_table.showRow(row)
+
+        self.currently_filtering = False
+        self.stop_search_button.hide()
 
 
 class AboutWindow(QtWidgets.QWidget):
