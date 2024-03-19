@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets, QtGui
 
 translate = QtCore.QCoreApplication.translate  # Potential aliasing
 
-from pigeon.ui.areas import InfoArea, ThumbnailArea, MessageLogArea, MainImageArea, SettingsArea
+from pigeon.ui.areas import InfoArea, ThumbnailArea, MessageLogArea, ImageMapArea, SettingsArea
 from pigeon.ui.common import QueueMixin
 from pigeon.ui.pixmaploader import PixmapLoader
 from pigeon.ui.style import stylesheet
@@ -295,8 +295,8 @@ class MainWindow(QtWidgets.QMainWindow):
                                   self.main_horizontal_split,
                                   settings_data=settings_data,
                                   minimum_width=INFO_AREA_MIN_WIDTH)
-        self.main_image_area = MainImageArea(self.main_horizontal_split,
-                                             settings_data=settings_data)
+        self.main_image_area = ImageMapArea(self.main_horizontal_split,
+                                            settings_data=settings_data)
         self.message_log_area = MessageLogArea(
             self.main_horizontal_split,
             minimum_width=MESSAGE_LOG_AREA_MIN_WIDTH)
