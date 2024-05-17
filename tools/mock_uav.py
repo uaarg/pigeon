@@ -99,6 +99,17 @@ def mock_debug(conn):
         data=values)
     conn.mav.send(message)
 
+def mock_led(conn):
+    """sends mock LED status to GUI"""
+    rgb = [255, 0, 0]
+    message = dialect.MAVLink_debug_vect_message(name=bytes("LED_STATUS", 'utf-8'),
+                                                    time_usec=0,
+                                                    x=rgb[0],
+                                                    y=rgb[1],
+                                                    z=rgb[2])
+    conn.mav.send(message)
+
+
 
 class DebugRandomStatusService(MavlinkService):
     """
@@ -179,6 +190,9 @@ def main(device: str, timeout: int):
             print("testing debugging service")
             mock_debug(conn)
             flag = False
+
+        if ((current_time - start_time) > 12):
+            mock_led(conn)
 
         # TODO: we should be using some type of select utility to avoid burning a CPU core
         time.sleep(0.0001)  # s = 100us

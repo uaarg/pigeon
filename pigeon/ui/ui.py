@@ -156,11 +156,12 @@ class MavLinkDebugger(QtWidgets.QWidget):
 
     receive_message = QtCore.pyqtSignal(MavlinkMessage)
 
-    def __init__(self) -> None:
+    def __init__(self, mainWindow=None) -> None:
         super().__init__()
 
         self.message_display = QtWidgets.QTextEdit(self)
         self.message_display.setReadOnly(True)
+        self.mainWindow = mainWindow
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.message_display)
@@ -168,6 +169,9 @@ class MavLinkDebugger(QtWidgets.QWidget):
         self.receive_message.connect(self.handleMessage)
 
     def handleMessage(self, message: MavlinkMessage):
+        if self.mainWindow:
+            if message.type == 'DEBUG_VECT' and message.name == 'LED_STATUS':
+                self.mainWindow.LEDStatus(message.data)
         current_time = message.time.strftime("%H:%M:%S")
         self.message_display.append(
             f"Message: {message.type}, Received: {current_time}")
@@ -247,7 +251,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.about_window = None
         self.settings_window = None
-        self.mavlinkdebugger_window = MavLinkDebugger()
+        self.mavlinkdebugger_window = MavLinkDebugger(self)
 
         # State
         self.current_image = None
@@ -414,6 +418,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_image.pixmap_loader.holdOriginal()
         self.main_image_area.showImage(image)
         self.info_area.showImage(image)
+    
+    def LEDStatus(self, data):
+        
+        "Grabs message from connection and updates LED Status on UI"
+        self.info_area.showLEDStatus(data)
 
     def closeEvent(self, event):
         self.exit_cb(

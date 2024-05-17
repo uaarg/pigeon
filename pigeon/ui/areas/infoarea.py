@@ -17,6 +17,9 @@ class ImageInfoArea(NonEditableBaseListForm):
     # have a gigantic second title.
     pass
 
+class LEDInfoArea(NonEditableBaseListForm):
+    pass
+
 
 class StateArea(NonEditableBaseListForm):
 
@@ -55,6 +58,7 @@ class InfoArea(QtWidgets.QFrame):
         self.controlTab = self.createTab("Control Tab")
         self.pigeonTab = self.createTab("Pigeon Tab")
         self.imageInfoTab = self.createTab("Image Info")
+        self.LEDInfoTab = self.createTab("LED Status")
 
         # Create Controls and add to respective tabs
         self.controls_area = ControlsArea(self.uav)
@@ -72,6 +76,9 @@ class InfoArea(QtWidgets.QFrame):
 
         self.controls = CommandsArea(self)
         self.controlTab.layout.addWidget(self.controls)
+
+        self.LED_info_area = LEDInfoArea(self.LEDInfoTab, editable=False)
+        self.LEDInfoTab.layout.addWidget(self.LED_info_area)
 
         # Add parent widgets to info area
         self.layout.addWidget(self.controls_area)
@@ -112,6 +119,20 @@ class InfoArea(QtWidgets.QFrame):
             ("Plane Position", image.plane_position.dispLatLon()),
         ]
         self.image_info_area.setData(data)
+
+    def showLEDStatus(self, LED_Info):
+        """
+        Updates the info area with data about the LEDs.
+        """
+        if (LED_Info[0] == 255 and LED_Info[1] == 0 and LED_Info[2] == 0):
+            data = [("LED Color", "Red 🔴")]
+        elif (LED_Info[0] == 0 and LED_Info[1] == 255 and LED_Info[2] == 0):
+            data = [("LED Color", "Green 🟢")]
+        elif (LED_Info[0] == 0 and LED_Info[1] == 0 and LED_Info[2] == 255):
+            data = [("LED Color", "Blue 🔵")]
+        else: 
+            data = [("LED Color", f"RGB Value: {LED_Info}")]
+        self.LED_info_area.setData(data)
 
     def addImage(self, image):
         """

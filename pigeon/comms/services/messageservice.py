@@ -8,6 +8,8 @@ from pigeon.comms.services.common import MavlinkService
 @dataclass
 class MavlinkMessage:
     type: str
+    data: list
+    name: str
     time: datetime.datetime
 
 
@@ -21,6 +23,10 @@ class MessageCollectorService(MavlinkService):
         self.message_queue = message_queue
 
     def recv_message(self, message):
-        message_details = MavlinkMessage(type=message.get_type(),
-                                         time=datetime.datetime.now())
+        if message.get_type() == 'DEBUG_VECT':
+            message_details = MavlinkMessage(type=message.get_type(), data= [message.x, message.y, message.z], name = message.name,
+                                             time=datetime.datetime.now())
+        else:
+            message_details = MavlinkMessage(type=message.get_type(), data=None, name=None,
+                                             time=datetime.datetime.now())
         self.message_queue.put(message_details)
