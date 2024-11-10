@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Callable, Any
+from typing import Dict, List, Callable, Any
 import asyncio
 
 from websockets.asyncio.server import serve
@@ -7,7 +7,7 @@ from websockets.asyncio.server import serve
 class Message:
     type: str
     time: datetime.datetime
-
+    data: Dict
 
 
 class Connection:
@@ -30,7 +30,7 @@ class Connection:
 
 
 
-class WebhookConnection(Connection):
+class WebsocketsConnection(Connection):
 
     def __init__(self, port=8001) -> None:
         self.port = port
@@ -38,8 +38,7 @@ class WebhookConnection(Connection):
     async def handler(self, websocket):
         try:
             async for message in websocket:
-                for subscriber in self.subscribers:
-                    subscriber(message)
+                print(message)        
         except:
             print("connection closed")
            
